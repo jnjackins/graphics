@@ -97,13 +97,24 @@ func (b *Buffer) sweep(from, to Address) {
 		return // no change in selection
 	}
 	b.dirty = true
-	b.lines[from.Row].dirty = true
-	b.lines[to.Row].dirty = true
+
+	// mark all the rows between to and from as dirty
+	// (to and from can be more than one row apart, if they are sweeping quickly)
+	r1, r2 := to.Row, from.Row
+	if r1 > r2 {
+		r1, r2 = r2, r1
+	}
+	for _, line := range b.lines[r1 : r2+1] {
+		line.dirty = true
+	}
+
+	// set the selection
 	if to.lessThan(b.mSweepOrigin) {
 		b.dot = Selection{to, b.mSweepOrigin}
 	} else if to != b.mSweepOrigin {
 		b.dot = Selection{b.mSweepOrigin, to}
 	} else {
+		b.lines[to.Row].dirty = true
 		b.dot = Selection{b.mSweepOrigin, b.mSweepOrigin}
 	}
 }

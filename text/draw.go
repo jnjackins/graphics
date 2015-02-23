@@ -3,11 +3,10 @@ package text
 import (
 	"image"
 	"image/draw"
-	"log"
 )
 
 func (b *Buffer) redraw() {
-	log.Println("redraw")
+	//log.Println("redraw")
 
 	// clear an area if requested
 	draw.Draw(b.img, b.clear, b.bgCol, image.ZP, draw.Src)
