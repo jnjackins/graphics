@@ -32,7 +32,7 @@ func main() {
 	var err error
 	runtime.GOMAXPROCS(runtime.NumCPU())
 	gopath := os.Getenv("GOPATH")
-	fontpath := gopath + "/src/code.google.com/p/jnj/cmd/buf/proggy.ttf"
+	fontpath := gopath + "/src/github.com/jnjackins/graphics/cmd/buf/proggyfont.ttf"
 	buf, err = text.NewBuffer(image.Rect(0, 0, 300, 300), fontpath)
 	die.On(err)
 	buf.LoadString("test")

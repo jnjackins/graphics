@@ -72,7 +72,7 @@ func (b *Buffer) Resize(r image.Rectangle) {
 	}
 }
 
-// Dirty returns true if the Buffer has changed visible since the last call to
+// Dirty returns true if the Buffer has changed visibly since the last call to
 // Img.
 func (b *Buffer) Dirty() bool {
 	return b.dirty
