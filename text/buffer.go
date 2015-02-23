@@ -70,6 +70,7 @@ func (b *Buffer) Resize(r image.Rectangle) {
 	for _, line := range b.lines {
 		line.dirty = true
 	}
+	b.dirty = true
 }
 
 // Dirty returns true if the Buffer has changed visibly since the last call to
