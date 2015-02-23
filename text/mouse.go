@@ -1,0 +1,109 @@
+package text
+
+import (
+	"image"
+	"time"
+)
+
+const (
+	b1 = 1 << iota
+	b2
+	b3
+	b4 // mouse wheel up
+	b5 // mouse wheel down
+)
+
+const dClickPause = 500 * time.Millisecond
+
+func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
+	oldbuttons := b.mButtons
+	oldpos := b.mPos
+	b.mButtons = buttons
+	b.mPos = pos
+	a := b.pt2Address(pos)
+	if oldbuttons == 0 && buttons > 0 {
+		b.mSweepOrigin = a
+		b.click(a, buttons)
+		b.lines[a.Row].dirty = true
+	} else if buttons > 0 && oldbuttons == buttons {
+		oldA := b.pt2Address(oldpos)
+		b.sweep(oldA, a)
+	}
+}
+
+func (b *Buffer) pt2Address(pt image.Point) Address {
+	pt = pt.Sub(b.img.Rect.Min)
+	// (0,0) if pt is above the buffer
+	if pt.Y < 0 {
+		return Address{}
+	}
+
+	var pos Address
+	pos.Row = pt.Y / b.font.height
+
+	// end of the last line if pos is below the last line
+	if pos.Row > len(b.lines)-1 {
+		pos.Row = len(b.lines) - 1
+		pos.Col = len(b.lines[pos.Row].s)
+		return pos
+	}
+
+	if pt.X < 0 {
+		return Address{pos.Row, 0}
+	}
+
+	line := b.lines[pos.Row]
+	for i := range line.px {
+		if line.px[i]+b.img.Bounds().Min.X > pt.X {
+			if i > 0 {
+				pos.Col = i - 1
+			}
+			return pos
+		}
+	}
+	pos.Col = len(line.s)
+	return pos
+}
+
+func (b *Buffer) click(pos Address, buttons int) {
+	b.dirty = true
+	switch buttons {
+	case b1:
+		for _, line := range b.lines[b.dot.Head.Row : b.dot.Tail.Row+1] {
+			line.dirty = true
+		}
+		b.dot.Head, b.dot.Tail = pos, pos
+		b.lines[pos.Row].dirty = true
+		if b.dClicking == true && pos == b.dot.Head && pos == b.dot.Tail {
+			b.dClick(pos)
+			b.dClicking = false
+			b.dClickTimer.Stop()
+		} else {
+			b.dClicking = true
+			if b.dClickTimer != nil {
+				b.dClickTimer.Stop()
+			}
+			b.dClickTimer = time.AfterFunc(dClickPause, func() { b.dClicking = false })
+		}
+	}
+}
+
+func (b *Buffer) dClick(a Address) {
+	b.expandSel(a)
+}
+
+func (b *Buffer) sweep(from, to Address) {
+	if from == to {
+		return // no change in selection
+	}
+	b.dirty = true
+	b.lines[from.Row].dirty = true
+	b.lines[to.Row].dirty = true
+	if to.lessThan(b.mSweepOrigin) {
+		b.dot = Selection{to, b.mSweepOrigin}
+	} else if to != b.mSweepOrigin {
+		b.dot = Selection{b.mSweepOrigin, to}
+	} else {
+		b.dot = Selection{b.mSweepOrigin, b.mSweepOrigin}
+	}
+}
