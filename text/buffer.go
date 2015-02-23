@@ -56,7 +56,7 @@ func NewBuffer(r image.Rectangle, fontpath string) (*Buffer, error) {
 		selCol: selCol,
 		cursor: cursor,
 		font:   font,
-		lines:  []*line{&line{}},
+		lines:  []*line{&line{s: []rune{}, px: []int{0}}},
 		clear:  r,
 	}
 
@@ -87,14 +87,25 @@ func (b *Buffer) Img() *image.RGBA {
 }
 
 // Select sets the current selection of the Buffer.
-func (b *Buffer) Select(head, tail Address) {
-	b.dot = Selection{head, tail}
+func (b *Buffer) Select(s Selection) {
+	b.dot = s
 }
 
 // LoadString replaces the currently selected text with s, and returns the new Selection.
 func (b *Buffer) LoadString(s string) Selection {
 	b.load(s)
 	return b.dot
+}
+
+func (b *Buffer) Contents() string {
+	var s string
+	for i, line := range b.lines {
+		s += string(line.s)
+		if i < len(b.lines)-1 {
+			s += "\n"
+		}
+	}
+	return s
 }
 
 // SendKey sends a keystroke to be interpreted by the Buffer.
