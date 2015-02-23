@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// Buffer represents a text buffer which, if you send it keystrokes and mouse events,
+// will maintain a graphical representation of itself accessible by the Img method.
 type Buffer struct {
 	img    *image.RGBA
 	bgCol  *image.Uniform
@@ -27,6 +29,7 @@ type Buffer struct {
 	mSweepOrigin Address     // keeps track of the origin of a sweep
 }
 
+// NewBuffer returns a new buffer of size r, using the TTF font at fontpath.
 func NewBuffer(r image.Rectangle, fontpath string) (*Buffer, error) {
 	f, err := os.Open(fontpath)
 	if err != nil {
@@ -60,6 +63,7 @@ func NewBuffer(r image.Rectangle, fontpath string) (*Buffer, error) {
 	return b, nil
 }
 
+// Resize resizes the Buffer. Subsequent calls to Img will return an image of size r.
 func (b *Buffer) Resize(r image.Rectangle) {
 	b.img = image.NewRGBA(r)
 	b.clear = r
@@ -68,31 +72,36 @@ func (b *Buffer) Resize(r image.Rectangle) {
 	}
 }
 
-// Dirty returns true if the next
+// Dirty returns true if the Buffer has changed visible since the last call to
+// Img.
 func (b *Buffer) Dirty() bool {
 	return b.dirty
 }
 
+// Img returns an image representing the current state of the Buffer.
 func (b *Buffer) Img() *image.RGBA {
 	b.redraw()
 	b.dirty = false
 	return b.img
 }
 
+// Select sets the current selection of the Buffer.
 func (b *Buffer) Select(head, tail Address) {
 	b.dot = Selection{head, tail}
 }
 
-// LoadString replaces the currently selected text with s, and returns the new Selection
+// LoadString replaces the currently selected text with s, and returns the new Selection.
 func (b *Buffer) LoadString(s string) Selection {
 	b.load(s)
 	return b.dot
 }
 
+// SendKey sends a keystroke to be interpreted by the Buffer.
 func (b *Buffer) SendKey(r rune) {
 	b.handleKey(r)
 }
 
+// SendMouseEvent sends a mouse event to be interpreted by the Buffer.
 func (b *Buffer) SendMouseEvent(pos image.Point, buttons int) {
 	b.handleMouseEvent(pos, buttons)
 }
