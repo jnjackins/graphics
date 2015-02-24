@@ -45,7 +45,7 @@ func main() {
 	gopath := os.Getenv("GOPATH")
 	fontpath := gopath + "/src/github.com/jnjackins/graphics/cmd/buf/proggyfont.ttf"
 	var err error
-	buf, err = text.NewBuffer(image.Rect(0, 0, 800, 600), fontpath)
+	buf, err = text.NewBuffer(image.Rect(0, 0, 800, 600), fontpath, text.AcmeTheme)
 	die.On(err)
 
 	var path string
