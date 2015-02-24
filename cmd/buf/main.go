@@ -19,18 +19,6 @@ var (
 	buf    *text.Buffer
 )
 
-type mouseEvent struct {
-	m draw.Mouse
-}
-
-func (e mouseEvent) Pos() image.Point {
-	return e.m.Point
-}
-
-func (e mouseEvent) Buttons() int {
-	return e.m.Buttons
-}
-
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -101,7 +89,8 @@ loop:
 }
 
 func redraw() {
-	_, err := screen.Load(screen.Bounds(), buf.Img().Pix)
+	img, clipr := buf.Img()
+	_, err := screen.Load(screen.Bounds(), img.SubImage(clipr).(*image.RGBA).Pix)
 	die.On(err)
 	disp.Flush()
 }
