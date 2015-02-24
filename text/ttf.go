@@ -208,12 +208,12 @@ func (f *ttf) glyph(glyph truetype.Index, p raster.Point) (
 	return advanceWidth, mask, offset.Add(image.Point{ix, iy}), nil
 }
 
-// draw draws s onto dst starting at pt, up to a maximum length of w pixels,
-// and returns a slice of x-coords of the rightmost pixels of each rune,
-// as well as a string containing the portion of s which exceeded w and was
-// not drawn.
+// draw draws s onto dst starting at pt, up to a maximum length of w pixels.
+// It returns a slice of x-coords for each rune, as well as a string containing
+// the portion of s which exceeded w and was not drawn.
 func (f *ttf) draw(dst draw.Image, pt image.Point, s string, w int) ([]int, string) {
 	px := make([]int, 1, len(s)+1)
+	px[0] = pt.X
 	pt.Y += f.height - 3
 	p := pixelsToRaster(pt)
 	maxwidth := raster.Fix32(w << 8)
@@ -223,7 +223,7 @@ func (f *ttf) draw(dst draw.Image, pt image.Point, s string, w int) ([]int, stri
 		// deal with tabstop specially
 		if rune == '\t' {
 			p.X += f.tabwidth
-			px = append(px, px[0]+int(p.X>>8))
+			px = append(px, int(p.X>>8))
 			continue
 		}
 		index := f.font.Index(rune)
@@ -246,7 +246,7 @@ func (f *ttf) draw(dst draw.Image, pt image.Point, s string, w int) ([]int, stri
 			return px, s[i:]
 		}
 		prev, hasPrev = index, true
-		px = append(px, px[0]+int(p.X>>8))
+		px = append(px, int(p.X>>8))
 	}
 	return px, ""
 }

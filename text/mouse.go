@@ -16,12 +16,18 @@ const (
 const dClickPause = 500 * time.Millisecond
 
 func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
+	pos = pos.Add(b.clipr.Min) // adjust for scrolling
+
 	oldbuttons := b.mButtons
 	oldpos := b.mPos
 	b.mButtons = buttons
 	b.mPos = pos
 	a := b.pt2Address(pos)
-	if oldbuttons == 0 && buttons > 0 {
+	if buttons == b4 {
+		b.scroll(image.Pt(0, -2))
+	} else if buttons == b5 {
+		b.scroll(image.Pt(0, 2))
+	} else if oldbuttons == 0 && buttons > 0 {
 		b.mSweepOrigin = a
 		b.click(a, buttons)
 		b.lines[a.Row].dirty = true
@@ -66,7 +72,7 @@ func (b *Buffer) pt2Address(pt image.Point) Address {
 }
 
 func (b *Buffer) click(pos Address, buttons int) {
-	b.dirty = true
+	b.dirtyImg = true
 	switch buttons {
 	case b1:
 		for _, line := range b.lines[b.dot.Head.Row : b.dot.Tail.Row+1] {
@@ -96,7 +102,7 @@ func (b *Buffer) sweep(from, to Address) {
 	if from == to {
 		return // no change in selection
 	}
-	b.dirty = true
+	b.dirtyImg = true
 
 	// mark all the rows between to and from as dirty
 	// (to and from can be more than one row apart, if they are sweeping quickly)

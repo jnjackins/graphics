@@ -116,6 +116,7 @@ func isAlnum(c rune) bool {
 }
 
 // expandSel selects some text around a. Based on acme's double click selection rules.
+// TODO: not working for multi-line selections
 func (b *Buffer) expandSel(a Address) {
 	b.dot.Head, b.dot.Tail = a, a
 	line := b.lines[a.Row].s

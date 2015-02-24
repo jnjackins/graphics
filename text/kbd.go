@@ -1,9 +1,11 @@
 package text
 
-import "unicode"
+import (
+	"image"
+	"unicode"
+)
 
 func (b *Buffer) handleKey(r rune) {
-	b.dirty = true
 	key := r
 
 	// fix left, right, and up on OSX
@@ -20,6 +22,10 @@ func (b *Buffer) handleKey(r rune) {
 	case 10:
 		b.newline()
 
+	// up
+	case 14:
+		b.scroll(image.Pt(0, -18*b.font.height))
+
 	// left
 	case 17:
 		b.left()
@@ -27,6 +33,10 @@ func (b *Buffer) handleKey(r rune) {
 	// right
 	case 18:
 		b.right()
+
+	// down
+	case 128:
+		b.scroll(image.Pt(0, 18*b.font.height))
 
 	default:
 		if unicode.IsGraphic(r) {
@@ -36,6 +46,7 @@ func (b *Buffer) handleKey(r rune) {
 }
 
 func (b *Buffer) backspace() {
+	b.dirtyImg = true
 	b.deleteSel()
 	head := b.dot.Head
 	row, col := head.Row, head.Col
@@ -71,6 +82,7 @@ func (b *Buffer) backspace() {
 }
 
 func (b *Buffer) left() {
+	b.dirtyImg = true
 	head := b.dot.Head
 	if head.Col > 0 {
 		b.lines[head.Row].dirty = true
@@ -85,6 +97,7 @@ func (b *Buffer) left() {
 }
 
 func (b *Buffer) right() {
+	b.dirtyImg = true
 	head := b.dot.Head
 	if head.Col < len(b.lines[head.Row].s) {
 		b.lines[head.Row].dirty = true
@@ -99,6 +112,7 @@ func (b *Buffer) right() {
 }
 
 func (b *Buffer) newline() {
+	b.dirtyImg = true
 	b.deleteSel()
 	row, col := b.dot.Head.Row, b.dot.Head.Col
 	nl := &line{

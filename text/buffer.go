@@ -11,15 +11,23 @@ import (
 // Buffer represents a text buffer which, if you send it keystrokes and mouse events,
 // will maintain a graphical representation of itself accessible by the Img method.
 type Buffer struct {
-	img    *image.RGBA
+	// images and drawing data
+	img        *image.RGBA
+	dirtyImg   bool
+	clipr      image.Rectangle
+	dirtyClipr bool
+	clear      image.Rectangle // to be cleared next redraw
+
+	// (should be) configurable
 	bgCol  *image.Uniform
 	selCol *image.Uniform
+	margin image.Point
 	cursor *image.RGBA // the cursor to draw when nothing is selected
 	font   *ttf
-	lines  []*line         // the text data
-	dot    Selection       // the current selection
-	clear  image.Rectangle // to be cleared next redraw
-	dirty  bool            // indicates the client should redraw
+
+	// state
+	lines []*line   // the text data
+	dot   Selection // the current selection
 
 	// mouse related state
 	dClicking    bool        // the user is potentially double clicking
@@ -50,40 +58,58 @@ func NewBuffer(r image.Rectangle, fontpath string) (*Buffer, error) {
 	draw.Draw(cursor, image.Rect(0, 3, 1, h), bgCol, image.ZP, draw.Src)
 	draw.Draw(cursor, image.Rect(2, 3, 3, h), bgCol, image.ZP, draw.Src)
 
+	imgR := r
+	imgR.Max.Y *= 2
+
 	b := &Buffer{
-		img:    image.NewRGBA(r),
+		img:        image.NewRGBA(imgR),
+		dirtyImg:   true,
+		clipr:      r,
+		dirtyClipr: true,
+		clear:      imgR,
+
 		bgCol:  bgCol,
 		selCol: selCol,
+		margin: image.Pt(4, 0),
 		cursor: cursor,
 		font:   font,
-		lines:  []*line{&line{s: []rune{}, px: []int{0}}},
-		clear:  r,
+
+		lines: []*line{&line{s: []rune{}, px: []int{0}}},
 	}
 
 	return b, nil
 }
 
-// Resize resizes the Buffer. Subsequent calls to Img will return an image of size r.
+// Resize resizes the Buffer. Subsequent calls to Img will return an image of
+// at least size r, and a clipping rectangle of size r.
 func (b *Buffer) Resize(r image.Rectangle) {
-	b.img = image.NewRGBA(r)
-	b.clear = r
+	imgR := r
+	imgR.Max.Y *= 2
+	b.img = image.NewRGBA(imgR)
+	b.clear = imgR
+	b.clipr = r
 	for _, line := range b.lines {
 		line.dirty = true
 	}
-	b.dirty = true
+	b.dirtyImg = true
+	b.dirtyClipr = true
 }
 
 // Dirty returns true if the Buffer has changed visibly since the last call to
 // Img.
 func (b *Buffer) Dirty() bool {
-	return b.dirty
+	return b.dirtyImg || b.dirtyClipr
 }
 
-// Img returns an image representing the current state of the Buffer.
-func (b *Buffer) Img() *image.RGBA {
-	b.redraw()
-	b.dirty = false
-	return b.img
+// Img returns an image representing the current state of the Buffer, and the clipping
+// rectangle representing the portion currently in view.
+func (b *Buffer) Img() (*image.RGBA, image.Rectangle) {
+	if b.dirtyImg {
+		b.redraw()
+		b.dirtyImg = false
+	}
+	b.dirtyClipr = false
+	return b.img, b.clipr
 }
 
 // Select sets the current selection of the Buffer.

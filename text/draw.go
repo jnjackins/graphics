@@ -3,11 +3,10 @@ package text
 import (
 	"image"
 	"image/draw"
+	"log"
 )
 
 func (b *Buffer) redraw() {
-	//log.Println("redraw")
-
 	// clear an area if requested
 	draw.Draw(b.img, b.clear, b.bgCol, image.ZP, draw.Src)
 	b.clear = image.ZR
@@ -15,15 +14,23 @@ func (b *Buffer) redraw() {
 	selection := !(b.dot.Head == b.dot.Tail)
 
 	// redraw dirty lines
+	count := 0
 	for row, line := range b.lines {
 		if line.dirty {
+			count++
 			line.dirty = false
 
-			pt := image.Pt(0, row*b.font.height)
+			pt := image.Pt(0, row*b.font.height).Add(b.margin) // the top left pixel of the line
+
+			// make sure b.img is big enough to show this line and one full clipr past it
+			if pt.Y+b.clipr.Dy() >= b.img.Bounds().Max.Y {
+				b.growImg()
+			}
 
 			// clear the line, unless it is completely selected
 			if !selection || row <= b.dot.Head.Row || row >= b.dot.Tail.Row {
-				r := image.Rect(pt.X, pt.Y, pt.X+b.img.Bounds().Dx(), pt.Y+b.font.height)
+				// clear all the way to the left side of the image; the margin may have bits of cursor in it
+				r := image.Rect(b.img.Bounds().Min.X, pt.Y, pt.X+b.img.Bounds().Dx(), pt.Y+b.font.height)
 				draw.Draw(b.img, r, b.bgCol, image.ZP, draw.Src)
 			}
 
@@ -43,10 +50,12 @@ func (b *Buffer) redraw() {
 		pt := image.Pt(b.getxpx(b.dot.Head)-1, b.getypx(b.dot.Head.Row))
 		draw.Draw(b.img, b.cursor.Rect.Add(pt), b.cursor, image.ZP, draw.Src)
 	}
+
+	log.Println("redraw: ", count, "lines")
 }
 
 func (b *Buffer) drawSel(row int) {
-	x1 := 0
+	x1 := b.margin.X
 	if row == b.dot.Head.Row {
 		x1 = b.getxpx(b.dot.Head)
 	}
@@ -58,6 +67,28 @@ func (b *Buffer) drawSel(row int) {
 	max := image.Pt(x2, b.getypx(row+1))
 	r := image.Rectangle{min, max}
 	draw.Draw(b.img, r, b.selCol, image.ZP, draw.Src)
+}
+
+func (b *Buffer) scroll(pt image.Point) {
+	b.dirtyClipr = true
+
+	b.clipr = b.clipr.Add(pt)
+
+	min := b.img.Bounds().Min
+	max := b.img.Bounds().Max
+	max.Y = (len(b.lines)-1)*b.font.height + b.clipr.Dy()
+	if b.clipr.Min.X < min.X {
+		b.clipr = image.Rect(min.X, b.clipr.Min.Y, min.X+b.clipr.Dx(), b.clipr.Max.Y)
+	}
+	if b.clipr.Min.Y < min.Y {
+		b.clipr = image.Rect(b.clipr.Min.X, min.Y, b.clipr.Max.X, min.Y+b.clipr.Dy())
+	}
+	if b.clipr.Max.X > max.X {
+		b.clipr = image.Rect(max.X-b.clipr.Dx(), b.clipr.Min.Y, max.X, b.clipr.Max.Y)
+	}
+	if b.clipr.Max.Y > max.Y {
+		b.clipr = image.Rect(b.clipr.Min.X, max.Y-b.clipr.Dy(), b.clipr.Max.X, max.Y)
+	}
 }
 
 // returns x (pixels) for a given Address
@@ -72,4 +103,19 @@ func (b *Buffer) getxpx(a Address) int {
 // returns y (pixels) for a given row
 func (b *Buffer) getypx(row int) int {
 	return b.img.Bounds().Min.Y + row*b.font.height
+}
+
+func (b *Buffer) growImg() {
+	// new image is double the old
+	r := b.img.Bounds()
+	r.Max.Y += b.img.Bounds().Dy()
+	newImg := image.NewRGBA(r)
+	draw.Draw(newImg, newImg.Bounds(), b.bgCol, image.ZP, draw.Src)
+
+	// draw the old image onto the new image
+	draw.Draw(newImg, newImg.Bounds(), b.img, image.ZP, draw.Src)
+
+	b.img = newImg
+
+	log.Println("growImg: ", b.img.Bounds())
 }
