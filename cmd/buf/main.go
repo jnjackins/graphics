@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"runtime/pprof"
 
 	"code.google.com/p/jnj.plan9/draw"
 	"code.google.com/p/jnj/die"
@@ -19,6 +20,8 @@ var (
 	buf    *text.Buffer
 )
 
+var cpuprofile = flag.String("cpuprofile", "", "provide a path for cpu profile")
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
@@ -29,6 +32,14 @@ func main() {
 	} else if len(flag.Args()) > 1 {
 		fmt.Fprintln(os.Stderr, "Usage: buf [file]")
 		os.Exit(1)
+	}
+
+	if *cpuprofile != "" {
+		profileWriter, err := os.Create(*cpuprofile)
+		die.On(err, "error creating file for cpu profile")
+		defer profileWriter.Close()
+		pprof.StartCPUProfile(profileWriter)
+		defer pprof.StopCPUProfile()
 	}
 
 	gopath := os.Getenv("GOPATH")
