@@ -45,6 +45,23 @@ func (b *Buffer) handleKey(r rune) {
 	}
 }
 
+func (b *Buffer) input(r rune) {
+	b.dirtyImg = true
+	b.deleteSel()
+	row, col := b.dot.Head.Row, b.dot.Head.Col
+	b.lines[row].dirty = true
+
+	if col == len(b.lines[row].s) {
+		b.lines[row].s = append(b.lines[row].s, r)
+	} else {
+		line := string(b.lines[row].s)
+		line = line[:col] + string(r) + line[col:]
+		b.lines[row].s = []rune(line)
+	}
+	b.dot.Head.Col++
+	b.dot.Tail = b.dot.Head
+}
+
 func (b *Buffer) backspace() {
 	b.dirtyImg = true
 	b.deleteSel()

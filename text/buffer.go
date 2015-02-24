@@ -50,6 +50,7 @@ func NewBuffer(r image.Rectangle, fontpath string) (*Buffer, error) {
 
 	bgCol := image.NewUniform(color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF})
 	selCol := image.NewUniform(color.RGBA{R: 0xEE, G: 0xEE, B: 0x9E, A: 0xFF})
+	margin := image.Pt(4, 0)
 
 	// draw the default cursor
 	cursor := image.NewRGBA(image.Rect(0, 0, 3, font.height))
@@ -70,11 +71,11 @@ func NewBuffer(r image.Rectangle, fontpath string) (*Buffer, error) {
 
 		bgCol:  bgCol,
 		selCol: selCol,
-		margin: image.Pt(4, 0),
+		margin: margin,
 		cursor: cursor,
 		font:   font,
 
-		lines: []*line{&line{s: []rune{}, px: []int{0}}},
+		lines: []*line{&line{s: []rune{}, px: []int{margin.X}}},
 	}
 
 	return b, nil

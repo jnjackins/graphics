@@ -29,22 +29,6 @@ type Selection struct {
 	Head, Tail Address // the beginning and end points of the selection
 }
 
-func (b *Buffer) input(r rune) {
-	b.deleteSel()
-	row, col := b.dot.Head.Row, b.dot.Head.Col
-	b.lines[row].dirty = true
-
-	if col == len(b.lines[row].s) {
-		b.lines[row].s = append(b.lines[row].s, r)
-	} else {
-		line := string(b.lines[row].s)
-		line = line[:col] + string(r) + line[col:]
-		b.lines[row].s = []rune(line)
-	}
-	b.dot.Head.Col++
-	b.dot.Tail = b.dot.Head
-}
-
 // load replaces the current selection with the contents of s. The cursor is left
 // at the beginning of the new text, and the position at the end of the new text
 // is returned.
