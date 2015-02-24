@@ -48,7 +48,7 @@ func (b *Buffer) redraw() {
 	if !selection {
 		// subtract a pixel from x coordinate to match acme
 		pt := image.Pt(b.getxpx(b.dot.Head)-1, b.getypx(b.dot.Head.Row))
-		draw.Draw(b.img, b.cursor.Rect.Add(pt), b.cursor, image.ZP, draw.Src)
+		draw.Draw(b.img, b.cursor.Bounds().Add(pt), b.cursor, image.ZP, draw.Src)
 	}
 
 	log.Println("redraw: ", count, "lines")
@@ -74,6 +74,7 @@ func (b *Buffer) scroll(pt image.Point) {
 
 	b.clipr = b.clipr.Add(pt)
 
+	// check boundaries
 	min := b.img.Bounds().Min
 	max := b.img.Bounds().Max
 	max.Y = (len(b.lines)-1)*b.font.height + b.clipr.Dy()

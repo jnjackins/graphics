@@ -2,8 +2,6 @@ package text
 
 import (
 	"image"
-	"image/color"
-	"image/draw"
 	"os"
 	"time"
 )
@@ -18,11 +16,11 @@ type Buffer struct {
 	dirtyClipr bool
 	clear      image.Rectangle // to be cleared next redraw
 
-	// (should be) configurable
+	// configurable
 	bgCol  *image.Uniform
 	selCol *image.Uniform
 	margin image.Point
-	cursor *image.RGBA // the cursor to draw when nothing is selected
+	cursor image.Image // the cursor to draw when nothing is selected
 	font   *ttf
 
 	// state
@@ -38,7 +36,7 @@ type Buffer struct {
 }
 
 // NewBuffer returns a new buffer of size r, using the TTF font at fontpath.
-func NewBuffer(r image.Rectangle, fontpath string) (*Buffer, error) {
+func NewBuffer(r image.Rectangle, fontpath string, options OptionSet) (*Buffer, error) {
 	f, err := os.Open(fontpath)
 	if err != nil {
 		return nil, err
@@ -47,17 +45,6 @@ func NewBuffer(r image.Rectangle, fontpath string) (*Buffer, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	bgCol := image.NewUniform(color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF})
-	selCol := image.NewUniform(color.RGBA{R: 0xEE, G: 0xEE, B: 0x9E, A: 0xFF})
-	margin := image.Pt(4, 0)
-
-	// draw the default cursor
-	cursor := image.NewRGBA(image.Rect(0, 0, 3, font.height))
-	draw.Draw(cursor, cursor.Rect, image.Black, image.ZP, draw.Src)
-	h := font.height - 3 // TODO magic 3
-	draw.Draw(cursor, image.Rect(0, 3, 1, h), bgCol, image.ZP, draw.Src)
-	draw.Draw(cursor, image.Rect(2, 3, 3, h), bgCol, image.ZP, draw.Src)
 
 	imgR := r
 	imgR.Max.Y *= 2
@@ -69,13 +56,13 @@ func NewBuffer(r image.Rectangle, fontpath string) (*Buffer, error) {
 		dirtyClipr: true,
 		clear:      imgR,
 
-		bgCol:  bgCol,
-		selCol: selCol,
-		margin: margin,
-		cursor: cursor,
+		bgCol:  image.NewUniform(options.BGColor),
+		selCol: image.NewUniform(options.SelColor),
+		margin: options.Margin,
+		cursor: options.Cursor(font.height),
 		font:   font,
 
-		lines: []*line{&line{s: []rune{}, px: []int{margin.X}}},
+		lines: []*line{&line{s: []rune{}, px: []int{options.Margin.X}}},
 	}
 
 	return b, nil
