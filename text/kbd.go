@@ -66,34 +66,27 @@ func (b *Buffer) backspace() {
 	b.dirtyImg = true
 	b.deleteSel()
 	head := b.dot.Head
-	row, col := head.Row, head.Col
-	if col > 0 {
-		b.lines[row].dirty = true
+	if head.Col > 0 {
+		b.lines[head.Row].dirty = true
 		head.Col--
-		line := b.lines[row].s
+		line := b.lines[head.Row].s
 		line = append(line[:head.Col], line[head.Col+1:]...)
-		b.lines[row].s = line
-	} else if row > 0 {
+		b.lines[head.Row].s = line
+	} else if head.Row > 0 {
 		head.Row--
-		row--
-
-		// all following lines will need to be redraw at their new row,
-		// and the end of the image cleared.
-		//
-		// TODO: perhaps we should shift the lines by redrawing a subrectangle
-		// of b.img one b.font.height higher, instead of marking all the lower
-		// lines as dirty?
-		b.clear = b.img.Bounds()
-		b.clear.Min.Y = b.font.height * (len(b.lines) - 1)
-		for _, line := range b.lines[row:] {
-			line.dirty = true
-		}
-
-		head.Col = len(b.lines[row].s)
+		head.Col = len(b.lines[head.Row].s)
 
 		// delete the old line
-		b.lines[row].s = append(b.lines[row].s, b.lines[row+1].s...)
-		b.lines = append(b.lines[:row+1], b.lines[row+2:]...)
+		b.lines[head.Row].s = append(b.lines[head.Row].s, b.lines[head.Row+1].s...)
+		b.lines = append(b.lines[:head.Row+1], b.lines[head.Row+2:]...)
+
+		// redraw everything past here
+		for _, line := range b.lines[head.Row:] {
+			line.dirty = true
+		}
+		// make sure we clean up the garbage left after the (new) final line
+		b.clear = b.img.Bounds()
+		b.clear.Min.Y = b.font.height * (len(b.lines) - 1)
 	}
 	b.dot.Head, b.dot.Tail = head, head
 }
@@ -137,9 +130,8 @@ func (b *Buffer) newline() {
 		dirty: true,
 	}
 
-	// TODO: perhaps we should shift the lines by redrawing a subrectangle
-	// of b.img one b.font.height lower, instead of marking all the lower
-	// lines as dirty?
+	// since we need to shift everything down, all past here will need
+	// to be redrawn.
 	for _, line := range b.lines[row:] {
 		line.dirty = true
 	}

@@ -86,9 +86,14 @@ func (b *Buffer) deleteSel() {
 	b.lines[row1].dirty = true
 	if row2 > row1 {
 		b.lines = append(b.lines[:row1+1], b.lines[row2+1:]...)
+
+		// redraw everything past here
 		for _, line := range b.lines[row1+1:] {
 			line.dirty = true
 		}
+		// make sure we clean up the garbage left after the (new) final line
+		b.clear = b.img.Bounds()
+		b.clear.Min.Y = b.font.height * (len(b.lines) - 1)
 	}
 	b.dot.Tail = b.dot.Head
 }
@@ -124,6 +129,9 @@ func (b *Buffer) expandSel(a Address) {
 
 	// select quoted text
 	if b.selDelimited(quotes, quotes) {
+		for _, line := range b.lines[b.dot.Head.Row : b.dot.Tail.Row+1] {
+			line.dirty = true
+		}
 		return
 	}
 
