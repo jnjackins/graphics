@@ -80,18 +80,16 @@ func (b *Buffer) deleteSel() {
 	if b.dot.Head == b.dot.Tail {
 		return
 	}
-
 	col1, row1, col2, row2 := b.dot.Head.Col, b.dot.Head.Row, b.dot.Tail.Col, b.dot.Tail.Row
-	b.lines[row1].dirty = true
-	b.lines[row2].dirty = true
-
-	line := b.lines[row1].s
-	line = b.lines[row1].s[:col1]
+	line := b.lines[row1].s[:col1]
 	b.lines[row1].s = append(line, b.lines[row2].s[col2:]...)
+	b.lines[row1].dirty = true
 	if row2 > row1 {
 		b.lines = append(b.lines[:row1+1], b.lines[row2+1:]...)
+		for _, line := range b.lines[row1+1:] {
+			line.dirty = true
+		}
 	}
-
 	b.dot.Tail = b.dot.Head
 }
 
@@ -100,13 +98,15 @@ func isAlnum(c rune) bool {
 }
 
 // expandSel selects some text around a. Based on acme's double click selection rules.
-// TODO: not working for multi-line selections
 func (b *Buffer) expandSel(a Address) {
 	b.dot.Head, b.dot.Tail = a, a
 	line := b.lines[a.Row].s
 
 	// select bracketed text
 	if b.selDelimited(leftbrackets, rightbrackets) {
+		for _, line := range b.lines[b.dot.Head.Row : b.dot.Tail.Row+1] {
+			line.dirty = true
+		}
 		return
 	}
 
@@ -147,6 +147,7 @@ const (
 )
 
 // returns true if a selection was attempted, successfully or not
+// TODO: simplify
 func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 	var dir int
 
