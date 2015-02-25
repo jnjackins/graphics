@@ -149,8 +149,6 @@ const (
 // returns true if a selection was attempted, successfully or not
 // TODO: simplify
 func (b *Buffer) selDelimited(delims1, delims2 string) bool {
-	var dir int
-
 	left, right := b.dot.Head, b.dot.Tail
 	line := b.lines[left.Row].s
 	var delim int
@@ -170,16 +168,15 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 				}
 				return right
 			}
-			dir = selRight
 		}
 	}
+	var leftwards bool
 	if next == nil && left.Col < len(line) {
 		if delim = strings.IndexRune(delims2, line[left.Col]); delim != -1 {
+			leftwards = true
 			// scan from right delimiter
 			// swap delimiters so that delim1 refers to the first one we encountered
-			tmp := delims1
-			delims1 = delims2
-			delims2 = tmp
+			delims1, delims2 = delims2, delims1
 			next = func() Address {
 				if left.Col-1 < 0 {
 					left.Row--
@@ -192,7 +189,6 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 				}
 				return left
 			}
-			dir = selLeft
 		}
 	}
 	if next == nil {
@@ -202,7 +198,6 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 	for {
 		p := next()
 		if p.Row < 0 || p.Row >= len(b.lines) {
-			dir = selNone
 			return true
 		} else if p.Col >= len(b.lines[p.Row].s) {
 			continue
@@ -210,12 +205,11 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 		c := b.lines[p.Row].s[p.Col]
 		if c == rune(delims2[delim]) && stack == 0 {
 			b.dot.Head, b.dot.Tail = left, right
-			if dir == selLeft {
+			if leftwards {
 				b.dot.Head.Col++
 			}
 			return true
 		} else if c == 0 {
-			dir = selNone
 			return true
 		}
 		if delims1 != delims2 && c == rune(delims1[delim]) {
