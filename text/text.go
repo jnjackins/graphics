@@ -140,12 +140,6 @@ func (b *Buffer) expandSel(a Address) {
 	}
 }
 
-const (
-	selLeft = iota
-	selRight
-	selNone
-)
-
 // returns true if a selection was attempted, successfully or not
 // TODO: simplify
 func (b *Buffer) selDelimited(delims1, delims2 string) bool {
