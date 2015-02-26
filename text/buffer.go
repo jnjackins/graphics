@@ -33,6 +33,8 @@ type Buffer struct {
 	mButtons     int         // the buttons of the most recent mouse event
 	mPos         image.Point // the position of the most recent mouse event
 	mSweepOrigin Address     // keeps track of the origin of a sweep
+
+	Clipboard Clipboard
 }
 
 // NewBuffer returns a new buffer of size r, using the TTF font at fontpath.

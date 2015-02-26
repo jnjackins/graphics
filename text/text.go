@@ -29,13 +29,10 @@ type Selection struct {
 	Head, Tail Address // the beginning and end points of the selection
 }
 
-// load replaces the current selection with the contents of s. The cursor is left
-// at the beginning of the new text, and the position at the end of the new text
-// is returned.
+// load replaces the current selection with s.
 func (b *Buffer) load(s string) {
 	b.deleteSel()
 	col1, row1 := b.dot.Head.Col, b.dot.Head.Row
-	b.lines[row1].dirty = true
 
 	inputlines := strings.Split(s, "\n")
 	row2 := row1 + len(inputlines) - 1
@@ -43,24 +40,33 @@ func (b *Buffer) load(s string) {
 	// save the rest of the line after the the cursor
 	remainder := string(b.lines[row1].s[col1:])
 
-	// insert the first line of the new text (or all of the new text, if
-	// it is < 1 line
+	// insert the first line of the new text, fixing px so that the
+	// selection rect can be drawn correctly
 	b.lines[row1].s = append(b.lines[row1].s[:col1], []rune(inputlines[0])...)
+	b.lines[row1].dirty = true
+	b.lines[row1].px = b.font.getPx(b.margin.X, string(b.lines[row1].s))
 
 	// create new lines as needed
 	if len(inputlines) > 1 {
 		inputlines = inputlines[1:]
 		newlines := make([]*line, len(inputlines))
 		for i := 0; i < len(inputlines); i++ {
+			s := inputlines[i]
 			newlines[i] = &line{
-				s:     []rune(inputlines[i]),
+				s:     []rune(s),
 				dirty: true,
+				px:    b.font.getPx(b.margin.X, s),
 			}
 		}
 		if row1+1 < len(b.lines) {
 			newlines = append(newlines, b.lines[row1+1:]...)
 		}
 		b.lines = append(b.lines[:row1+1], newlines...)
+
+		// new lines were inserted; redraw everything following
+		for _, line := range b.lines[row2:] {
+			line.dirty = true
+		}
 	}
 
 	// add the remander of the line following the deleted text to the end
@@ -74,6 +80,20 @@ func (b *Buffer) load(s string) {
 		col2 = col1 + len(s)
 	}
 	b.dot.Tail = Address{row2, col2}
+}
+
+func (b *Buffer) getSel() string {
+	a1, a2 := b.dot.Head, b.dot.Tail
+	if a1.Row == a2.Row {
+		return string(b.lines[a1.Row].s[a1.Col:a2.Col])
+	} else {
+		sel := string(b.lines[a1.Row].s[a1.Col:]) + "\n"
+		for i := a1.Row + 1; i < a2.Row; i++ {
+			sel += string(b.lines[i].s) + "\n"
+		}
+		sel += string(b.lines[a2.Row].s[:a2.Col])
+		return sel
+	}
 }
 
 func (b *Buffer) deleteSel() {

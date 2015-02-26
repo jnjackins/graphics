@@ -251,6 +251,38 @@ func (f *ttf) draw(dst draw.Image, pt image.Point, s string, w int) ([]int, stri
 	return px, ""
 }
 
+// getPx is like draw, but it only calculates the x positions of the characters
+// without actually drawing them. startX is the initial x position to calculate
+// from.
+func (f *ttf) getPx(startX int, s string) []int {
+	px := make([]int, 1, len(s)+1)
+	px[0] = startX
+	p := pixelsToRaster(image.Pt(startX, 0))
+	prev, hasPrev := truetype.Index(0), false
+	for _, rune := range s {
+		// deal with tabstop specially
+		if rune == '\t' {
+			p.X += f.tabwidth
+			px = append(px, int(p.X>>8))
+			continue
+		}
+		index := f.font.Index(rune)
+		if hasPrev {
+			kern := raster.Fix32(f.font.Kerning(f.scale, prev, index)) << 2
+			kern = (kern + 128) &^ 255
+			p.X += kern
+		}
+		advanceWidth, _, _, err := f.glyph(index, p)
+		if err != nil {
+			panic(err) // TODO: put in (width of) some placeholder character
+		}
+		p.X += advanceWidth
+		prev, hasPrev = index, true
+		px = append(px, int(p.X>>8))
+	}
+	return px
+}
+
 // recalc recalculates scale and bounds values from the font size, screen
 // resolution and font metrics, and invalidates the glyph cache.
 func (f *ttf) recalc() {

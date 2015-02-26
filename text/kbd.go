@@ -38,6 +38,19 @@ func (b *Buffer) handleKey(r rune) {
 	case 128:
 		b.scroll(image.Pt(0, 18*b.font.height))
 
+	// cmd-c
+	case 61795:
+		b.snarf()
+
+	// cmd-v
+	case 61814:
+		b.paste()
+
+	// cmd-x
+	case 61816:
+		b.snarf()
+		b.deleteSel()
+
 	default:
 		if unicode.IsGraphic(r) {
 			b.input(r)

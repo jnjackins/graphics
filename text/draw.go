@@ -50,7 +50,7 @@ func (b *Buffer) redraw() {
 		draw.Draw(b.img, b.cursor.Bounds().Add(pt), b.cursor, image.ZP, draw.Src)
 	}
 
-	//log.Println("redraw: ", count, "lines")
+	//log.Println("redraw:", count, "lines")
 }
 
 func (b *Buffer) drawSel(row int) {
@@ -117,5 +117,5 @@ func (b *Buffer) growImg() {
 
 	b.img = newImg
 
-	//log.Println("growImg: ", b.img.Bounds())
+	//log.Println("growImg:", b.img.Bounds())
 }
