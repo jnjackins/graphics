@@ -22,28 +22,35 @@ func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
 	oldpos := b.mPos
 	b.mButtons = buttons
 	b.mPos = pos
-	a := b.pt2Address(pos)
-	if buttons == b4 {
-		b.scroll(image.Pt(0, -b.font.height))
-	} else if buttons == b5 {
-		b.scroll(image.Pt(0, b.font.height))
-	} else if oldbuttons == 0 && buttons > 0 {
-		b.mSweepOrigin = a
-		b.click(a, buttons)
-		b.lines[a.Row].dirty = true
-	} else if buttons > 0 && oldbuttons == buttons {
-		// possibly scroll by sweeping past the edge of the window
-		if pos.Y == b.clipr.Min.Y {
-			b.scroll(image.Pt(0, -b.font.height))
-			pos.Y -= b.font.height
-			a = b.pt2Address(pos)
-		} else if pos.Y == b.clipr.Max.Y {
-			b.scroll(image.Pt(0, b.font.height))
-			pos.Y += b.font.height
-			a = b.pt2Address(pos)
+
+	switch buttons {
+	case b1:
+		if oldbuttons == 0 {
+			// click
+
+			a := b.pt2Address(pos)
+			b.mSweepOrigin = a
+			b.click(a, buttons)
+			b.lines[a.Row].dirty = true
+		} else if oldbuttons == buttons {
+			// sweep
+
+			// possibly scroll by sweeping past the edge of the window
+			if pos.Y == b.clipr.Min.Y {
+				b.scroll(image.Pt(0, -b.font.height))
+				pos.Y -= b.font.height
+			} else if pos.Y == b.clipr.Max.Y {
+				b.scroll(image.Pt(0, b.font.height))
+				pos.Y += b.font.height
+			}
+			a := b.pt2Address(pos)
+			oldA := b.pt2Address(oldpos)
+			b.sweep(oldA, a)
 		}
-		oldA := b.pt2Address(oldpos)
-		b.sweep(oldA, a)
+	case b4:
+		b.scroll(image.Pt(0, -b.font.height))
+	case b5:
+		b.scroll(image.Pt(0, b.font.height))
 	}
 }
 
