@@ -25,16 +25,14 @@ func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
 
 	switch buttons {
 	case b1:
-		if oldbuttons == 0 {
-			// click
-
+		click := oldbuttons == 0
+		sweep := oldbuttons == buttons
+		if click {
 			a := b.pt2Address(pos)
 			b.mSweepOrigin = a
 			b.click(a, buttons)
 			b.lines[a.Row].dirty = true
-		} else if oldbuttons == buttons {
-			// sweep
-
+		} else if sweep {
 			// possibly scroll by sweeping past the edge of the window
 			if pos.Y == b.clipr.Min.Y {
 				b.scroll(image.Pt(0, -b.font.height))
@@ -43,6 +41,7 @@ func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
 				b.scroll(image.Pt(0, b.font.height))
 				pos.Y += b.font.height
 			}
+
 			a := b.pt2Address(pos)
 			oldA := b.pt2Address(oldpos)
 			b.sweep(oldA, a)
