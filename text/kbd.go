@@ -52,7 +52,7 @@ func (b *Buffer) handleKey(r rune) {
 		b.deleteSel()
 
 	default:
-		if unicode.IsGraphic(r) {
+		if unicode.IsGraphic(r) || r == '\t' {
 			b.input(r)
 		}
 	}
