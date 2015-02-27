@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image"
 	"io/ioutil"
-	"log"
 	"os"
 	"runtime"
 	"runtime/pprof"
@@ -35,7 +34,7 @@ type snarfer struct {
 func (sn snarfer) Get() string {
 	b, err := sn.d.ReadSnarf()
 	if err != nil {
-		log.Println("buf: error reading from snarf buffer: " + err.Error())
+		fmt.Fprintln(os.Stderr, "buf: error reading from snarf buffer: "+err.Error())
 	}
 	return string(b)
 }
@@ -43,7 +42,7 @@ func (sn snarfer) Get() string {
 func (sn snarfer) Put(s string) {
 	err := sn.d.WriteSnarf([]byte(s))
 	if err != nil {
-		log.Println("buf: error writing to snarf buffer: " + err.Error())
+		fmt.Fprintln(os.Stderr, "buf: error writing to snarf buffer: "+err.Error())
 	}
 }
 
@@ -109,15 +108,8 @@ loop:
 			resize()
 		case me := <-mouse.C:
 			buf.SendMouseEvent(me.Point, me.Buttons)
-
-			// if we are getting rapid-fire mouse events (scrolling or sweeping),
-			// batch up a bunch of them before redrawing.
-			for len(mouse.C) > 0 {
-				me = <-mouse.C
-				buf.SendMouseEvent(me.Point, me.Buttons)
-			}
 		case ke := <-kbd.C:
-			// esc
+			// save and quit on escape key
 			if ke == 27 {
 				if path != "" {
 					err := ioutil.WriteFile(path, []byte(buf.Contents()), 0666)
@@ -126,6 +118,8 @@ loop:
 				break loop
 			}
 			buf.SendKey(ke)
+		case <-disp.ExitC:
+			break loop
 		}
 		if buf.Dirty() {
 			redraw()
