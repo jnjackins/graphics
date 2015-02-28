@@ -20,9 +20,10 @@ const (
 )
 
 var (
+	buf      *text.Buffer
 	disp     *draw.Display
 	bufImg   *draw.Image // the full (unclipped) image
-	buf      *text.Buffer
+	screen   *draw.Image // the final clipped image
 	oldClipr image.Rectangle
 )
 
@@ -59,6 +60,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// possibly start cpu profiling
 	if *cpuprofile != "" {
 		profileWriter, err := os.Create(*cpuprofile)
 		die.On(err, "buf: error creating file for cpu profile")
@@ -67,12 +69,15 @@ func main() {
 		defer pprof.StopCPUProfile()
 	}
 
+	// load font
 	gopath := os.Getenv("GOPATH")
 	fontpath := gopath + "/src/github.com/jnjackins/graphics/cmd/buf/proggyfont.ttf"
 	var err error
+
 	buf, err = text.NewBuffer(image.Rect(0, 0, width, height), fontpath, text.AcmeTheme)
 	die.On(err, "buf: error creating new text buffer")
 
+	// possibly load input file
 	var path string
 	if inputfile {
 		path = flag.Arg(0)
@@ -93,9 +98,11 @@ func main() {
 		}
 	}
 
+	// setup display device
 	disp, err = draw.Init("buf", width, height)
 	die.On(err, "buf: error initializing display device")
 	defer disp.Close()
+	screen = disp.ScreenImage
 
 	kbd := disp.InitKeyboard()
 	mouse := disp.InitMouse()
@@ -139,7 +146,7 @@ func redraw() {
 		die.On(err, "buf: error loading to image")
 	}
 	if dirty || clipr != oldClipr {
-		disp.ScreenImage.Draw(disp.ScreenImage.Bounds(), bufImg, nil, image.ZP.Add(clipr.Min))
+		screen.Draw(screen.Bounds(), bufImg, nil, image.ZP.Add(clipr.Min))
 		disp.Flush()
 	}
 	oldClipr = clipr
@@ -148,5 +155,5 @@ func redraw() {
 func resize() {
 	err := disp.Attach(draw.Refmesg)
 	die.On(err, "buf: error reattaching display after resize")
-	buf.Resize(disp.ScreenImage.Bounds())
+	buf.Resize(screen.Bounds())
 }
