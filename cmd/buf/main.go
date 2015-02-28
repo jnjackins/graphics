@@ -20,9 +20,10 @@ const (
 )
 
 var (
-	disp   *draw.Display
-	screen *draw.Image
-	buf    *text.Buffer
+	disp     *draw.Display
+	bufImg   *draw.Image // the full (unclipped) image
+	buf      *text.Buffer
+	oldClipr image.Rectangle
 )
 
 var cpuprofile = flag.String("cpuprofile", "", "provide a path for cpu profile")
@@ -95,10 +96,10 @@ func main() {
 	disp, err = draw.Init("buf", width, height)
 	die.On(err, "buf: error initializing display device")
 	defer disp.Close()
-	buf.Clipboard = snarfer{disp}
-	screen = disp.ScreenImage
+
 	kbd := disp.InitKeyboard()
 	mouse := disp.InitMouse()
+	buf.Clipboard = snarfer{disp}
 	redraw()
 
 loop:
@@ -121,22 +122,31 @@ loop:
 		case <-disp.ExitC:
 			break loop
 		}
-		if buf.Dirty() {
-			redraw()
-		}
+		redraw()
 	}
 }
 
 func redraw() {
+	dirty := buf.Dirty()
 	img, clipr := buf.Img()
-	pix := img.SubImage(clipr).(*image.RGBA).Pix
-	_, err := screen.Load(screen.Bounds(), pix)
-	die.On(err, "buf: error sending image bytes to display")
-	disp.Flush()
+	if dirty {
+		if bufImg == nil || bufImg.Bounds() != img.Bounds() {
+			var err error
+			bufImg, err = disp.AllocImage(img.Bounds(), draw.ABGR32, false, draw.White)
+			die.On(err, "buf: error allocating image")
+		}
+		_, err := bufImg.Load(bufImg.Bounds(), img.Pix)
+		die.On(err, "buf: error loading to image")
+	}
+	if dirty || clipr != oldClipr {
+		disp.ScreenImage.Draw(disp.ScreenImage.Bounds(), bufImg, nil, image.ZP.Add(clipr.Min))
+		disp.Flush()
+	}
+	oldClipr = clipr
 }
 
 func resize() {
 	err := disp.Attach(draw.Refmesg)
 	die.On(err, "buf: error reattaching display after resize")
-	buf.Resize(screen.Bounds())
+	buf.Resize(disp.ScreenImage.Bounds())
 }
