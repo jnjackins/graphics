@@ -88,7 +88,7 @@ func (b *Buffer) pt2Address(pt image.Point) Address {
 }
 
 func (b *Buffer) click(pos Address, buttons int) {
-	b.dirtyImg = true
+	b.dirty = true
 	switch buttons {
 	case b1:
 		for _, line := range b.lines[b.dot.Head.Row : b.dot.Tail.Row+1] {
@@ -105,6 +105,7 @@ func (b *Buffer) click(pos Address, buttons int) {
 			if b.dClickTimer != nil {
 				b.dClickTimer.Stop()
 			}
+			// TODO: this is racy
 			b.dClickTimer = time.AfterFunc(dClickPause, func() { b.dClicking = false })
 		}
 	}
@@ -118,7 +119,7 @@ func (b *Buffer) sweep(from, to Address) {
 	if from == to {
 		return // no change in selection
 	}
-	b.dirtyImg = true
+	b.dirty = true
 
 	// mark all the rows between to and from as dirty
 	// (to and from can be more than one row apart, if they are sweeping quickly)

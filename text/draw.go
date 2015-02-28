@@ -69,8 +69,6 @@ func (b *Buffer) drawSel(row int) {
 }
 
 func (b *Buffer) scroll(pt image.Point) {
-	b.dirtyClipr = true
-
 	b.clipr = b.clipr.Add(pt)
 
 	// check boundaries

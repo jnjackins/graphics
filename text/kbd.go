@@ -59,7 +59,7 @@ func (b *Buffer) handleKey(r rune) {
 }
 
 func (b *Buffer) input(r rune) {
-	b.dirtyImg = true
+	b.dirty = true
 	b.deleteSel()
 	row, col := b.dot.Head.Row, b.dot.Head.Col
 	b.lines[row].dirty = true
@@ -76,7 +76,7 @@ func (b *Buffer) input(r rune) {
 }
 
 func (b *Buffer) backspace() {
-	b.dirtyImg = true
+	b.dirty = true
 	b.deleteSel()
 	head := b.dot.Head
 	if head.Col > 0 {
@@ -105,7 +105,7 @@ func (b *Buffer) backspace() {
 }
 
 func (b *Buffer) left() {
-	b.dirtyImg = true
+	b.dirty = true
 	head := b.dot.Head
 	if head.Col > 0 {
 		b.lines[head.Row].dirty = true
@@ -120,7 +120,7 @@ func (b *Buffer) left() {
 }
 
 func (b *Buffer) right() {
-	b.dirtyImg = true
+	b.dirty = true
 	head := b.dot.Head
 	if head.Col < len(b.lines[head.Row].s) {
 		b.lines[head.Row].dirty = true
@@ -135,7 +135,7 @@ func (b *Buffer) right() {
 }
 
 func (b *Buffer) newline() {
-	b.dirtyImg = true
+	b.dirty = true
 	b.deleteSel()
 	row, col := b.dot.Head.Row, b.dot.Head.Col
 	nl := &line{

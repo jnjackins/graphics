@@ -8,7 +8,7 @@ type Clipboard interface {
 }
 
 func (b *Buffer) snarf() {
-	b.dirtyImg = true
+	b.dirty = true
 	if b.Clipboard != nil {
 		b.Clipboard.Put(b.getSel())
 	} else {
@@ -17,7 +17,7 @@ func (b *Buffer) snarf() {
 }
 
 func (b *Buffer) paste() {
-	b.dirtyImg = true
+	b.dirty = true
 	if b.Clipboard != nil {
 		b.load(b.Clipboard.Get())
 	} else {

@@ -10,11 +10,10 @@ import (
 // will maintain a graphical representation of itself accessible by the Img method.
 type Buffer struct {
 	// images and drawing data
-	img        *image.RGBA
-	dirtyImg   bool
-	clipr      image.Rectangle
-	dirtyClipr bool
-	clear      image.Rectangle // to be cleared next redraw
+	img   *image.RGBA
+	dirty bool
+	clipr image.Rectangle
+	clear image.Rectangle // to be cleared next redraw
 
 	// configurable
 	bgCol  *image.Uniform
@@ -34,7 +33,8 @@ type Buffer struct {
 	mPos         image.Point // the position of the most recent mouse event
 	mSweepOrigin Address     // keeps track of the origin of a sweep
 
-	Clipboard Clipboard
+	// public variables
+	Clipboard Clipboard // the Clipboard to be used for copy or paste events
 }
 
 // NewBuffer returns a new buffer of size r, using the TTF font at fontpath.
@@ -52,11 +52,10 @@ func NewBuffer(r image.Rectangle, fontpath string, options OptionSet) (*Buffer, 
 	imgR.Max.Y *= 2
 
 	b := &Buffer{
-		img:        image.NewRGBA(imgR),
-		dirtyImg:   true,
-		clipr:      r,
-		dirtyClipr: true,
-		clear:      imgR,
+		img:   image.NewRGBA(imgR),
+		dirty: true,
+		clipr: r,
+		clear: imgR,
 
 		bgCol:  image.NewUniform(options.BGColor),
 		selCol: image.NewUniform(options.SelColor),
@@ -81,24 +80,21 @@ func (b *Buffer) Resize(r image.Rectangle) {
 	for _, line := range b.lines {
 		line.dirty = true
 	}
-	b.dirtyImg = true
-	b.dirtyClipr = true
+	b.dirty = true
 }
 
-// Dirty returns true if the Buffer has changed visibly since the last call to
-// Img.
+// Dirty reports whether the Buffer's image has changed since the last call to Img.
 func (b *Buffer) Dirty() bool {
-	return b.dirtyImg || b.dirtyClipr
+	return b.dirty
 }
 
 // Img returns an image representing the current state of the Buffer, and the clipping
 // rectangle representing the portion currently in view.
 func (b *Buffer) Img() (*image.RGBA, image.Rectangle) {
-	if b.dirtyImg {
+	if b.dirty {
 		b.redraw()
-		b.dirtyImg = false
+		b.dirty = false
 	}
-	b.dirtyClipr = false
 	return b.img, b.clipr
 }
 
