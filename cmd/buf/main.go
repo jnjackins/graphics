@@ -52,10 +52,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	flag.Parse()
-	inputfile := false
-	if len(flag.Args()) == 1 {
-		inputfile = true
-	} else if len(flag.Args()) > 1 {
+	if len(flag.Args()) > 1 {
 		fmt.Fprintln(os.Stderr, "Usage: buf [file]")
 		os.Exit(1)
 	}
@@ -70,16 +67,15 @@ func main() {
 	}
 
 	// load font
-	gopath := os.Getenv("GOPATH")
-	fontpath := gopath + "/src/github.com/jnjackins/graphics/cmd/buf/proggyfont.ttf"
-	var err error
-
-	buf, err = text.NewBuffer(image.Rect(0, 0, width, height), fontpath, text.AcmeTheme)
-	die.On(err, "buf: error creating new text buffer")
+	fontpath := os.Getenv("font")
+	if fontpath == "" {
+		fontpath = os.Getenv("GOPATH") + "/src/github.com/jnjackins/graphics/cmd/buf/proggyfont.ttf"
+	}
 
 	// possibly load input file
-	var path string
-	if inputfile {
+	var path string // used later to save the file
+	var inputFile *os.File
+	if len(flag.Args()) == 1 {
 		path = flag.Arg(0)
 		_, err := os.Stat(path)
 		if err != nil {
@@ -89,13 +85,16 @@ func main() {
 			}
 		} else {
 			// no issues, open file for reading
-			f, err := os.Open(path)
+			inputFile, err = os.Open(path)
 			die.On(err, "buf: error opening input file")
-			s, err := ioutil.ReadAll(f)
-			buf.LoadString(string(s))
-			buf.Select(text.Selection{})
-			f.Close()
 		}
+	}
+
+	var err error
+	buf, err = text.NewBuffer(image.Rect(0, 0, width, height), fontpath, inputFile, text.AcmeTheme)
+	die.On(err, "buf: error creating new text buffer")
+	if inputFile != nil {
+		inputFile.Close()
 	}
 
 	// setup display device
