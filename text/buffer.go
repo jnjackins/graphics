@@ -2,6 +2,8 @@ package text
 
 import (
 	"image"
+	"io"
+	"io/ioutil"
 	"os"
 	"time"
 )
@@ -23,8 +25,10 @@ type Buffer struct {
 	font   *ttf
 
 	// state
-	lines []*line   // the text data
-	dot   Selection // the current selection
+	lines         []*line   // the text data
+	dot           Selection // the current selection
+	currentState  *state    // current history state
+	changingState bool      // flag used to avoid considering a state change as a new state
 
 	// mouse related state
 	dClicking    bool        // the user is potentially double clicking
@@ -37,9 +41,12 @@ type Buffer struct {
 	Clipboard Clipboard // the Clipboard to be used for copy or paste events
 }
 
-// NewBuffer returns a new buffer of size r, using the TTF font at fontpath.
-func NewBuffer(r image.Rectangle, fontpath string, options OptionSet) (*Buffer, error) {
-	f, err := os.Open(fontpath)
+// NewBuffer returns a new buffer with a clipping rectangle of size r. If initialText
+// is not nil, the buffer use ioutil.ReadAll(initialText) to initialize the text
+// in the buffer. The caller should do any cleanup necessary on initialText after calling
+// this function.
+func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, options OptionSet) (*Buffer, error) {
+	f, err := os.Open(fontPath)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +72,15 @@ func NewBuffer(r image.Rectangle, fontpath string, options OptionSet) (*Buffer, 
 
 		lines: []*line{&line{s: []rune{}, px: []int{options.Margin.X}}},
 	}
-
+	if initialText != nil {
+		s, err := ioutil.ReadAll(initialText)
+		// If we can read initialText, use that. Otherwise, give them an empty buffer.
+		if err == nil {
+			b.load(string(s))
+			b.dot = Selection{} // move dot to the beginning of the file
+		}
+	}
+	b.pushState()
 	return b, nil
 }
 
@@ -96,17 +111,6 @@ func (b *Buffer) Img() (*image.RGBA, image.Rectangle) {
 		b.dirty = false
 	}
 	return b.img, b.clipr
-}
-
-// Select sets the current selection of the Buffer.
-func (b *Buffer) Select(s Selection) {
-	b.dot = s
-}
-
-// LoadString replaces the currently selected text with s, and returns the new Selection.
-func (b *Buffer) LoadString(s string) Selection {
-	b.load(s)
-	return b.dot
 }
 
 func (b *Buffer) Contents() string {

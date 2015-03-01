@@ -2,6 +2,7 @@ package text
 
 import (
 	"image"
+	"log"
 	"unicode"
 )
 
@@ -17,43 +18,62 @@ func (b *Buffer) handleKey(r rune) {
 	// backspace
 	case 8:
 		b.backspace()
+		b.pushState()
 
 	// return
 	case 10:
 		b.newline()
+		b.pushState()
 
 	// up
 	case 14:
 		b.scroll(image.Pt(0, -18*b.font.height))
+		b.pushState()
 
 	// left
 	case 17:
 		b.left()
+		b.pushState()
 
 	// right
 	case 18:
 		b.right()
+		b.pushState()
 
 	// down
 	case 128:
 		b.scroll(image.Pt(0, 18*b.font.height))
+		b.pushState()
 
 	// cmd-c
 	case 61795:
 		b.snarf()
+		b.pushState()
 
 	// cmd-v
 	case 61814:
 		b.paste()
+		b.pushState()
 
 	// cmd-x
 	case 61816:
 		b.snarf()
 		b.deleteSel()
+		b.pushState()
+
+	// cmd-y
+	case 61817:
+		b.redo()
+
+	// cmd-z
+	case 61818:
+		b.undo()
 
 	default:
 		if unicode.IsGraphic(r) || r == '\t' {
 			b.input(r)
+		} else {
+			log.Printf("text: unhandled key: %d\n", r)
 		}
 	}
 }

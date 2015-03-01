@@ -88,6 +88,7 @@ func (b *Buffer) pt2Address(pt image.Point) Address {
 }
 
 func (b *Buffer) click(pos Address, buttons int) {
+	b.pushState()
 	b.dirty = true
 	switch buttons {
 	case b1:
