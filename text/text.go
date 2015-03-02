@@ -142,12 +142,11 @@ func (b *Buffer) expandSel(a Address) {
 		return
 	}
 
-	// select word
+	// Select a word. If we're on a non-alphanumeric, attempt to select a word to
+	// the left of the click; otherwise expand across alphanumerics in both directions.
 	for col := a.Col; col > 0 && isAlnum(line[col-1]); col-- {
 		b.dot.Head.Col--
 	}
-
-	// if we're on a non-alphanumeric, attempt to select only to the left.
 	if isAlnum(line[a.Col]) {
 		for col := a.Col; col < len(line) && isAlnum(line[col]); col++ {
 			b.dot.Tail.Col++
@@ -156,12 +155,13 @@ func (b *Buffer) expandSel(a Address) {
 }
 
 // returns true if a selection was attempted, successfully or not
-// TODO: simplify
 func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 	left, right := b.dot.Head, b.dot.Tail
 	line := b.lines[left.Row].s
 	var delim int
 	var next func() Address
+
+	// First see if we can scan to the right.
 	if left.Col > 0 {
 		if delim = strings.IndexRune(delims1, line[left.Col-1]); delim != -1 {
 			// scan from left delimiter
@@ -179,20 +179,21 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 			}
 		}
 	}
+
+	// Otherwise, see if we can scan to the left.
 	var leftwards bool
 	if next == nil && left.Col < len(line) {
 		if delim = strings.IndexRune(delims2, line[left.Col]); delim != -1 {
-			leftwards = true
 			// scan from right delimiter
+			leftwards = true
 			// swap delimiters so that delim1 refers to the first one we encountered
 			delims1, delims2 = delims2, delims1
 			next = func() Address {
 				if left.Col-1 < 0 {
 					left.Row--
 					if left.Row >= 0 {
-						line = b.lines[left.Row].s
+						left.Col = len(b.lines[left.Row].s)
 					}
-					left.Col = len(line)
 				} else {
 					left.Col--
 				}
@@ -200,9 +201,13 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 			}
 		}
 	}
+
+	// Either we're not on a delimiter or there's nowhere to scan. Bail.
 	if next == nil {
 		return false
 	}
+
+	// We're on a valid delimiter and have a next function. Scan for the matching delimiter.
 	stack := 0
 	for {
 		p := next()
