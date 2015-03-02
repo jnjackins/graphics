@@ -91,28 +91,21 @@ func (b *Buffer) Resize(r image.Rectangle) {
 	b.img = image.NewRGBA(imgR)
 	b.clear = imgR
 	b.clipr = r
-	for _, line := range b.lines {
-		line.dirty = true
-	}
-	b.dirty = b.img.Bounds()
+	b.dirtyLines(0, len(b.lines))
+	b.clear = b.img.Bounds()
 }
 
-// Dirty returns a rectangle representing the portion of the Buffer's image
-// which has changed, and should be redrawn by the client using the image returned
-// by the next call the Img. If nothing needs to be redrawn, image.ZR is returned.
-func (b *Buffer) Dirty() image.Rectangle {
-	return b.dirty.Union(b.clear)
-}
-
-// Img returns an image representing the current state of the Buffer, and a
-// rectangle representing the portion of the image in view based on the current
-// scrolling position.
-func (b *Buffer) Img() (*image.RGBA, image.Rectangle) {
+// Img returns an image representing the current state of the Buffer, a rectangle
+// representing the portion of the image in view based on the current scrolling position,
+// and a rectangle representing the portion of the image that has changed and needs
+// to be redrawn onto the display by the caller.
+func (b *Buffer) Img() (img *image.RGBA, clipr, dirty image.Rectangle) {
 	if b.dirty != image.ZR {
 		b.redraw()
+		dirty = b.dirty
 		b.dirty = image.ZR
 	}
-	return b.img, b.clipr
+	return b.img, b.clipr, dirty
 }
 
 func (b *Buffer) Contents() string {

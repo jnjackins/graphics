@@ -147,10 +147,9 @@ loop:
 }
 
 func redraw() {
-	dirty := buf.Dirty()
-	img, clipr := buf.Img()
+	img, clipr, dirty := buf.Img()
 	if dirty != image.ZR {
-		// it is possible that img.Bounds() has changed, in whichcase we need to
+		// it is possible that img.Bounds() has changed, in which case we need to
 		// resize bufImg as well.
 		if bufImg == nil || bufImg.Bounds() != img.Bounds() {
 			var err error

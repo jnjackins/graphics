@@ -8,6 +8,7 @@ import (
 func (b *Buffer) redraw() {
 	// clear an area if requested
 	draw.Draw(b.img, b.clear, b.bgCol, image.ZP, draw.Src)
+	b.dirty = b.dirty.Union(b.clear)
 	b.clear = image.ZR
 
 	selection := !(b.dot.Head == b.dot.Tail)
@@ -104,16 +105,13 @@ func (b *Buffer) getypx(row int) int {
 }
 
 func (b *Buffer) growImg() {
-	// new image is double the old
 	r := b.img.Bounds()
-	r.Max.Y += b.img.Bounds().Dy()
+	r.Max.Y += b.img.Bounds().Dy() // new image is double the old
 	newImg := image.NewRGBA(r)
 	draw.Draw(newImg, newImg.Bounds(), b.bgCol, image.ZP, draw.Src)
-
-	// draw the old image onto the new image
 	draw.Draw(newImg, newImg.Bounds(), b.img, image.ZP, draw.Src)
-
 	b.img = newImg
+	b.dirty = b.img.Bounds()
 
 	//log.Println("growImg:", b.img.Bounds())
 }
