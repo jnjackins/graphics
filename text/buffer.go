@@ -42,9 +42,8 @@ type Buffer struct {
 }
 
 // NewBuffer returns a new buffer with a clipping rectangle of size r. If initialText
-// is not nil, the buffer use ioutil.ReadAll(initialText) to initialize the text
-// in the buffer. The caller should do any cleanup necessary on initialText after calling
-// this function.
+// is not nil, the buffer uses ioutil.ReadAll(initialText) to initialize the text
+// in the buffer. The caller should do any necessary cleanup on initialText after NewBuffer returns.
 func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, options OptionSet) (*Buffer, error) {
 	f, err := os.Open(fontPath)
 	if err != nil {
@@ -74,11 +73,11 @@ func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, option
 	}
 	if initialText != nil {
 		s, err := ioutil.ReadAll(initialText)
-		// If we can read initialText, use that. Otherwise, give them an empty buffer.
-		if err == nil {
-			b.load(string(s))
-			b.dot = Selection{} // move dot to the beginning of the file
+		if err != nil {
+			return nil, err
 		}
+		b.load(string(s))
+		b.dot = Selection{} // move dot to the beginning of the file
 	}
 	b.pushState()
 	return b, nil

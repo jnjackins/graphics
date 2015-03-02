@@ -67,9 +67,9 @@ func main() {
 	}
 
 	// load font
-	fontpath := os.Getenv("font")
-	if fontpath == "" {
-		fontpath = os.Getenv("GOPATH") + "/src/github.com/jnjackins/graphics/cmd/buf/proggyfont.ttf"
+	fontPath := os.Getenv("font")
+	if fontPath == "" {
+		fontPath = os.Getenv("GOPATH") + "/src/github.com/jnjackins/graphics/cmd/buf/proggyfont.ttf"
 	}
 
 	// possibly load input file
@@ -91,9 +91,13 @@ func main() {
 	}
 
 	var err error
-	buf, err = text.NewBuffer(image.Rect(0, 0, width, height), fontpath, inputFile, text.AcmeTheme)
-	die.On(err, "buf: error creating new text buffer")
-	if inputFile != nil {
+	if inputFile == nil {
+		// even though inputFile is nil, we must use the value nil. Otherwise, NewBuffer will
+		// report inputFile != nil because it receives a non-nil interface.
+		buf, err = text.NewBuffer(image.Rect(0, 0, width, height), fontPath, nil, text.AcmeTheme)
+		die.On(err, "buf: error creating new text buffer")
+	} else {
+		buf, err = text.NewBuffer(image.Rect(0, 0, width, height), fontPath, inputFile, text.AcmeTheme)
 		inputFile.Close()
 	}
 
