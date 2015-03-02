@@ -103,7 +103,11 @@ func main() {
 	}
 
 	// setup display device
-	disp, err = draw.Init("buf", width, height)
+	winName := path
+	if winName == "" {
+		winName = "<no file>"
+	}
+	disp, err = draw.Init(winName, width, height)
 	die.On(err, "buf: error initializing display device")
 	defer disp.Close()
 	screen = disp.ScreenImage
