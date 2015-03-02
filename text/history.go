@@ -28,10 +28,9 @@ func (b *Buffer) redo() {
 func linecopy(l *line) *line {
 	newstr := make([]rune, len(l.s))
 	copy(newstr, l.s)
-	return &line{
-		s:     newstr,
-		dirty: true,
-	}
+	newpx := make([]int, len(l.px))
+	copy(newpx, l.px)
+	return &line{s: newstr, px: newpx}
 }
 
 // pushState adds a new history state to the list, dropping any that follow the current state.
@@ -71,8 +70,5 @@ func (b *Buffer) applyState() {
 	b.dot = s.dot
 	b.clipr = image.Rectangle{s.scrollpt, s.scrollpt.Add(b.clipr.Size())}
 	b.lines = s.lines
-	for _, line := range b.lines {
-		line.dirty = true
-	}
-	b.dirty = true
+	b.dirtyLines(0, len(b.lines))
 }

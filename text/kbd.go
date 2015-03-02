@@ -79,10 +79,9 @@ func (b *Buffer) handleKey(r rune) {
 }
 
 func (b *Buffer) input(r rune) {
-	b.dirty = true
 	b.deleteSel()
 	row, col := b.dot.Head.Row, b.dot.Head.Col
-	b.lines[row].dirty = true
+	b.dirtyLine(row)
 
 	if col == len(b.lines[row].s) {
 		b.lines[row].s = append(b.lines[row].s, r)
@@ -96,11 +95,10 @@ func (b *Buffer) input(r rune) {
 }
 
 func (b *Buffer) backspace() {
-	b.dirty = true
 	b.deleteSel()
 	head := b.dot.Head
 	if head.Col > 0 {
-		b.lines[head.Row].dirty = true
+		b.dirtyLine(head.Row)
 		head.Col--
 		line := b.lines[head.Row].s
 		line = append(line[:head.Col], line[head.Col+1:]...)
@@ -112,11 +110,8 @@ func (b *Buffer) backspace() {
 		// delete the old line
 		b.lines[head.Row].s = append(b.lines[head.Row].s, b.lines[head.Row+1].s...)
 		b.lines = append(b.lines[:head.Row+1], b.lines[head.Row+2:]...)
+		b.dirtyLines(head.Row, len(b.lines))
 
-		// redraw everything past here
-		for _, line := range b.lines[head.Row:] {
-			line.dirty = true
-		}
 		// make sure we clean up the garbage left after the (new) final line
 		b.clear = b.img.Bounds()
 		b.clear.Min.Y = b.font.height * (len(b.lines) - 1)
@@ -125,49 +120,35 @@ func (b *Buffer) backspace() {
 }
 
 func (b *Buffer) left() {
-	b.dirty = true
 	head := b.dot.Head
+	b.dirtyLine(head.Row)
 	if head.Col > 0 {
-		b.lines[head.Row].dirty = true
 		head.Col--
 	} else if head.Row > 0 {
-		b.lines[head.Row].dirty = true
 		head.Row--
-		b.lines[head.Row].dirty = true
+		b.dirtyLine(head.Row)
 		head.Col = len(b.lines[head.Row].s)
 	}
 	b.dot.Head, b.dot.Tail = head, head
 }
 
 func (b *Buffer) right() {
-	b.dirty = true
 	head := b.dot.Head
+	b.dirtyLine(head.Row)
 	if head.Col < len(b.lines[head.Row].s) {
-		b.lines[head.Row].dirty = true
 		head.Col++
 	} else if head.Row < len(b.lines)-1 {
-		b.lines[head.Row].dirty = true
 		head.Row++
-		b.lines[head.Row].dirty = true
+		b.dirtyLine(head.Row)
 		head.Col = 0
 	}
 	b.dot.Head, b.dot.Tail = head, head
 }
 
 func (b *Buffer) newline() {
-	b.dirty = true
 	b.deleteSel()
 	row, col := b.dot.Head.Row, b.dot.Head.Col
-	nl := &line{
-		s:     make([]rune, 0, 100),
-		dirty: true,
-	}
-
-	// since we need to shift everything down, all past here will need
-	// to be redrawn.
-	for _, line := range b.lines[row:] {
-		line.dirty = true
-	}
+	nl := &line{s: []rune{}, px: []int{b.margin.X}}
 
 	if col == len(b.lines[row].s) && row == len(b.lines)-1 {
 		// easy case, dot is at the end of the final line
@@ -182,6 +163,8 @@ func (b *Buffer) newline() {
 		b.lines[row+1].s = b.lines[row].s[col:]
 		b.lines[row].s = b.lines[row].s[:col]
 	}
+	b.dirtyLines(row, len(b.lines))
+
 	b.dot.Head.Col = 0
 	b.dot.Head.Row++
 	b.dot.Tail = b.dot.Head

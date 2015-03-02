@@ -8,6 +8,7 @@ import (
 	"os"
 	"runtime"
 	"runtime/pprof"
+	"time"
 
 	"github.com/jnjackins/die"
 	"github.com/jnjackins/graphics/text"
@@ -119,6 +120,10 @@ loop:
 			resize()
 		case me := <-mouse.C:
 			buf.SendMouseEvent(me.Point, me.Buttons)
+			for len(mouse.C) > 0 {
+				me = <-mouse.C
+				buf.SendMouseEvent(me.Point, me.Buttons)
+			}
 		case ke := <-kbd.C:
 			// save and quit on escape key
 			if ke == 27 {
@@ -133,22 +138,29 @@ loop:
 			break loop
 		}
 		redraw()
+
+		// Rest for a moment. This allows mouse.C to fill up with mouse events,
+		// in case we are receiving rapid fire mouse events (in which case we
+		// don't need to redraw after each event)
+		time.Sleep(1 * time.Millisecond)
 	}
 }
 
 func redraw() {
 	dirty := buf.Dirty()
 	img, clipr := buf.Img()
-	if dirty {
+	if dirty != image.ZR {
+		// it is possible that img.Bounds() has changed, in whichcase we need to
+		// resize bufImg as well.
 		if bufImg == nil || bufImg.Bounds() != img.Bounds() {
 			var err error
 			bufImg, err = disp.AllocImage(img.Bounds(), draw.ABGR32, false, draw.White)
 			die.On(err, "buf: error allocating image")
 		}
-		_, err := bufImg.Load(bufImg.Bounds(), img.Pix)
+		_, err := bufImg.Load(dirty, img.SubImage(dirty).(*image.RGBA).Pix)
 		die.On(err, "buf: error loading to image")
 	}
-	if dirty || clipr != oldClipr {
+	if dirty != image.ZR || clipr != oldClipr {
 		screen.Draw(screen.Bounds(), bufImg, nil, image.ZP.Add(clipr.Min))
 		disp.Flush()
 	}

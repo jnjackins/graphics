@@ -117,3 +117,21 @@ func (b *Buffer) growImg() {
 
 	//log.Println("growImg:", b.img.Bounds())
 }
+
+func (b *Buffer) dirtyLine(row int) {
+	b.lines[row].dirty = true
+	r := b.img.Bounds()
+	r.Min.Y = row * b.font.height
+	r.Max.Y = r.Min.Y + b.font.height
+	b.dirty = b.dirty.Union(r)
+}
+
+func (b *Buffer) dirtyLines(row1, row2 int) {
+	for _, line := range b.lines[row1:row2] {
+		line.dirty = true
+	}
+	r := b.img.Bounds()
+	r.Min.Y = row1 * b.font.height
+	r.Max.Y = row2*b.font.height + b.font.height
+	b.dirty = b.dirty.Union(r)
+}

@@ -43,7 +43,6 @@ func (b *Buffer) load(s string) {
 	// insert the first line of the new text, fixing px so that the
 	// selection rect can be drawn correctly
 	b.lines[row1].s = append(b.lines[row1].s[:col1], []rune(inputlines[0])...)
-	b.lines[row1].dirty = true
 	b.lines[row1].px = b.font.getPx(b.margin.X, string(b.lines[row1].s))
 
 	// create new lines as needed
@@ -53,20 +52,15 @@ func (b *Buffer) load(s string) {
 		for i := 0; i < len(inputlines); i++ {
 			s := inputlines[i]
 			newlines[i] = &line{
-				s:     []rune(s),
-				dirty: true,
-				px:    b.font.getPx(b.margin.X, s),
+				s:  []rune(s),
+				px: b.font.getPx(b.margin.X, s),
 			}
 		}
 		if row1+1 < len(b.lines) {
 			newlines = append(newlines, b.lines[row1+1:]...)
 		}
 		b.lines = append(b.lines[:row1+1], newlines...)
-
-		// new lines were inserted; redraw everything following
-		for _, line := range b.lines[row2:] {
-			line.dirty = true
-		}
+		b.dirtyLines(row1, len(b.lines))
 	}
 
 	// add the remander of the line following the deleted text to the end
@@ -103,14 +97,11 @@ func (b *Buffer) deleteSel() {
 	col1, row1, col2, row2 := b.dot.Head.Col, b.dot.Head.Row, b.dot.Tail.Col, b.dot.Tail.Row
 	line := b.lines[row1].s[:col1]
 	b.lines[row1].s = append(line, b.lines[row2].s[col2:]...)
-	b.lines[row1].dirty = true
+	b.dirtyLine(row1)
 	if row2 > row1 {
 		b.lines = append(b.lines[:row1+1], b.lines[row2+1:]...)
+		b.dirtyLines(row1+1, len(b.lines))
 
-		// redraw everything past here
-		for _, line := range b.lines[row1+1:] {
-			line.dirty = true
-		}
 		// make sure we clean up the garbage left after the (new) final line
 		b.clear = b.img.Bounds()
 		b.clear.Min.Y = b.font.height * (len(b.lines) - 1)
@@ -129,9 +120,7 @@ func (b *Buffer) expandSel(a Address) {
 
 	// select bracketed text
 	if b.selDelimited(leftbrackets, rightbrackets) {
-		for _, line := range b.lines[b.dot.Head.Row : b.dot.Tail.Row+1] {
-			line.dirty = true
-		}
+		b.dirtyLines(b.dot.Head.Row, b.dot.Tail.Row+1)
 		return
 	}
 
@@ -149,9 +138,7 @@ func (b *Buffer) expandSel(a Address) {
 
 	// select quoted text
 	if b.selDelimited(quotes, quotes) {
-		for _, line := range b.lines[b.dot.Head.Row : b.dot.Tail.Row+1] {
-			line.dirty = true
-		}
+		b.dirtyLines(b.dot.Head.Row, b.dot.Tail.Row+1)
 		return
 	}
 
