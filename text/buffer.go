@@ -86,13 +86,12 @@ func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, option
 // Resize resizes the Buffer. Subsequent calls to Img will return an image of
 // at least size r, and a clipping rectangle of size r.
 func (b *Buffer) Resize(r image.Rectangle) {
-	imgR := r
-	imgR.Max.Y *= 2
-	b.img = image.NewRGBA(imgR)
-	b.clear = imgR
-	b.clipr = r
-	b.dirtyLines(0, len(b.lines))
-	b.clear = b.img.Bounds()
+	b.clipr = image.Rectangle{b.clipr.Min, b.clipr.Min.Add(r.Size())}
+	if !r.In(b.img.Bounds()) {
+		b.img = image.NewRGBA(r)
+		b.clear = b.img.Bounds()
+		b.dirtyLines(0, len(b.lines))
+	}
 }
 
 // Img returns an image representing the current state of the Buffer, a rectangle
