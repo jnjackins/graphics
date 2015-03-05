@@ -1,74 +1,89 @@
 package text
 
-import (
-	"image"
-)
+import "image"
 
-type state struct {
-	dot        Selection
-	scrollpt   image.Point
-	lines      []*line
-	prev, next *state
+// each editor action is a deletion followed by an insertion.
+type action struct {
+	deletionBounds  Selection
+	deletionText    string
+	insertionBounds Selection
+	insertionText   string
+	prev, next      *action
 }
 
-func (b *Buffer) undo() {
-	if b.currentState.prev != nil {
-		b.currentState = b.currentState.prev
-		b.applyState()
+func (b *Buffer) initCurrentAction() {
+	if b.currentAction == nil {
+		b.currentAction = new(action)
 	}
 }
 
 func (b *Buffer) redo() {
-	if b.currentState.next != nil {
-		b.currentState = b.currentState.next
-		b.applyState()
-	}
-}
+	if b.lastAction.next != nil {
+		a := b.lastAction.next
+		b.lastAction = b.lastAction.next
 
-func linecopy(l *line) *line {
-	newstr := make([]rune, len(l.s))
-	copy(newstr, l.s)
-	newpx := make([]int, len(l.px))
-	copy(newpx, l.px)
-	return &line{s: newstr, px: newpx}
-}
-
-// pushState adds a new history state to the list, dropping any that follow the current state.
-func (b *Buffer) pushState() {
-	oldstate := b.currentState
-
-	lines := make([]*line, len(b.lines))
-	change := false
-	for i, line := range b.lines {
-		if oldstate == nil || i >= len(oldstate.lines) || string(line.s) != string(oldstate.lines[i].s) {
-			lines[i] = linecopy(line)
-			change = true
-		} else {
-			lines[i] = line
+		// Replace the deleted text with the inserted text. This must be
+		// done as two separate steps, because one of the deletion or insertion
+		// may be a no-op, i.e. the bounds aren't set.
+		b.dot = a.deletionBounds
+		b.deleteSel(false)
+		if a.insertionText != "" {
+			b.dot = Selection{a.insertionBounds.Head, a.insertionBounds.Head}
+			b.load(a.insertionText, false)
 		}
-	}
 
-	if !change {
-		// no change, don't save state
+		b.dirtyLines(0, len(b.lines))
+		b.autoScroll()
+	}
+}
+
+func (b *Buffer) undo() {
+	if b.currentAction != nil {
+		b.commitAction()
+	}
+	if b.lastAction.prev != nil {
+		a := b.lastAction
+		b.lastAction = b.lastAction.prev
+
+		// Replace the inserted text with the deleted text. This must be
+		// done as two separate steps, because one of the deletion or insertion
+		// may be a no-op, i.e. the bounds aren't set.
+		b.dot = a.insertionBounds
+		b.deleteSel(false)
+		if a.deletionText != "" {
+			b.dot = Selection{a.deletionBounds.Head, a.deletionBounds.Head}
+			b.load(a.deletionText, false)
+		}
+
+		b.dirtyLines(0, len(b.lines))
+		b.autoScroll()
+	}
+}
+
+// commitAction finalizes b.currentAction and adds it to the list,
+// becoming the new b.lastAction.
+func (b *Buffer) commitAction() {
+	if b.currentAction == nil {
 		return
 	}
-
-	s := &state{
-		dot:      b.dot,
-		scrollpt: b.clipr.Min,
-		lines:    lines,
+	if b.lastAction != nil {
+		b.lastAction.next = b.currentAction
 	}
-	b.currentState = s
-	if oldstate != nil {
-		s.prev = oldstate
-		oldstate.next = s
-	}
+	b.currentAction.prev = b.lastAction
+	b.currentAction.next = nil // should be anyway, but make sure
+	b.lastAction = b.currentAction
+	b.currentAction = nil
 }
 
-func (b *Buffer) applyState() {
-	s := b.currentState
-	b.dot = s.dot
-	b.clipr = image.Rectangle{s.scrollpt, s.scrollpt.Add(b.clipr.Size())}
-	b.lines = s.lines
-	b.dirtyLines(0, len(b.lines))
+// autoScroll does nothing if b.dot.Head is currently in view, or
+// scrolls so that it is 20% down from the top of the screen if it is not.
+func (b *Buffer) autoScroll() {
+	headpx := b.dot.Head.Row * b.font.height
+	if headpx < b.clipr.Min.Y || headpx > b.clipr.Max.Y {
+		padding := int(0.20 * float64(b.clipr.Dy()))
+		padding -= padding % b.font.height
+		scrollpt := image.Pt(0, b.dot.Head.Row*b.font.height-padding)
+		b.clipr = image.Rectangle{scrollpt, scrollpt.Add(b.clipr.Size())}
+		b.scroll(image.ZP) // this doesn't scroll, but fixes b.clipr if it is out-of-bounds
+	}
 }

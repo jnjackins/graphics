@@ -24,11 +24,13 @@ type Buffer struct {
 	cursor image.Image // the cursor to draw when nothing is selected
 	font   *ttf
 
-	// state
-	lines         []*line   // the text data
-	dot           Selection // the current selection
-	currentState  *state    // current history state
-	changingState bool      // flag used to avoid considering a state change as a new state
+	// internal state
+	lines []*line   // the text data
+	dot   Selection // the current selection
+
+	// history
+	lastAction    *action // the most recently performed action
+	currentAction *action // the action currently in progress
 
 	// mouse related state
 	dClicking    bool        // the user is potentially double clicking
@@ -76,10 +78,13 @@ func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, option
 		if err != nil {
 			return nil, err
 		}
-		b.load(string(s))
+		b.load(string(s), false)
 		b.dot = Selection{} // move dot to the beginning of the file
 	}
-	b.pushState()
+
+	// set up the initial history state
+	b.currentAction = new(action)
+	b.commitAction()
 	return b, nil
 }
 

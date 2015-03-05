@@ -12,9 +12,9 @@ const (
 )
 
 type line struct {
-	s     []rune
-	px    []int // x-coord of the rightmost pixels of each rune in s
-	dirty bool  // true if the line needs to be redrawn (px needs to be repopulated)
+	s     []rune // TODO make this string
+	px    []int  // x-coord of the rightmost pixels of each rune in s
+	dirty bool   // true if the line needs to be redrawn (px needs to be repopulated)
 }
 
 type Address struct {
@@ -25,13 +25,34 @@ func (a1 Address) lessThan(a2 Address) bool {
 	return a1.Row < a2.Row || (a1.Row == a2.Row && a1.Col < a2.Col)
 }
 
+func (b *Buffer) nextAddress(a Address) Address {
+	if a.Col < len(b.lines[a.Row].s) {
+		a.Col++
+	} else if a.Row < len(b.lines)-1 {
+		a.Col = 0
+		a.Row++
+	}
+	return a
+}
+
+func (b *Buffer) prevAddress(a Address) Address {
+	if a.Col > 0 {
+		a.Col--
+	} else if a.Row > 0 {
+		a.Row--
+		a.Col = len(b.lines[a.Row].s)
+	}
+	return a
+}
+
 type Selection struct {
 	Head, Tail Address // the beginning and end points of the selection
 }
 
 // load replaces the current selection with s.
-func (b *Buffer) load(s string) {
-	b.deleteSel()
+func (b *Buffer) load(s string, recordAction bool) {
+	b.deleteSel(true)
+
 	col1, row1 := b.dot.Head.Col, b.dot.Head.Row
 
 	inputlines := strings.Split(s, "\n")
@@ -61,6 +82,8 @@ func (b *Buffer) load(s string) {
 		}
 		b.lines = append(b.lines[:row1+1], newlines...)
 		b.dirtyLines(row1, len(b.lines))
+	} else {
+		b.dirtyLine(row1)
 	}
 
 	// add the remander of the line following the deleted text to the end
@@ -74,10 +97,16 @@ func (b *Buffer) load(s string) {
 		col2 = col1 + len(s)
 	}
 	b.dot.Tail = Address{row2, col2}
+
+	if recordAction {
+		b.initCurrentAction()
+		b.currentAction.insertionBounds = b.dot
+		b.currentAction.insertionText = b.contents(b.dot)
+	}
 }
 
-func (b *Buffer) getSel() string {
-	a1, a2 := b.dot.Head, b.dot.Tail
+func (b *Buffer) contents(sel Selection) string {
+	a1, a2 := sel.Head, sel.Tail
 	if a1.Row == a2.Row {
 		return string(b.lines[a1.Row].s[a1.Col:a2.Col])
 	} else {
@@ -90,10 +119,17 @@ func (b *Buffer) getSel() string {
 	}
 }
 
-func (b *Buffer) deleteSel() {
+func (b *Buffer) deleteSel(recordAction bool) {
 	if b.dot.Head == b.dot.Tail {
 		return
 	}
+
+	if recordAction {
+		b.initCurrentAction()
+		b.currentAction.deletionBounds = b.dot
+		b.currentAction.deletionText = b.contents(b.dot)
+	}
+
 	col1, row1, col2, row2 := b.dot.Head.Col, b.dot.Head.Row, b.dot.Tail.Col, b.dot.Tail.Row
 	line := b.lines[row1].s[:col1]
 	b.lines[row1].s = append(line, b.lines[row2].s[col2:]...)

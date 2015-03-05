@@ -124,6 +124,7 @@ func (b *Buffer) dirtyLine(row int) {
 	b.dirty = b.dirty.Union(r)
 }
 
+// TODO: this is kinda dumb, callers actually need to give row2+1
 func (b *Buffer) dirtyLines(row1, row2 int) {
 	for _, line := range b.lines[row1:row2] {
 		line.dirty = true

@@ -90,7 +90,6 @@ func (b *Buffer) pt2Address(pt image.Point) Address {
 }
 
 func (b *Buffer) click(pos Address, buttons int) {
-	b.pushState()
 	switch buttons {
 	case b1:
 		b.dirtyLines(b.dot.Head.Row, b.dot.Tail.Row+1)
