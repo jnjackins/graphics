@@ -52,57 +52,55 @@ type Selection struct {
 // load replaces the current selection with s.
 func (b *Buffer) load(s string, recordAction bool) {
 	b.deleteSel(true)
-
-	col1, row1 := b.dot.Head.Col, b.dot.Head.Row
-
-	inputlines := strings.Split(s, "\n")
-	row2 := row1 + len(inputlines) - 1
-
-	// save the rest of the line after the the cursor
-	remainder := string(b.lines[row1].s[col1:])
-
-	// insert the first line of the new text, fixing px so that the
-	// selection rect can be drawn correctly
-	b.lines[row1].s = append(b.lines[row1].s[:col1], []rune(inputlines[0])...)
-	b.lines[row1].px = b.font.getPx(b.margin.X, string(b.lines[row1].s))
-
-	// create new lines as needed
-	if len(inputlines) > 1 {
-		inputlines = inputlines[1:]
-		newlines := make([]*line, len(inputlines))
-		for i := 0; i < len(inputlines); i++ {
-			s := inputlines[i]
-			newlines[i] = &line{
-				s:  []rune(s),
-				px: b.font.getPx(b.margin.X, s),
-			}
-		}
-		if row1+1 < len(b.lines) {
-			newlines = append(newlines, b.lines[row1+1:]...)
-		}
-		b.lines = append(b.lines[:row1+1], newlines...)
-		b.dirtyLines(row1, len(b.lines))
+	input := strings.Split(s, "\n")
+	if len(input) == 1 {
+		b.load1(s)
 	} else {
-		b.dirtyLine(row1)
+		row, col := b.dot.Head.Row, b.dot.Head.Col
+
+		// unchanged lines
+		lPreceding := b.lines[:row]
+		lFollowing := b.lines[row+1:]
+
+		lNew := make([]*line, len(input))
+
+		// the beginning and end of the current line are attached to the first and last of the
+		// lines that are being loaded
+		lNew[0] = &line{s: []rune(string(b.lines[row].s[:col]) + input[0])}
+		lNew[0].px = b.font.getPx(b.margin.X, string(lNew[0].s))
+		last := len(lNew) - 1
+		lNew[last] = &line{s: []rune(input[len(input)-1] + string(b.lines[row].s[col:]))}
+		lNew[last].px = b.font.getPx(b.margin.X, string(lNew[last].s))
+
+		// entirely new lines
+		for i := 1; i < len(lNew)-1; i++ {
+			lNew[i] = &line{s: []rune(input[i])}
+		}
+
+		// put everything together
+		b.lines = append(lPreceding, append(lNew, lFollowing...)...)
+
+		// fix selection; b.dot.Head is already fine
+		b.dot.Tail.Row = row + len(lNew) - 1
+		b.dot.Tail.Col = len(input[len(input)-1])
+		b.dirtyLines(row, len(b.lines))
 	}
-
-	// add the remander of the line following the deleted text to the end
-	// of the last line we modified or added
-	b.lines[row2].s = append(b.lines[row2].s, []rune(remainder)...)
-
-	var col2 int
-	if row2 > row1 {
-		col2 = len(inputlines[len(inputlines)-1])
-	} else {
-		col2 = col1 + len(s)
-	}
-	b.dot.Tail = Address{row2, col2}
-
 	if recordAction {
 		b.initCurrentAction()
 		b.currentAction.insertionBounds = b.dot
 		b.currentAction.insertionText = b.contents(b.dot)
 	}
+}
+
+// load1 inserts a string with no line breaks at b.dot, assuming an empty selection.
+func (b *Buffer) load1(s string) {
+	row, col := b.dot.Head.Row, b.dot.Head.Col
+	before := string(b.lines[row].s[:col])
+	after := string(b.lines[row].s[col:])
+	b.lines[row].s = []rune(before + s + after)
+	b.lines[row].px = b.font.getPx(b.margin.X, string(b.lines[row].s))
+	b.dot.Tail.Col += len([]rune(s))
+	b.dirtyLine(row)
 }
 
 func (b *Buffer) contents(sel Selection) string {
