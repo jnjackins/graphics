@@ -221,12 +221,9 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 	stack := 0
 	match := addr
 	var prev Address
-	for {
+	for match != prev {
 		prev = match
 		match = next(match)
-		if match == prev {
-			return true // we're at the end or beginning of the file; give up
-		}
 		line := b.lines[match.Row].s
 		if match.Col > len(line)-1 {
 			continue
@@ -250,4 +247,5 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 			stack--
 		}
 	}
+	return true
 }
