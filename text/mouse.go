@@ -32,6 +32,7 @@ func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
 			b.mSweepOrigin = a
 			b.click(a, buttons)
 			b.dirtyLine(a.Row)
+			b.commitAction()
 		} else if sweep {
 			// possibly scroll by sweeping past the edge of the window
 			if pos.Y == b.clipr.Min.Y {

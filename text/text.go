@@ -86,9 +86,13 @@ func (b *Buffer) load(s string, recordAction bool) {
 		b.dirtyLines(row, len(b.lines))
 	}
 	if recordAction {
-		b.initCurrentAction()
-		b.currentAction.insertionBounds = b.dot
-		b.currentAction.insertionText = b.contents(b.dot)
+		if b.currentAction.insertion == nil {
+			b.currentAction.insertion = &change{bounds: b.dot, text: b.contents(b.dot)}
+		} else {
+			// append to b.currentAction if the user simply typed another rune
+			b.currentAction.insertion.bounds.Tail = b.dot.Tail
+			b.currentAction.insertion.text += b.contents(b.dot)
+		}
 	}
 }
 
@@ -121,13 +125,9 @@ func (b *Buffer) deleteSel(recordAction bool) {
 	if b.dot.Head == b.dot.Tail {
 		return
 	}
-
 	if recordAction {
-		b.initCurrentAction()
-		b.currentAction.deletionBounds = b.dot
-		b.currentAction.deletionText = b.contents(b.dot)
+		b.currentAction.deletion = &change{bounds: b.dot, text: b.contents(b.dot)}
 	}
-
 	col1, row1, col2, row2 := b.dot.Head.Col, b.dot.Head.Row, b.dot.Tail.Col, b.dot.Tail.Row
 	line := b.lines[row1].s[:col1]
 	b.lines[row1].s = append(line, b.lines[row2].s[col2:]...)
@@ -220,7 +220,7 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 
 	stack := 0
 	match := addr
-	var prev Address
+	prev := Address{-1, -1}
 	for match != prev {
 		prev = match
 		match = next(match)

@@ -74,7 +74,6 @@ func (b *Buffer) handleKey(r rune) {
 	default:
 		if unicode.IsGraphic(r) || r == '\t' {
 			b.input(r)
-			b.commitAction()
 		} else {
 			log.Printf("text: unhandled key: %d\n", r)
 		}
@@ -88,7 +87,15 @@ func (b *Buffer) input(r rune) {
 
 func (b *Buffer) backspace() {
 	b.dot.Head = b.prevAddress(b.dot.Head)
-	b.deleteSel(true)
+	b.deleteSel(false) // don't update the current action
+
+	if b.currentAction.insertion != nil {
+		// This is the only case where the insertion must happen before the deletion.
+		// Update b.currentAction manually here to make it an insertion only.
+		b.currentAction.insertion.bounds.Tail.Col--
+		text := b.currentAction.insertion.text
+		b.currentAction.insertion.text = text[:len(text)-1]
+	}
 }
 
 func (b *Buffer) left() {

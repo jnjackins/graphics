@@ -4,17 +4,14 @@ import "image"
 
 // each editor action is a deletion followed by an insertion.
 type action struct {
-	deletionBounds  Selection
-	deletionText    string
-	insertionBounds Selection
-	insertionText   string
-	prev, next      *action
+	deletion   *change
+	insertion  *change
+	prev, next *action
 }
 
-func (b *Buffer) initCurrentAction() {
-	if b.currentAction == nil {
-		b.currentAction = new(action)
-	}
+type change struct {
+	bounds Selection
+	text   string
 }
 
 func (b *Buffer) redo() {
@@ -22,14 +19,13 @@ func (b *Buffer) redo() {
 		a := b.lastAction.next
 		b.lastAction = b.lastAction.next
 
-		// Replace the deleted text with the inserted text. This must be
-		// done as two separate steps, because one of the deletion or insertion
-		// may be a no-op, i.e. the bounds aren't set.
-		b.dot = a.deletionBounds
-		b.deleteSel(false)
-		if a.insertionText != "" {
-			b.dot = Selection{a.insertionBounds.Head, a.insertionBounds.Head}
-			b.load(a.insertionText, false)
+		if a.deletion != nil {
+			b.dot = a.deletion.bounds
+			b.deleteSel(false)
+		}
+		if a.insertion != nil {
+			b.dot = Selection{a.insertion.bounds.Head, a.insertion.bounds.Head}
+			b.load(a.insertion.text, false)
 		}
 
 		b.dirtyLines(0, len(b.lines))
@@ -38,21 +34,17 @@ func (b *Buffer) redo() {
 }
 
 func (b *Buffer) undo() {
-	if b.currentAction != nil {
-		b.commitAction()
-	}
 	if b.lastAction.prev != nil {
 		a := b.lastAction
 		b.lastAction = b.lastAction.prev
 
-		// Replace the inserted text with the deleted text. This must be
-		// done as two separate steps, because one of the deletion or insertion
-		// may be a no-op, i.e. the bounds aren't set.
-		b.dot = a.insertionBounds
-		b.deleteSel(false)
-		if a.deletionText != "" {
-			b.dot = Selection{a.deletionBounds.Head, a.deletionBounds.Head}
-			b.load(a.deletionText, false)
+		if a.insertion != nil {
+			b.dot = a.insertion.bounds
+			b.deleteSel(false)
+		}
+		if a.deletion != nil {
+			b.dot = Selection{a.deletion.bounds.Head, a.deletion.bounds.Head}
+			b.load(a.deletion.text, false)
 		}
 
 		b.dirtyLines(0, len(b.lines))
@@ -63,16 +55,16 @@ func (b *Buffer) undo() {
 // commitAction finalizes b.currentAction and adds it to the list,
 // becoming the new b.lastAction.
 func (b *Buffer) commitAction() {
-	if b.currentAction == nil {
+	if b.currentAction.deletion == nil && b.currentAction.insertion == nil {
 		return
 	}
 	if b.lastAction != nil {
 		b.lastAction.next = b.currentAction
 	}
 	b.currentAction.prev = b.lastAction
-	b.currentAction.next = nil // should be anyway, but make sure
+	b.currentAction.next = nil
 	b.lastAction = b.currentAction
-	b.currentAction = nil
+	b.currentAction = new(action)
 }
 
 // autoScroll does nothing if b.dot.Head is currently in view, or

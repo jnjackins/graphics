@@ -83,8 +83,9 @@ func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, option
 	}
 
 	// set up the initial history state
+	b.lastAction = new(action)
 	b.currentAction = new(action)
-	b.commitAction()
+
 	return b, nil
 }
 
