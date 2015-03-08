@@ -190,72 +190,55 @@ func (b *Buffer) expandSel(a Address) {
 
 // returns true if a selection was attempted, successfully or not
 func (b *Buffer) selDelimited(delims1, delims2 string) bool {
-	left, right := b.dot.Head, b.dot.Tail
-	line := b.lines[left.Row].s
+	addr := b.dot.Head
 	var delim int
-	var next func() Address
+	var line = b.lines[addr.Row].s
+	var next func(Address) Address
+	var rightwards bool
+	if addr.Col > 0 {
+		if delim = strings.IndexRune(delims1, line[addr.Col-1]); delim != -1 {
+			// scan to the right, from a left delimiter
+			next = b.nextAddress
+			rightwards = true
 
-	// First see if we can scan to the right.
-	if left.Col > 0 {
-		if delim = strings.IndexRune(delims1, line[left.Col-1]); delim != -1 {
-			// scan from left delimiter
-			next = func() Address {
-				if right.Col+1 > len(line) {
-					right.Row++
-					if right.Row < len(b.lines) {
-						line = b.lines[right.Row].s
-					}
-					right.Col = 0
-				} else {
-					right.Col++
-				}
-				return right
-			}
+			// the user double-clicked to the right of a left delimiter; move addr
+			// to the delimiter itself
+			addr.Col--
 		}
 	}
-
-	// Otherwise, see if we can scan to the left.
-	var leftwards bool
-	if next == nil && left.Col < len(line) {
-		if delim = strings.IndexRune(delims2, line[left.Col]); delim != -1 {
-			// scan from right delimiter
-			leftwards = true
+	if next == nil && addr.Col < len(line) {
+		if delim = strings.IndexRune(delims2, line[addr.Col]); delim != -1 {
+			// scan to the left, from a right delimiter
 			// swap delimiters so that delim1 refers to the first one we encountered
 			delims1, delims2 = delims2, delims1
-			next = func() Address {
-				if left.Col-1 < 0 {
-					left.Row--
-					if left.Row >= 0 {
-						left.Col = len(b.lines[left.Row].s)
-					}
-				} else {
-					left.Col--
-				}
-				return left
-			}
+			next = b.prevAddress
 		}
 	}
-
-	// Either we're not on a delimiter or there's nowhere to scan. Bail.
 	if next == nil {
 		return false
 	}
 
-	// We're on a valid delimiter and have a next function. Scan for the matching delimiter.
 	stack := 0
+	match := addr
+	var prev Address
 	for {
-		p := next()
-		if p.Row < 0 || p.Row >= len(b.lines) {
-			return true
-		} else if p.Col >= len(b.lines[p.Row].s) {
+		prev = match
+		match = next(match)
+		if match == prev {
+			return true // we're at the end or beginning of the file; give up
+		}
+		line := b.lines[match.Row].s
+		if match.Col > len(line)-1 {
 			continue
 		}
-		c := b.lines[p.Row].s[p.Col]
+		c := line[match.Col]
 		if c == rune(delims2[delim]) && stack == 0 {
-			b.dot.Head, b.dot.Tail = left, right
-			if leftwards {
-				b.dot.Head.Col++
+			if rightwards {
+				b.dot.Head, b.dot.Tail = addr, match
+			} else {
+				b.dot.Head, b.dot.Tail = match, addr
 			}
+			b.dot.Head.Col++ // move the head of the selection past the left delimiter
 			return true
 		} else if c == 0 {
 			return true
