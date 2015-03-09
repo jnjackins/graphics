@@ -55,10 +55,8 @@ func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, option
 	if err != nil {
 		return nil, err
 	}
-
 	imgR := r
-	imgR.Max.Y *= 2
-
+	imgR.Max.Y *= 2 // TODO: is this necessary?
 	b := &Buffer{
 		img:   image.NewRGBA(imgR),
 		clipr: r,
@@ -72,6 +70,9 @@ func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, option
 		font:   font,
 
 		lines: []*line{&line{s: []rune{}, px: []int{options.Margin.X}}},
+
+		lastAction:    new(action),
+		currentAction: new(action),
 	}
 	if initialText != nil {
 		s, err := ioutil.ReadAll(initialText)
@@ -81,11 +82,6 @@ func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, option
 		b.load(string(s), false)
 		b.dot = Selection{} // move dot to the beginning of the file
 	}
-
-	// set up the initial history state
-	b.lastAction = new(action)
-	b.currentAction = new(action)
-
 	return b, nil
 }
 
