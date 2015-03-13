@@ -35,10 +35,10 @@ func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
 			b.commitAction()
 		} else if sweep {
 			// possibly scroll by sweeping past the edge of the window
-			if pos.Y == b.clipr.Min.Y {
+			if pos.Y <= b.clipr.Min.Y {
 				b.scroll(image.Pt(0, -b.font.height))
 				pos.Y -= b.font.height
-			} else if pos.Y == b.clipr.Max.Y {
+			} else if pos.Y >= b.clipr.Max.Y {
 				b.scroll(image.Pt(0, b.font.height))
 				pos.Y += b.font.height
 			}
@@ -57,7 +57,6 @@ func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
 }
 
 func (b *Buffer) pt2Address(pt image.Point) Address {
-	pt = pt.Sub(b.img.Rect.Min)
 	// (0,0) if pt is above the buffer
 	if pt.Y < 0 {
 		return Address{}
@@ -73,16 +72,11 @@ func (b *Buffer) pt2Address(pt image.Point) Address {
 		return pos
 	}
 
-	if pt.X < 0 {
-		return Address{pos.Row, 0}
-	}
-
+	// TODO: seems wasteful to iterate over the whole line here
 	line := b.lines[pos.Row]
-	for i := range line.px {
-		if line.px[i]+b.img.Bounds().Min.X > pt.X {
-			if i > 0 {
-				pos.Col = i - 1
-			}
+	for i := 1; i < len(line.px); i++ {
+		if line.px[i] > pt.X {
+			pos.Col = i - 1
 			return pos
 		}
 	}

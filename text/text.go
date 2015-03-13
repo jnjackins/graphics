@@ -84,6 +84,7 @@ func (b *Buffer) load(s string, recordAction bool) {
 		b.dot.Tail.Row = row + len(lNew) - 1
 		b.dot.Tail.Col = len(input[len(input)-1])
 		b.dirtyLines(row, len(b.lines))
+		b.autoScroll()
 	}
 	if recordAction {
 		if b.currentAction.insertion == nil {
@@ -139,6 +140,8 @@ func (b *Buffer) deleteSel(recordAction bool) {
 		// make sure we clean up the garbage left after the (new) final line
 		b.clear = b.img.Bounds()
 		b.clear.Min.Y = b.font.height * (len(b.lines) - 1)
+		b.autoScroll()
+		b.shrinkImg()
 	}
 	b.dot.Tail = b.dot.Head
 }

@@ -46,7 +46,7 @@ type Buffer struct {
 // NewBuffer returns a new buffer with a clipping rectangle of size r. If initialText
 // is not nil, the buffer uses ioutil.ReadAll(initialText) to initialize the text
 // in the buffer. The caller should do any necessary cleanup on initialText after NewBuffer returns.
-func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, options OptionSet) (*Buffer, error) {
+func NewBuffer(width, height int, fontPath string, initialText io.Reader, options OptionSet) (*Buffer, error) {
 	f, err := os.Open(fontPath)
 	if err != nil {
 		return nil, err
@@ -55,13 +55,12 @@ func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, option
 	if err != nil {
 		return nil, err
 	}
-	imgR := r
-	imgR.Max.Y *= 2 // TODO: is this necessary?
+	r := image.Rect(0, 0, width, height)
 	b := &Buffer{
-		img:   image.NewRGBA(imgR),
+		img:   image.NewRGBA(r), // grows as needed
 		clipr: r,
-		clear: imgR,
-		dirty: imgR,
+		clear: r,
+		dirty: r,
 
 		bgCol:  image.NewUniform(options.BGColor),
 		selCol: image.NewUniform(options.SelColor),
@@ -87,13 +86,11 @@ func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, option
 
 // Resize resizes the Buffer. Subsequent calls to Img will return an image of
 // at least size r, and a clipping rectangle of size r.
-func (b *Buffer) Resize(r image.Rectangle) {
-	b.clipr = image.Rectangle{b.clipr.Min, b.clipr.Min.Add(r.Size())}
-	if !r.In(b.img.Bounds()) {
-		b.img = image.NewRGBA(r)
-		b.clear = b.img.Bounds()
-		b.dirtyLines(0, len(b.lines))
-	}
+func (b *Buffer) Resize(width, height int) {
+	b.clipr = image.Rectangle{b.clipr.Min, image.Pt(width, height)}
+	b.img = image.NewRGBA(image.Rect(0, 0, width, height))
+	b.clear = b.img.Bounds()
+	b.dirtyLines(0, len(b.lines))
 }
 
 // Img returns an image representing the current state of the Buffer, a rectangle

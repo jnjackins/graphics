@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"image"
+	"image/color"
 	"io/ioutil"
 	"os"
 	"runtime"
@@ -11,24 +12,28 @@ import (
 	"time"
 
 	"github.com/jnjackins/die"
+	"github.com/jnjackins/graphics/scrollbar"
 	"github.com/jnjackins/graphics/text"
 	"github.com/jnjackins/plan9/draw"
 )
 
 const (
-	width  = 800
-	height = 600
+	width   = 800
+	height  = 600
+	sbWidth = 12 // scrollbar
 )
 
 var (
 	buf      *text.Buffer
+	bufPos   = image.Pt(sbWidth, 0)
+	sb       *scrollbar.Scrollbar
 	disp     *draw.Display
 	bufImg   *draw.Image // the full (unclipped) image
 	screen   *draw.Image // the final clipped image
 	oldClipr image.Rectangle
 )
 
-var cpuprofile = flag.String("cpuprofile", "", "provide a path for cpu profile")
+var cprof = flag.String("cprof", "", "save cpu profile to `path`")
 
 type snarfer struct {
 	d *draw.Display
@@ -49,18 +54,24 @@ func (sn snarfer) Put(s string) {
 	}
 }
 
+func usage() {
+	fmt.Fprintf(os.Stderr, "Usage: %s [file]\n", os.Args[0])
+	flag.PrintDefaults()
+}
+
 func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
+	flag.Usage = usage
 	flag.Parse()
 	if len(flag.Args()) > 1 {
-		fmt.Fprintln(os.Stderr, "Usage: buf [file]")
+		usage()
 		os.Exit(1)
 	}
 
 	// possibly start cpu profiling
-	if *cpuprofile != "" {
-		profileWriter, err := os.Create(*cpuprofile)
+	if *cprof != "" {
+		profileWriter, err := os.Create(*cprof)
 		die.On(err, "buf: error creating file for cpu profile")
 		defer profileWriter.Close()
 		pprof.StartCPUProfile(profileWriter)
@@ -95,12 +106,17 @@ func main() {
 	if inputFile == nil {
 		// even though inputFile is nil, we must use the value nil. Otherwise, NewBuffer will
 		// report inputFile != nil because it receives a non-nil interface.
-		buf, err = text.NewBuffer(image.Rect(0, 0, width, height), fontPath, nil, text.AcmeTheme)
+		buf, err = text.NewBuffer(width-sbWidth, height, fontPath, nil, text.AcmeTheme)
 		die.On(err, "buf: error creating new text buffer")
 	} else {
-		buf, err = text.NewBuffer(image.Rect(0, 0, width, height), fontPath, inputFile, text.AcmeTheme)
+		buf, err = text.NewBuffer(width-sbWidth, height, fontPath, inputFile, text.AcmeTheme)
 		inputFile.Close()
 	}
+
+	// scrollbar
+	bg := color.RGBA{R: 0x99, G: 0x99, B: 0x4C, A: 0xFF}
+	fg := color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF}
+	sb = scrollbar.New(sbWidth, height, bg, fg)
 
 	// setup display device
 	winName := path
@@ -123,10 +139,10 @@ loop:
 		case <-mouse.Resize:
 			resize()
 		case me := <-mouse.C:
-			buf.SendMouseEvent(me.Point, me.Buttons)
+			buf.SendMouseEvent(me.Point.Sub(bufPos), me.Buttons)
 			for len(mouse.C) > 0 {
 				me = <-mouse.C
-				buf.SendMouseEvent(me.Point, me.Buttons)
+				buf.SendMouseEvent(me.Point.Sub(bufPos), me.Buttons)
 			}
 		case ke := <-kbd.C:
 			// save and quit on escape key
@@ -161,10 +177,19 @@ func redraw() {
 			die.On(err, "buf: error allocating image")
 		}
 		_, err := bufImg.Load(dirty, img.SubImage(dirty).(*image.RGBA).Pix)
-		die.On(err, "buf: error loading to image")
+		die.On(err, "buf: error loading buffer to plan9 image")
 	}
 	if dirty != image.ZR || clipr != oldClipr {
-		screen.Draw(screen.Bounds(), bufImg, nil, image.ZP.Add(clipr.Min))
+		// draw buffer image to screen
+		screen.Draw(bufImg.Bounds().Add(bufPos), bufImg, nil, clipr.Min)
+
+		// load scrollbar image directly onto screen
+		r := img.Bounds()
+		r.Max.Y -= clipr.Dy()
+		sb := sb.Img(clipr, r)
+		_, err := screen.Load(sb.Bounds(), sb.Pix)
+		die.On(err, "buf: error loading scrollbar image to screen")
+
 		disp.Flush()
 	}
 	oldClipr = clipr
@@ -173,5 +198,7 @@ func redraw() {
 func resize() {
 	err := disp.Attach(draw.Refmesg)
 	die.On(err, "buf: error reattaching display after resize")
-	buf.Resize(screen.Bounds())
+	r := screen.Bounds()
+	buf.Resize(r.Dx()-sbWidth, r.Dy())
+	sb.Resize(sbWidth, r.Dy())
 }

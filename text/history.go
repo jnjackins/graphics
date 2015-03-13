@@ -1,7 +1,5 @@
 package text
 
-import "image"
-
 // each editor action is a deletion followed by an insertion.
 type action struct {
 	deletion   *change
@@ -65,17 +63,4 @@ func (b *Buffer) commitAction() {
 	b.currentAction.next = nil
 	b.lastAction = b.currentAction
 	b.currentAction = new(action)
-}
-
-// autoScroll does nothing if b.dot.Head is currently in view, or
-// scrolls so that it is 20% down from the top of the screen if it is not.
-func (b *Buffer) autoScroll() {
-	headpx := b.dot.Head.Row * b.font.height
-	if headpx < b.clipr.Min.Y || headpx > b.clipr.Max.Y {
-		padding := int(0.20 * float64(b.clipr.Dy()))
-		padding -= padding % b.font.height
-		scrollpt := image.Pt(0, b.dot.Head.Row*b.font.height-padding)
-		b.clipr = image.Rectangle{scrollpt, scrollpt.Add(b.clipr.Size())}
-		b.scroll(image.ZP) // this doesn't scroll, but fixes b.clipr if it is out-of-bounds
-	}
 }
