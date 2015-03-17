@@ -81,7 +81,7 @@ func main() {
 	// load font
 	fontPath := os.Getenv("font")
 	if fontPath == "" {
-		fontPath = os.Getenv("GOPATH") + "/src/github.com/jnjackins/graphics/cmd/buf/proggyfont.ttf"
+		fontPath = os.Getenv("GOPATH") + "/src/sigint.ca/graphics/cmd/buf/proggyfont.ttf"
 	}
 
 	// possibly load input file
