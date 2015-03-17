@@ -1,4 +1,4 @@
-package text
+package text // import "sigint.ca/graphics/text"
 
 import (
 	"image"

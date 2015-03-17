@@ -11,10 +11,10 @@ import (
 	"runtime/pprof"
 	"time"
 
-	"github.com/jnjackins/die"
-	"github.com/jnjackins/graphics/scrollbar"
-	"github.com/jnjackins/graphics/text"
-	"github.com/jnjackins/plan9/draw"
+	"sigint.ca/die"
+	"sigint.ca/graphics/scrollbar"
+	"sigint.ca/graphics/text"
+	"sigint.ca/plan9/draw"
 )
 
 const (

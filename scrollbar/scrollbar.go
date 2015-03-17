@@ -1,4 +1,4 @@
-package scrollbar
+package scrollbar // import "sigint.ca/graphics/scrollbar"
 
 import (
 	"image"
