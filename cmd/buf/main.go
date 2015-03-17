@@ -107,11 +107,11 @@ func main() {
 		// even though inputFile is nil, we must use the value nil. Otherwise, NewBuffer will
 		// report inputFile != nil because it receives a non-nil interface.
 		buf, err = text.NewBuffer(width-sbWidth, height, fontPath, nil, text.AcmeTheme)
-		die.On(err, "buf: error creating new text buffer")
 	} else {
 		buf, err = text.NewBuffer(width-sbWidth, height, fontPath, inputFile, text.AcmeTheme)
 		inputFile.Close()
 	}
+	die.On(err, "buf: error creating new text buffer")
 
 	// scrollbar
 	bg := color.RGBA{R: 0x99, G: 0x99, B: 0x4C, A: 0xFF}
