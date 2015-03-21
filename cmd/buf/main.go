@@ -24,6 +24,7 @@ const (
 )
 
 var (
+	filePath string
 	buf      *text.Buffer
 	bufPos   = image.Pt(sbWidth, 0)
 	sb       *scrollbar.Scrollbar
@@ -85,11 +86,10 @@ func main() {
 	}
 
 	// possibly load input file
-	var path string // used later to save the file
 	var inputFile *os.File
 	if len(flag.Args()) == 1 {
-		path = flag.Arg(0)
-		_, err := os.Stat(path)
+		filePath = flag.Arg(0)
+		_, err := os.Stat(filePath)
 		if err != nil {
 			// if there's no file, no worries. otherwise, bail.
 			if !os.IsNotExist(err) {
@@ -97,7 +97,7 @@ func main() {
 			}
 		} else {
 			// no issues, open file for reading
-			inputFile, err = os.Open(path)
+			inputFile, err = os.Open(filePath)
 			die.On(err, "buf: error opening input file")
 		}
 	}
@@ -119,7 +119,7 @@ func main() {
 	sb = scrollbar.New(sbWidth, height, bg, fg)
 
 	// setup display device
-	winName := path
+	winName := filePath
 	if winName == "" {
 		winName = "<no file>"
 	}
@@ -145,15 +145,14 @@ loop:
 				buf.SendMouseEvent(me.Point.Sub(bufPos), me.Buttons)
 			}
 		case ke := <-kbd.C:
-			// save and quit on escape key
-			if ke == 27 {
-				if path != "" {
-					err := ioutil.WriteFile(path, []byte(buf.Contents()), 0666)
-					die.On(err, "buf: error writing to file")
-				}
+			switch ke {
+			case 27: // esc
 				break loop
+			case 61811: // cmd-c
+				save()
+			default:
+				buf.SendKey(ke)
 			}
-			buf.SendKey(ke)
 		case <-disp.ExitC:
 			break loop
 		}
@@ -178,6 +177,13 @@ func redraw() {
 		}
 		_, err := bufImg.Load(dirty, img.SubImage(dirty).(*image.RGBA).Pix)
 		die.On(err, "buf: error loading buffer to plan9 image")
+
+		if buf.Saved() {
+			err = disp.SetLabel(filePath)
+		} else {
+			err = disp.SetLabel(filePath + " (unsaved)")
+		}
+		die.On(err, "buf: error setting window label")
 	}
 	if dirty != image.ZR || clipr != oldClipr {
 		// draw buffer image to screen
@@ -201,4 +207,16 @@ func resize() {
 	r := screen.Bounds()
 	buf.Resize(r.Dx()-sbWidth, r.Dy())
 	sb.Resize(sbWidth, r.Dy())
+}
+
+func save() {
+	if filePath != "" {
+		err := ioutil.WriteFile(filePath, []byte(buf.Contents()), 0666)
+		die.On(err, "buf: error writing to file")
+	} else {
+		fmt.Fprintln(os.Stderr, "buf: error writing to file: no filename")
+	}
+	buf.SetSaved()
+	err := disp.SetLabel(filePath)
+	die.On(err, "buf: error setting window label")
 }

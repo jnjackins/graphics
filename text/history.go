@@ -50,11 +50,11 @@ func (b *Buffer) undo() {
 	}
 }
 
-// commitAction finalizes b.currentAction and adds it to the list,
-// becoming the new b.lastAction.
-func (b *Buffer) commitAction() {
+// commitAction finalizes b.currentAction and adds it to the list, to become the
+// new b.lastAction.
+func (b *Buffer) commitAction() bool {
 	if b.currentAction.deletion == nil && b.currentAction.insertion == nil {
-		return
+		return false
 	}
 	if b.lastAction != nil {
 		b.lastAction.next = b.currentAction
@@ -63,4 +63,5 @@ func (b *Buffer) commitAction() {
 	b.currentAction.next = nil
 	b.lastAction = b.currentAction
 	b.currentAction = new(action)
+	return true
 }
