@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"runtime/pprof"
 	"time"
+	"unicode"
 
 	"sigint.ca/die"
 	"sigint.ca/graphics/scrollbar"
@@ -146,6 +147,13 @@ loop:
 			}
 		case ke := <-kbd.C:
 			switch ke {
+			case '\n':
+				n := buf.Dot.Head.Row
+				s := buf.GetLine(n)
+				indentation := getIndent(s)
+				buf.SendKey('\n')
+				buf.Load(indentation)
+				buf.Dot = text.Selection{buf.Dot.Tail, buf.Dot.Tail}
 			case 27: // esc
 				break loop
 			case 61811: // cmd-c
@@ -219,4 +227,18 @@ func save() {
 	buf.SetSaved()
 	err := disp.SetLabel(filePath)
 	die.On(err, "buf: error setting window label")
+}
+
+func getIndent(line string) string {
+	if len(line) == 0 {
+		return ""
+	}
+	var indent string
+	for _, r := range line {
+		if !unicode.IsSpace(r) {
+			break
+		}
+		indent += string(r)
+	}
+	return indent
 }
