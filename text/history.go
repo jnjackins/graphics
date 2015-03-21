@@ -18,11 +18,11 @@ func (b *Buffer) redo() {
 		b.lastAction = b.lastAction.next
 
 		if a.deletion != nil {
-			b.dot = a.deletion.bounds
+			b.Dot = a.deletion.bounds
 			b.deleteSel(false)
 		}
 		if a.insertion != nil {
-			b.dot = Selection{a.insertion.bounds.Head, a.insertion.bounds.Head}
+			b.Dot = Selection{a.insertion.bounds.Head, a.insertion.bounds.Head}
 			b.load(a.insertion.text, false)
 		}
 
@@ -37,11 +37,11 @@ func (b *Buffer) undo() {
 		b.lastAction = b.lastAction.prev
 
 		if a.insertion != nil {
-			b.dot = a.insertion.bounds
+			b.Dot = a.insertion.bounds
 			b.deleteSel(false)
 		}
 		if a.deletion != nil {
-			b.dot = Selection{a.deletion.bounds.Head, a.deletion.bounds.Head}
+			b.Dot = Selection{a.deletion.bounds.Head, a.deletion.bounds.Head}
 			b.load(a.deletion.text, false)
 		}
 

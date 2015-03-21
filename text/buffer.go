@@ -25,8 +25,7 @@ type Buffer struct {
 	font   *ttf
 
 	// internal state
-	lines []*line   // the text data
-	dot   Selection // the current selection
+	lines []*line // the text data
 
 	// history
 	lastAction    *action // the most recently performed action
@@ -41,6 +40,7 @@ type Buffer struct {
 	mSweepOrigin Address     // keeps track of the origin of a sweep
 
 	// public variables
+	Dot       Selection // the current selection
 	Clipboard Clipboard // the Clipboard to be used for copy or paste events
 }
 
@@ -80,7 +80,7 @@ func NewBuffer(width, height int, fontPath string, initialText io.Reader, option
 			return nil, err
 		}
 		b.load(string(s), false)
-		b.dot = Selection{} // move dot to the beginning of the file
+		b.Dot = Selection{} // move dot to the beginning of the file
 	}
 	return b, nil
 }
@@ -107,6 +107,8 @@ func (b *Buffer) Img() (img *image.RGBA, clipr, dirty image.Rectangle) {
 	return b.img, b.clipr, dirty
 }
 
+// Contents returns the contents of the buffer as a string.
+// TODO: return a writer
 func (b *Buffer) Contents() string {
 	var s string
 	for i, line := range b.lines {
@@ -116,6 +118,17 @@ func (b *Buffer) Contents() string {
 		}
 	}
 	return s
+}
+
+// GetLine returns a string containing the text of the nth line, where
+// the first line of the buffer is line 0.
+func (b *Buffer) GetLine(n int) string {
+	return string(b.lines[n].s)
+}
+
+// Load replaces the current selection with s.
+func (b *Buffer) Load(s string) {
+	b.load(s, true)
 }
 
 func (b *Buffer) SetSaved() {

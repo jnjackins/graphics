@@ -11,7 +11,7 @@ func (b *Buffer) redraw() {
 	b.dirty = b.dirty.Union(b.clear)
 	b.clear = image.ZR
 
-	selection := !(b.dot.Head == b.dot.Tail)
+	selection := !(b.Dot.Head == b.Dot.Tail)
 
 	// redraw dirty lines
 	var grown bool
@@ -29,14 +29,14 @@ func (b *Buffer) redraw() {
 			}
 
 			// clear the line, unless it is completely selected
-			if !selection || row <= b.dot.Head.Row || row >= b.dot.Tail.Row {
+			if !selection || row <= b.Dot.Head.Row || row >= b.Dot.Tail.Row {
 				// clear all the way to the left side of the image; the margin may have bits of cursor in it
 				r := image.Rect(b.img.Bounds().Min.X, pt.Y, pt.X+b.img.Bounds().Dx(), pt.Y+b.font.height)
 				draw.Draw(b.img, r, b.bgCol, image.ZP, draw.Src)
 			}
 
 			// draw selection rectangles
-			if selection && (row >= b.dot.Head.Row && row <= b.dot.Tail.Row) {
+			if selection && (row >= b.Dot.Head.Row && row <= b.Dot.Tail.Row) {
 				b.drawSel(row)
 			}
 
@@ -51,19 +51,19 @@ func (b *Buffer) redraw() {
 	// draw cursor
 	if !selection {
 		// subtract a pixel from x coordinate to match acme
-		pt := image.Pt(b.getxpx(b.dot.Head)-1, b.getypx(b.dot.Head.Row))
+		pt := image.Pt(b.getxpx(b.Dot.Head)-1, b.getypx(b.Dot.Head.Row))
 		draw.Draw(b.img, b.cursor.Bounds().Add(pt), b.cursor, image.ZP, draw.Src)
 	}
 }
 
 func (b *Buffer) drawSel(row int) {
 	x1 := b.margin.X
-	if row == b.dot.Head.Row {
-		x1 = b.getxpx(b.dot.Head)
+	if row == b.Dot.Head.Row {
+		x1 = b.getxpx(b.Dot.Head)
 	}
 	x2 := b.img.Bounds().Dx()
-	if row == b.dot.Tail.Row {
-		x2 = b.getxpx(b.dot.Tail)
+	if row == b.Dot.Tail.Row {
+		x2 = b.getxpx(b.Dot.Tail)
 	}
 	min := image.Pt(x1, b.getypx(row))
 	max := image.Pt(x2, b.getypx(row+1))
@@ -145,14 +145,14 @@ func (b *Buffer) dirtyLines(row1, row2 int) {
 	b.dirty = b.dirty.Union(r)
 }
 
-// autoScroll does nothing if b.dot.Head is currently in view, or
+// autoScroll does nothing if b.Dot.Head is currently in view, or
 // scrolls so that it is 20% down from the top of the screen if it is not.
 func (b *Buffer) autoScroll() {
-	headpx := b.dot.Head.Row * b.font.height
+	headpx := b.Dot.Head.Row * b.font.height
 	if headpx < b.clipr.Min.Y || headpx > b.clipr.Max.Y-b.font.height {
 		padding := int(0.20 * float64(b.clipr.Dy()))
 		padding -= padding % b.font.height
-		scrollpt := image.Pt(0, b.dot.Head.Row*b.font.height-padding)
+		scrollpt := image.Pt(0, b.Dot.Head.Row*b.font.height-padding)
 		b.clipr = image.Rectangle{scrollpt, scrollpt.Add(b.clipr.Size())}
 		b.scroll(image.ZP) // this doesn't scroll, but fixes b.clipr if it is out-of-bounds
 	}

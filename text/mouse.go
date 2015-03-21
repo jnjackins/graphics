@@ -87,10 +87,10 @@ func (b *Buffer) pt2Address(pt image.Point) Address {
 func (b *Buffer) click(pos Address, buttons int) {
 	switch buttons {
 	case b1:
-		b.dirtyLines(b.dot.Head.Row, b.dot.Tail.Row+1)
-		b.dot.Head, b.dot.Tail = pos, pos
+		b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
+		b.Dot.Head, b.Dot.Tail = pos, pos
 		b.dirtyLine(pos.Row)
-		if b.dClicking == true && pos == b.dot.Head && pos == b.dot.Tail {
+		if b.dClicking == true && pos == b.Dot.Head && pos == b.Dot.Tail {
 			b.dClick(pos)
 			b.dClicking = false
 			b.dClickTimer.Stop()
@@ -120,11 +120,11 @@ func (b *Buffer) sweep(from, to Address) {
 
 	// set the selection
 	if to.lessThan(b.mSweepOrigin) {
-		b.dot = Selection{to, b.mSweepOrigin}
+		b.Dot = Selection{to, b.mSweepOrigin}
 	} else if to != b.mSweepOrigin {
-		b.dot = Selection{b.mSweepOrigin, to}
+		b.Dot = Selection{b.mSweepOrigin, to}
 	} else {
 		b.dirtyLine(to.Row)
-		b.dot = Selection{b.mSweepOrigin, b.mSweepOrigin}
+		b.Dot = Selection{b.mSweepOrigin, b.mSweepOrigin}
 	}
 }

@@ -9,7 +9,7 @@ type Clipboard interface {
 
 func (b *Buffer) snarf() {
 	if b.Clipboard != nil {
-		b.Clipboard.Put(b.contents(b.dot))
+		b.Clipboard.Put(b.contents(b.Dot))
 	} else {
 		log.Println("snarf: clipboard not setup")
 	}

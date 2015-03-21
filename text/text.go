@@ -56,7 +56,7 @@ func (b *Buffer) load(s string, recordAction bool) {
 	if len(input) == 1 {
 		b.load1(s)
 	} else {
-		row, col := b.dot.Head.Row, b.dot.Head.Col
+		row, col := b.Dot.Head.Row, b.Dot.Head.Col
 
 		// unchanged lines
 		lPreceding := b.lines[:row]
@@ -80,31 +80,31 @@ func (b *Buffer) load(s string, recordAction bool) {
 		// put everything together
 		b.lines = append(lPreceding, append(lNew, lFollowing...)...)
 
-		// fix selection; b.dot.Head is already fine
-		b.dot.Tail.Row = row + len(lNew) - 1
-		b.dot.Tail.Col = len(input[len(input)-1])
+		// fix selection; b.Dot.Head is already fine
+		b.Dot.Tail.Row = row + len(lNew) - 1
+		b.Dot.Tail.Col = len(input[len(input)-1])
 		b.dirtyLines(row, len(b.lines))
 		b.autoScroll()
 	}
 	if recordAction {
 		if b.currentAction.insertion == nil {
-			b.currentAction.insertion = &change{bounds: b.dot, text: b.contents(b.dot)}
+			b.currentAction.insertion = &change{bounds: b.Dot, text: b.contents(b.Dot)}
 		} else {
 			// append to b.currentAction if the user simply typed another rune
-			b.currentAction.insertion.bounds.Tail = b.dot.Tail
-			b.currentAction.insertion.text += b.contents(b.dot)
+			b.currentAction.insertion.bounds.Tail = b.Dot.Tail
+			b.currentAction.insertion.text += b.contents(b.Dot)
 		}
 	}
 }
 
-// load1 inserts a string with no line breaks at b.dot, assuming an empty selection.
+// load1 inserts a string with no line breaks at b.Dot, assuming an empty selection.
 func (b *Buffer) load1(s string) {
-	row, col := b.dot.Head.Row, b.dot.Head.Col
+	row, col := b.Dot.Head.Row, b.Dot.Head.Col
 	before := string(b.lines[row].s[:col])
 	after := string(b.lines[row].s[col:])
 	b.lines[row].s = []rune(before + s + after)
 	b.lines[row].px = b.font.getPx(b.margin.X, string(b.lines[row].s))
-	b.dot.Tail.Col += len([]rune(s))
+	b.Dot.Tail.Col += len([]rune(s))
 	b.dirtyLine(row)
 }
 
@@ -123,13 +123,13 @@ func (b *Buffer) contents(sel Selection) string {
 }
 
 func (b *Buffer) deleteSel(recordAction bool) {
-	if b.dot.Head == b.dot.Tail {
+	if b.Dot.Head == b.Dot.Tail {
 		return
 	}
 	if recordAction {
-		b.currentAction.deletion = &change{bounds: b.dot, text: b.contents(b.dot)}
+		b.currentAction.deletion = &change{bounds: b.Dot, text: b.contents(b.Dot)}
 	}
-	col1, row1, col2, row2 := b.dot.Head.Col, b.dot.Head.Row, b.dot.Tail.Col, b.dot.Tail.Row
+	col1, row1, col2, row2 := b.Dot.Head.Col, b.Dot.Head.Row, b.Dot.Tail.Col, b.Dot.Tail.Row
 	line := b.lines[row1].s[:col1]
 	b.lines[row1].s = append(line, b.lines[row2].s[col2:]...)
 	b.dirtyLine(row1)
@@ -143,7 +143,7 @@ func (b *Buffer) deleteSel(recordAction bool) {
 		b.autoScroll()
 		b.shrinkImg()
 	}
-	b.dot.Tail = b.dot.Head
+	b.Dot.Tail = b.Dot.Head
 }
 
 func isAlnum(c rune) bool {
@@ -152,48 +152,48 @@ func isAlnum(c rune) bool {
 
 // expandSel selects some text around a. Based on acme's double click selection rules.
 func (b *Buffer) expandSel(a Address) {
-	b.dot.Head, b.dot.Tail = a, a
+	b.Dot.Head, b.Dot.Tail = a, a
 	line := b.lines[a.Row].s
 
 	// select bracketed text
 	if b.selDelimited(leftbrackets, rightbrackets) {
-		b.dirtyLines(b.dot.Head.Row, b.dot.Tail.Row+1)
+		b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
 		return
 	}
 
 	// select line
 	if a.Col == len(line) || a.Col == 0 {
-		b.dot.Head.Col = 0
+		b.Dot.Head.Col = 0
 		if a.Row+1 < len(b.lines) {
-			b.dot.Tail.Row++
-			b.dot.Tail.Col = 0
+			b.Dot.Tail.Row++
+			b.Dot.Tail.Col = 0
 		} else {
-			b.dot.Tail.Col = len(line)
+			b.Dot.Tail.Col = len(line)
 		}
 		return
 	}
 
 	// select quoted text
 	if b.selDelimited(quotes, quotes) {
-		b.dirtyLines(b.dot.Head.Row, b.dot.Tail.Row+1)
+		b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
 		return
 	}
 
 	// Select a word. If we're on a non-alphanumeric, attempt to select a word to
 	// the left of the click; otherwise expand across alphanumerics in both directions.
 	for col := a.Col; col > 0 && isAlnum(line[col-1]); col-- {
-		b.dot.Head.Col--
+		b.Dot.Head.Col--
 	}
 	if isAlnum(line[a.Col]) {
 		for col := a.Col; col < len(line) && isAlnum(line[col]); col++ {
-			b.dot.Tail.Col++
+			b.Dot.Tail.Col++
 		}
 	}
 }
 
 // returns true if a selection was attempted, successfully or not
 func (b *Buffer) selDelimited(delims1, delims2 string) bool {
-	addr := b.dot.Head
+	addr := b.Dot.Head
 	var delim int
 	var line = b.lines[addr.Row].s
 	var next func(Address) Address
@@ -234,11 +234,11 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 		c := line[match.Col]
 		if c == rune(delims2[delim]) && stack == 0 {
 			if rightwards {
-				b.dot.Head, b.dot.Tail = addr, match
+				b.Dot.Head, b.Dot.Tail = addr, match
 			} else {
-				b.dot.Head, b.dot.Tail = match, addr
+				b.Dot.Head, b.Dot.Tail = match, addr
 			}
-			b.dot.Head.Col++ // move the head of the selection past the left delimiter
+			b.Dot.Head.Col++ // move the head of the selection past the left delimiter
 			return true
 		} else if c == 0 {
 			return true

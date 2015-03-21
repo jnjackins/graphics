@@ -82,11 +82,11 @@ func (b *Buffer) handleKey(r rune) {
 
 func (b *Buffer) input(r rune) {
 	b.load(string(r), true)
-	b.dot.Head = b.dot.Tail
+	b.Dot.Head = b.Dot.Tail
 }
 
 func (b *Buffer) backspace() {
-	b.dot.Head = b.prevAddress(b.dot.Head)
+	b.Dot.Head = b.prevAddress(b.Dot.Head)
 	b.deleteSel(false) // don't update the current action
 
 	if b.currentAction.insertion != nil {
@@ -99,20 +99,20 @@ func (b *Buffer) backspace() {
 }
 
 func (b *Buffer) left() {
-	b.dirtyLines(b.dot.Head.Row, b.dot.Tail.Row+1)
-	a := b.prevAddress(b.dot.Head)
-	b.dot.Head, b.dot.Tail = a, a
-	b.dirtyLine(b.dot.Head.Row) // new dot may be in a higher row
+	b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
+	a := b.prevAddress(b.Dot.Head)
+	b.Dot.Head, b.Dot.Tail = a, a
+	b.dirtyLine(b.Dot.Head.Row) // new dot may be in a higher row
 }
 
 func (b *Buffer) right() {
-	b.dirtyLines(b.dot.Head.Row, b.dot.Tail.Row+1)
-	a := b.nextAddress(b.dot.Tail)
-	b.dot.Head, b.dot.Tail = a, a
-	b.dirtyLine(b.dot.Head.Row) // new dot may be in a lower row
+	b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
+	a := b.nextAddress(b.Dot.Tail)
+	b.Dot.Head, b.Dot.Tail = a, a
+	b.dirtyLine(b.Dot.Head.Row) // new dot may be in a lower row
 }
 
 func (b *Buffer) newline() {
 	b.load("\n", true)
-	b.dot.Head = b.dot.Tail
+	b.Dot.Head = b.Dot.Tail
 }
