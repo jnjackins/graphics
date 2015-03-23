@@ -12,9 +12,9 @@ const (
 )
 
 type line struct {
-	s     []rune // TODO make this string
-	px    []int  // x-coord of the rightmost pixels of each rune in s
-	dirty bool   // true if the line needs to be redrawn (px needs to be repopulated)
+	s     []rune
+	px    []int // x-coord of the rightmost pixels of each rune in s
+	dirty bool  // true if the line needs to be redrawn (px needs to be repopulated)
 }
 
 type Address struct {
@@ -82,7 +82,7 @@ func (b *Buffer) load(s string, recordAction bool) {
 
 		// fix selection; b.Dot.Head is already fine
 		b.Dot.Tail.Row = row + len(lNew) - 1
-		b.Dot.Tail.Col = len(input[len(input)-1])
+		b.Dot.Tail.Col = len([]rune(input[len(input)-1]))
 		b.dirtyLines(row, len(b.lines))
 		b.autoScroll()
 	}
