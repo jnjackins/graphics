@@ -3,11 +3,13 @@ package keys
 const (
 	Backspace = 8
 	Return    = 10
-	Up        = 14
-	Left      = 17
-	Right     = 18
 	Escape    = 27
 	Down      = 128
+
+	// TODO: is this a bug coming from plan9port, or from the plan9 Go package?
+	Up    = 61454
+	Left  = 61457
+	Right = 61458
 
 	Copy  = 61795 // cmd-c
 	Save  = 61811 // cmd-s
