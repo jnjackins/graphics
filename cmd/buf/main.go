@@ -1,3 +1,7 @@
+// TODO: right click to search
+// TODO: make scrollbar clickable
+// TODO: mouse button chords
+
 package main
 
 import (
@@ -28,11 +32,12 @@ const (
 var (
 	filePath string
 	buf      *text.Buffer
+	bufImg   *draw.Image
 	bufPos   = image.Pt(sbWidth, 0)
 	sb       *scrollbar.Scrollbar
+	sbImg    *draw.Image
 	disp     *draw.Display
-	bufImg   *draw.Image // the full (unclipped) image
-	screen   *draw.Image // the final clipped image
+	screen   *draw.Image
 	oldClipr image.Rectangle
 )
 
@@ -195,16 +200,8 @@ func redraw() {
 		die.On(err, "buf: error setting window label")
 	}
 	if dirty != image.ZR || clipr != oldClipr {
-		// draw buffer image to screen
 		screen.Draw(bufImg.Bounds().Add(bufPos), bufImg, nil, clipr.Min)
-
-		// load scrollbar image directly onto screen
-		r := img.Bounds()
-		r.Max.Y -= clipr.Dy()
-		sb := sb.Img(clipr, r)
-		_, err := screen.Load(sb.Bounds(), sb.Pix)
-		die.On(err, "buf: error loading scrollbar image to screen")
-
+		drawScrollbar(clipr, img.Bounds())
 		disp.Flush()
 	}
 	oldClipr = clipr
@@ -242,4 +239,18 @@ func getIndent(line string) string {
 		indent += string(r)
 	}
 	return indent
+}
+
+func drawScrollbar(visible, actual image.Rectangle) {
+	actual.Max.Y -= visible.Dy()
+	img := sb.Img(visible, actual)
+	if sbImg == nil || sbImg.Bounds() != img.Bounds() {
+		r := image.Rect(0, 0, sbWidth, screen.Bounds().Dy())
+		var err error
+		sbImg, err = disp.AllocImage(r, draw.ABGR32, false, draw.White)
+		die.On(err, "buf: error allocating image")
+	}
+	_, err := sbImg.Load(sbImg.Bounds(), img.Pix)
+	die.On(err, "buf: error loading scrollbar image to screen")
+	screen.Draw(screen.Bounds(), sbImg, nil, image.ZP)
 }
