@@ -190,7 +190,7 @@ func redraw() {
 			die.On(err, "buf: error allocating image")
 		}
 		_, err := bufImg.Load(dirty, img.SubImage(dirty).(*image.RGBA).Pix)
-		die.On(err, "buf: error loading buffer to plan9 image")
+		die.On(err, "buf: error loading buffer image to plan9 image")
 
 		if buf.Saved() {
 			err = disp.SetLabel(filePath)
@@ -245,12 +245,11 @@ func drawScrollbar(visible, actual image.Rectangle) {
 	actual.Max.Y -= visible.Dy()
 	img := sb.Img(visible, actual)
 	if sbImg == nil || sbImg.Bounds() != img.Bounds() {
-		r := image.Rect(0, 0, sbWidth, screen.Bounds().Dy())
 		var err error
-		sbImg, err = disp.AllocImage(r, draw.ABGR32, false, draw.White)
+		sbImg, err = disp.AllocImage(img.Bounds(), draw.ABGR32, false, draw.White)
 		die.On(err, "buf: error allocating image")
 	}
 	_, err := sbImg.Load(sbImg.Bounds(), img.Pix)
-	die.On(err, "buf: error loading scrollbar image to screen")
+	die.On(err, "buf: error loading scrollbar image to plan9 image")
 	screen.Draw(screen.Bounds(), sbImg, nil, image.ZP)
 }
