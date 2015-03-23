@@ -13,6 +13,7 @@ import (
 	"unicode"
 
 	"sigint.ca/die"
+	"sigint.ca/graphics/keys"
 	"sigint.ca/graphics/scrollbar"
 	"sigint.ca/graphics/text"
 	"sigint.ca/plan9/draw"
@@ -147,16 +148,16 @@ loop:
 			}
 		case ke := <-kbd.C:
 			switch ke {
-			case '\n':
+			case keys.Return:
 				n := buf.Dot.Head.Row
 				s := buf.GetLine(n)
 				indentation := getIndent(s)
 				buf.SendKey('\n')
 				buf.Load(indentation)
 				buf.Dot = text.Selection{buf.Dot.Tail, buf.Dot.Tail}
-			case 27: // esc
+			case keys.Escape:
 				break loop
-			case 61811: // cmd-c
+			case keys.Save:
 				save()
 			default:
 				buf.SendKey(ke)

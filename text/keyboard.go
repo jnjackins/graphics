@@ -4,73 +4,47 @@ import (
 	"image"
 	"log"
 	"unicode"
+
+	"sigint.ca/graphics/keys"
 )
 
 func (b *Buffer) handleKey(r rune) {
 	key := r
-
-	// fix left, right, and up on OSX
-	if (key & 0xff00) == 0xf000 {
-		key = key & 0xff
-	}
-
 	switch key {
-	// backspace
-	case 8:
+	case keys.Backspace:
 		b.backspace()
 		b.commitAction()
-
-	// return
-	case 10:
+	case keys.Return:
 		b.newline()
 		b.commitAction()
-
-	// up
-	case 14:
+	case keys.Up:
 		b.scroll(image.Pt(0, -18*b.font.height))
 		b.commitAction()
-
-	// left
-	case 17:
+	case keys.Left:
 		b.left()
 		b.commitAction()
-
-	// right
-	case 18:
+	case keys.Right:
 		b.right()
 		b.commitAction()
-
-	// down
-	case 128:
+	case keys.Down:
 		b.scroll(image.Pt(0, 18*b.font.height))
 		b.commitAction()
-
-	// cmd-c
-	case 61795:
+	case keys.Copy:
 		b.snarf()
 		b.commitAction()
-
-	// cmd-v
-	case 61814:
+	case keys.Paste:
 		b.paste()
 		b.commitAction()
-
-	// cmd-x
-	case 61816:
+	case keys.Cut:
 		b.snarf()
 		b.deleteSel(true)
 		b.commitAction()
-
-	// cmd-y
-	case 61817:
+	case keys.Redo:
 		b.commitAction()
 		b.redo()
-
-	// cmd-z
-	case 61818:
+	case keys.Undo:
 		b.commitAction()
 		b.undo()
-
 	default:
 		if unicode.IsGraphic(r) || r == '\t' {
 			b.input(r)
