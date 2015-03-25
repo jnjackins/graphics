@@ -1,1 +1,1 @@
-package keys // import "sigint.ca/keys"
+package keys // import "sigint.ca/graphics/keys"
