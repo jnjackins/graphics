@@ -50,7 +50,7 @@ type snarfer struct {
 func (sn snarfer) Get() string {
 	b, err := sn.d.ReadSnarf()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "buf: error reading from snarf buffer: "+err.Error())
+		fmt.Fprintln(os.Stderr, "error reading from snarf buffer: "+err.Error())
 	}
 	return string(b)
 }
@@ -58,7 +58,7 @@ func (sn snarfer) Get() string {
 func (sn snarfer) Put(s string) {
 	err := sn.d.WriteSnarf([]byte(s))
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "buf: error writing to snarf buffer: "+err.Error())
+		fmt.Fprintln(os.Stderr, "error writing to snarf buffer: "+err.Error())
 	}
 }
 
@@ -80,7 +80,7 @@ func main() {
 	// possibly start cpu profiling
 	if *cprof != "" {
 		profileWriter, err := os.Create(*cprof)
-		die.On(err, "buf: error creating file for cpu profile")
+		die.On(err, "error creating file for cpu profile")
 		defer profileWriter.Close()
 		pprof.StartCPUProfile(profileWriter)
 		defer pprof.StopCPUProfile()
@@ -100,12 +100,12 @@ func main() {
 		if err != nil {
 			// if there's no file, no worries. otherwise, bail.
 			if !os.IsNotExist(err) {
-				die.On(err, "buf: error opening input file")
+				die.On(err, "error opening input file")
 			}
 		} else {
 			// no issues, open file for reading
 			inputFile, err = os.Open(filePath)
-			die.On(err, "buf: error opening input file")
+			die.On(err, "error opening input file")
 		}
 	}
 
@@ -118,7 +118,7 @@ func main() {
 		buf, err = text.NewBuffer(width-sbWidth, height, fontPath, inputFile, text.AcmeTheme)
 		inputFile.Close()
 	}
-	die.On(err, "buf: error creating new text buffer")
+	die.On(err, "error creating new text buffer")
 
 	// scrollbar
 	bg := color.RGBA{R: 0x99, G: 0x99, B: 0x4C, A: 0xFF}
@@ -131,7 +131,7 @@ func main() {
 		winName = "<no file>"
 	}
 	disp, err = draw.Init(winName, width, height)
-	die.On(err, "buf: error initializing display device")
+	die.On(err, "error initializing display device")
 	defer disp.Close()
 	screen = disp.ScreenImage
 
@@ -187,17 +187,17 @@ func redraw() {
 		if bufImg == nil || bufImg.Bounds() != img.Bounds() {
 			var err error
 			bufImg, err = disp.AllocImage(img.Bounds(), draw.ABGR32, false, draw.White)
-			die.On(err, "buf: error allocating image")
+			die.On(err, "error allocating image")
 		}
 		_, err := bufImg.Load(dirty, img.SubImage(dirty).(*image.RGBA).Pix)
-		die.On(err, "buf: error loading buffer image to plan9 image")
+		die.On(err, "error loading buffer image to plan9 image")
 
 		if buf.Saved() {
 			err = disp.SetLabel(filePath)
 		} else {
 			err = disp.SetLabel(filePath + " (unsaved)")
 		}
-		die.On(err, "buf: error setting window label")
+		die.On(err, "error setting window label")
 	}
 	if dirty != image.ZR || clipr != oldClipr {
 		screen.Draw(bufImg.Bounds().Add(bufPos), bufImg, nil, clipr.Min)
@@ -209,7 +209,7 @@ func redraw() {
 
 func resize() {
 	err := disp.Attach(draw.Refmesg)
-	die.On(err, "buf: error reattaching display after resize")
+	die.On(err, "error reattaching display after resize")
 	r := screen.Bounds()
 	buf.Resize(r.Dx()-sbWidth, r.Dy())
 	sb.Resize(sbWidth, r.Dy())
@@ -218,13 +218,13 @@ func resize() {
 func save() {
 	if filePath != "" {
 		err := ioutil.WriteFile(filePath, []byte(buf.Contents()), 0666)
-		die.On(err, "buf: error writing to file")
+		die.On(err, "error writing to file")
 	} else {
-		fmt.Fprintln(os.Stderr, "buf: error writing to file: no filename")
+		fmt.Fprintln(os.Stderr, "error writing to file: no filename")
 	}
 	buf.SetSaved()
 	err := disp.SetLabel(filePath)
-	die.On(err, "buf: error setting window label")
+	die.On(err, "error setting window label")
 }
 
 func getIndent(line string) string {
@@ -247,9 +247,9 @@ func drawScrollbar(visible, actual image.Rectangle) {
 	if sbImg == nil || sbImg.Bounds() != img.Bounds() {
 		var err error
 		sbImg, err = disp.AllocImage(img.Bounds(), draw.ABGR32, false, draw.White)
-		die.On(err, "buf: error allocating image")
+		die.On(err, "error allocating image")
 	}
 	_, err := sbImg.Load(sbImg.Bounds(), img.Pix)
-	die.On(err, "buf: error loading scrollbar image to plan9 image")
+	die.On(err, "error loading scrollbar image to plan9 image")
 	screen.Draw(screen.Bounds(), sbImg, nil, image.ZP)
 }
