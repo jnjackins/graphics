@@ -1,6 +1,7 @@
-This repository will be a collection of packages for helping to create graphical programs.
-The libraries work at the image level; you are responsible for displaying the images on the screen.
-The example program, cmd/buf, is a simple text editor which uses plan9port's devdraw to draw to a window. In theory
-it should also work on native Plan 9, but I haven't tested that yet.
+Libraries for creating graphical programs in Go.
 
-http://godoc.org/github.com/jnjackins/graphics/text
+* [text](http://godoc.org/sigint.ca/graphics/text): a library for creating graphical, possibly editable text areas.
+* [scrollbar](http://godoc.org/sigint.ca/graphics/scrollbar): a library for attaching scrollbars to scrollable graphical elements.
+* cmd/buf: A graphical text editor intended to have similar behavior to [Acme](http://plan9.bell-labs.com/sys/doc/acme/acme.html) or [Sam](http://plan9.bell-labs.com/sys/doc/sam/sam.html), but with less window management. The goal of this program is to exercise the packages in this repository.
+
+All software in this repository is currently work-in-progress. All packages strive to be pure Go, although programs in cmd may require external (non-Go) software.
