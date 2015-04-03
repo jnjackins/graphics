@@ -8,23 +8,26 @@ import (
 
 type Scrollbar struct {
 	img             *image.RGBA
+	pos             image.Point
 	bg, fg          *image.Uniform
 	visible, actual image.Rectangle
 }
 
-func New(width, height int, bgCol, fgCol color.Color) *Scrollbar {
-	r := image.Rect(0, 0, width, height)
+func New(r image.Rectangle, bgCol, fgCol color.Color) *Scrollbar {
+	zeroed := image.Rectangle{image.ZP, r.Size()}
 	return &Scrollbar{
-		img: image.NewRGBA(r),
+		img: image.NewRGBA(zeroed),
+		pos: r.Min,
 		bg:  image.NewUniform(bgCol),
 		fg:  image.NewUniform(fgCol),
 	}
 }
 
-func (sb *Scrollbar) Resize(width, height int) {
-	r := image.Rect(0, 0, width, height)
+func (sb *Scrollbar) Resize(r image.Rectangle) {
+	zeroed := image.Rectangle{image.ZP, r.Size()}
 	*sb = Scrollbar{
-		img: image.NewRGBA(r),
+		img: image.NewRGBA(zeroed),
+		pos: r.Min,
 		bg:  sb.bg,
 		fg:  sb.fg,
 	}
