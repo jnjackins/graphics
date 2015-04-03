@@ -1,7 +1,7 @@
-package text
-
 // this file was adapted from the freetype package at
-// https://code.google.com/p/freetype-go.
+// https://github.com/jnjackins/freetype-go.
+
+package text
 
 import (
 	"errors"
@@ -90,11 +90,130 @@ func newTTF(r io.Reader) (*ttf, error) {
 	return f, nil
 }
 
+// setDPI sets the screen resolution in dots per inch.
+func (f *ttf) setDPI(dpi float64) {
+	if f.dpi == dpi {
+		return
+	}
+	f.dpi = dpi
+	f.recalc()
+}
+
+// setSize sets the font size in points (as in "a 12 point font").
+func (f *ttf) setSize(size float64) {
+	if f.size == size {
+		return
+	}
+	f.size = size
+	f.recalc()
+}
+
+// setSrc sets the font color (default is black)
+func (f *ttf) setSrc(c color.Color) {
+	f.src = image.NewUniform(c)
+}
+
+// draw draws s onto dst starting at pt, up to a maximum length of w pixels.
+// It returns a slice of x-coords for each rune, as well as a string containing
+// the portion of s which exceeded w and was not drawn.
+func (f *ttf) draw(dst draw.Image, pt image.Point, s string, w int) ([]int, string) {
+	px := make([]int, 1, len(s)+1)
+	px[0] = pt.X
+	pt.Y += f.height - 3
+	p := pixelsToRaster(pt)
+	maxwidth := raster.Fix32(w << 8)
+	startp := p
+	prev, hasPrev := truetype.Index(0), false
+	for i, rune := range s {
+		// deal with tabstop specially
+		if rune == '\t' {
+			p.X += f.tabwidth
+			px = append(px, int(p.X>>8))
+			continue
+		}
+		index := f.font.Index(rune)
+		if hasPrev {
+			kern := raster.Fix32(f.font.Kerning(f.scale, prev, index)) << 2
+			kern = (kern + 128) &^ 255
+			p.X += kern
+		}
+		advanceWidth, mask, offset, err := f.glyph(index, p)
+		if err != nil {
+			panic(err) // TODO: put in some placeholder character
+		}
+		p.X += advanceWidth
+		glyphRect := mask.Bounds().Add(offset)
+		dr := dst.Bounds().Intersect(glyphRect)
+		if !dr.Empty() && (w < 0 || p.X-startp.X <= maxwidth) {
+			mp := image.Point{0, dr.Min.Y - glyphRect.Min.Y}
+			draw.DrawMask(dst, dr, f.src, image.ZP, mask, mp, draw.Over)
+		} else if maxwidth > 0 && p.X-startp.X > maxwidth {
+			return px, s[i:]
+		}
+		prev, hasPrev = index, true
+		px = append(px, int(p.X>>8))
+	}
+	return px, ""
+}
+
+// getPx is like draw, but it only calculates the x positions of the characters
+// without actually drawing them. startX is the initial x position to calculate
+// from.
+func (f *ttf) getPx(startX int, s string) []int {
+	px := make([]int, 1, len(s)+1)
+	px[0] = startX
+	p := pixelsToRaster(image.Pt(startX, 0))
+	prev, hasPrev := truetype.Index(0), false
+	for _, rune := range s {
+		// deal with tabstop specially
+		if rune == '\t' {
+			p.X += f.tabwidth
+			px = append(px, int(p.X>>8))
+			continue
+		}
+		index := f.font.Index(rune)
+		if hasPrev {
+			kern := raster.Fix32(f.font.Kerning(f.scale, prev, index)) << 2
+			kern = (kern + 128) &^ 255
+			p.X += kern
+		}
+		advanceWidth, _, _, err := f.glyph(index, p)
+		if err != nil {
+			panic(err) // TODO: put in (width of) some placeholder character
+		}
+		p.X += advanceWidth
+		prev, hasPrev = index, true
+		px = append(px, int(p.X>>8))
+	}
+	return px
+}
+
 // tabpx returns the width of a tabstop as a raster.Fix32
 func (f *ttf) tabpx(width int) raster.Fix32 {
 	space := f.font.Index(' ')
 	spacewidth := raster.Fix32(f.font.HMetric(f.scale, space).AdvanceWidth) << 2
 	return raster.Fix32(width * int(spacewidth))
+}
+
+// recalc recalculates scale and bounds values from the font size, screen
+// resolution and font metrics, and invalidates the glyph cache.
+func (f *ttf) recalc() {
+	f.scale = int32(f.size * f.dpi * (64.0 / 72.0))
+	if f.font == nil {
+		f.r.SetBounds(0, 0)
+	} else {
+		// Set the rasterizer's bounds to be big enough to handle the largest glyph.
+		b := f.font.Bounds(f.scale)
+		xmin := +int(b.XMin) >> 6
+		ymin := -int(b.YMax) >> 6
+		xmax := +int(b.XMax+63) >> 6
+		ymax := -int(b.YMin-63) >> 6
+		f.r.SetBounds(xmax-xmin, ymax-ymin)
+	}
+	for i := range f.cache {
+		f.cache[i] = cacheEntry{}
+	}
+	f.height = int(f.size * (f.dpi / 72.0))
 }
 
 // drawContour draws the given closed contour with the given offset.
@@ -233,123 +352,4 @@ func (f *ttf) glyph(glyph truetype.Index, p raster.Point) (
 	}
 	f.cache[t] = cacheEntry{true, glyph, advanceWidth, mask, offset}
 	return advanceWidth, mask, offset.Add(image.Point{ix, iy}), nil
-}
-
-// draw draws s onto dst starting at pt, up to a maximum length of w pixels.
-// It returns a slice of x-coords for each rune, as well as a string containing
-// the portion of s which exceeded w and was not drawn.
-func (f *ttf) draw(dst draw.Image, pt image.Point, s string, w int) ([]int, string) {
-	px := make([]int, 1, len(s)+1)
-	px[0] = pt.X
-	pt.Y += f.height - 3
-	p := pixelsToRaster(pt)
-	maxwidth := raster.Fix32(w << 8)
-	startp := p
-	prev, hasPrev := truetype.Index(0), false
-	for i, rune := range s {
-		// deal with tabstop specially
-		if rune == '\t' {
-			p.X += f.tabwidth
-			px = append(px, int(p.X>>8))
-			continue
-		}
-		index := f.font.Index(rune)
-		if hasPrev {
-			kern := raster.Fix32(f.font.Kerning(f.scale, prev, index)) << 2
-			kern = (kern + 128) &^ 255
-			p.X += kern
-		}
-		advanceWidth, mask, offset, err := f.glyph(index, p)
-		if err != nil {
-			panic(err) // TODO: put in some placeholder character
-		}
-		p.X += advanceWidth
-		glyphRect := mask.Bounds().Add(offset)
-		dr := dst.Bounds().Intersect(glyphRect)
-		if !dr.Empty() && (w < 0 || p.X-startp.X <= maxwidth) {
-			mp := image.Point{0, dr.Min.Y - glyphRect.Min.Y}
-			draw.DrawMask(dst, dr, f.src, image.ZP, mask, mp, draw.Over)
-		} else if maxwidth > 0 && p.X-startp.X > maxwidth {
-			return px, s[i:]
-		}
-		prev, hasPrev = index, true
-		px = append(px, int(p.X>>8))
-	}
-	return px, ""
-}
-
-// getPx is like draw, but it only calculates the x positions of the characters
-// without actually drawing them. startX is the initial x position to calculate
-// from.
-func (f *ttf) getPx(startX int, s string) []int {
-	px := make([]int, 1, len(s)+1)
-	px[0] = startX
-	p := pixelsToRaster(image.Pt(startX, 0))
-	prev, hasPrev := truetype.Index(0), false
-	for _, rune := range s {
-		// deal with tabstop specially
-		if rune == '\t' {
-			p.X += f.tabwidth
-			px = append(px, int(p.X>>8))
-			continue
-		}
-		index := f.font.Index(rune)
-		if hasPrev {
-			kern := raster.Fix32(f.font.Kerning(f.scale, prev, index)) << 2
-			kern = (kern + 128) &^ 255
-			p.X += kern
-		}
-		advanceWidth, _, _, err := f.glyph(index, p)
-		if err != nil {
-			panic(err) // TODO: put in (width of) some placeholder character
-		}
-		p.X += advanceWidth
-		prev, hasPrev = index, true
-		px = append(px, int(p.X>>8))
-	}
-	return px
-}
-
-// recalc recalculates scale and bounds values from the font size, screen
-// resolution and font metrics, and invalidates the glyph cache.
-func (f *ttf) recalc() {
-	f.scale = int32(f.size * f.dpi * (64.0 / 72.0))
-	if f.font == nil {
-		f.r.SetBounds(0, 0)
-	} else {
-		// Set the rasterizer's bounds to be big enough to handle the largest glyph.
-		b := f.font.Bounds(f.scale)
-		xmin := +int(b.XMin) >> 6
-		ymin := -int(b.YMax) >> 6
-		xmax := +int(b.XMax+63) >> 6
-		ymax := -int(b.YMin-63) >> 6
-		f.r.SetBounds(xmax-xmin, ymax-ymin)
-	}
-	for i := range f.cache {
-		f.cache[i] = cacheEntry{}
-	}
-	f.height = int(f.size * (f.dpi / 72.0))
-}
-
-// setDPI sets the screen resolution in dots per inch.
-func (f *ttf) setDPI(dpi float64) {
-	if f.dpi == dpi {
-		return
-	}
-	f.dpi = dpi
-	f.recalc()
-}
-
-// setSize sets the font size in points (as in "a 12 point font").
-func (f *ttf) setSize(size float64) {
-	if f.size == size {
-		return
-	}
-	f.size = size
-	f.recalc()
-}
-
-// setSrc sets the font color (default is black)
-func (f *ttf) setSrc(c color.Color) {
-	f.src = image.NewUniform(c)
 }
