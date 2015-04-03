@@ -13,7 +13,8 @@ import (
 type Buffer struct {
 	// images and drawing data
 	img   *image.RGBA
-	clipr image.Rectangle
+	pos   image.Point     // the min point of the rectangle given by the user
+	clipr image.Rectangle // the part of the image in view
 	clear image.Rectangle // to be cleared next redraw
 	dirty image.Rectangle // the portion that is dirty (the user needs to redraw)
 
@@ -47,7 +48,7 @@ type Buffer struct {
 // NewBuffer returns a new buffer with a clipping rectangle of size r. If initialText
 // is not nil, the buffer uses ioutil.ReadAll(initialText) to initialize the text
 // in the buffer. The caller should do any necessary cleanup on initialText after NewBuffer returns.
-func NewBuffer(width, height int, fontPath string, initialText io.Reader, options OptionSet) (*Buffer, error) {
+func NewBuffer(r image.Rectangle, fontPath string, initialText io.Reader, options OptionSet) (*Buffer, error) {
 	f, err := os.Open(fontPath)
 	if err != nil {
 		return nil, err
@@ -56,12 +57,13 @@ func NewBuffer(width, height int, fontPath string, initialText io.Reader, option
 	if err != nil {
 		return nil, err
 	}
-	r := image.Rect(0, 0, width, height)
+	zeroed := image.Rectangle{image.ZP, r.Size()}
 	b := &Buffer{
-		img:   image.NewRGBA(r), // grows as needed
-		clipr: r,
-		clear: r,
-		dirty: r,
+		img:   image.NewRGBA(zeroed), // grows as needed
+		pos:   r.Min,
+		clipr: zeroed,
+		clear: zeroed,
+		dirty: zeroed,
 
 		bgCol:  image.NewUniform(options.BGColor),
 		selCol: image.NewUniform(options.SelColor),
@@ -87,7 +89,9 @@ func NewBuffer(width, height int, fontPath string, initialText io.Reader, option
 
 // Resize resizes the Buffer. Subsequent calls to Img will return an image of
 // at least size r, and a clipping rectangle of size r.
-func (b *Buffer) Resize(width, height int) {
+func (b *Buffer) Resize(r image.Rectangle) {
+	b.pos = r.Min
+	width, height := r.Dx(), r.Dy()
 	b.clipr = image.Rectangle{b.clipr.Min, image.Pt(width, height)}
 	b.img = image.NewRGBA(image.Rect(0, 0, width, height))
 	b.clear = b.img.Bounds()

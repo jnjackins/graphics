@@ -16,6 +16,7 @@ const (
 const dClickPause = 500 * time.Millisecond
 
 func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
+	pos = pos.Sub(b.pos)       // asdjust for placement of the buffer
 	pos = pos.Add(b.clipr.Min) // adjust for scrolling
 
 	oldbuttons := b.mButtons
