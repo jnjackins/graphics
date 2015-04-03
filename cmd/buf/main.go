@@ -1,6 +1,9 @@
 // TODO: right click to search
 // TODO: make scrollbar clickable
 // TODO: mouse button chords
+// TODO: drag border to resize tag
+// TODO: output element
+// TODO: escape toggles visibility of tag/output elements
 
 package main
 
@@ -24,21 +27,27 @@ import (
 )
 
 const (
-	width   = 800
-	height  = 600
-	sbWidth = 12 // scrollbar
+	widthHint  = 800
+	heightHint = 600
+	tagHeight  = 40
+	sbWidth    = 12
 )
+
+type element struct {
+	buf      *text.Buffer
+	img      *draw.Image
+	pos      image.Point
+	sb       *scrollbar.Scrollbar
+	sbImg    *draw.Image
+	oldClipr image.Rectangle
+}
 
 var (
 	filePath string
-	buf      *text.Buffer
-	bufImg   *draw.Image
-	bufPos   = image.Pt(sbWidth, 0)
-	sb       *scrollbar.Scrollbar
-	sbImg    *draw.Image
+	tag      *element
+	primary  *element
 	disp     *draw.Display
 	screen   *draw.Image
-	oldClipr image.Rectangle
 )
 
 var cprof = flag.String("cprof", "", "save cpu profile to `path`")
@@ -109,36 +118,52 @@ func main() {
 		}
 	}
 
-	var err error
-	if inputFile == nil {
-		// even though inputFile is nil, we must use the value nil. Otherwise, NewBuffer will
-		// report inputFile != nil because it receives a non-nil interface.
-		buf, err = text.NewBuffer(width-sbWidth, height, fontPath, nil, text.AcmeTheme)
-	} else {
-		buf, err = text.NewBuffer(width-sbWidth, height, fontPath, inputFile, text.AcmeTheme)
-		inputFile.Close()
-	}
-	die.On(err, "error creating new text buffer")
-
-	// scrollbar
-	bg := color.RGBA{R: 0x99, G: 0x99, B: 0x4C, A: 0xFF}
-	fg := color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF}
-	sb = scrollbar.New(sbWidth, height, bg, fg)
-
 	// setup display device
 	winName := filePath
 	if winName == "" {
 		winName = "<no file>"
 	}
-	disp, err = draw.Init(winName, width, height)
+	var err error
+	disp, err = draw.Init(winName, widthHint, heightHint)
 	die.On(err, "error initializing display device")
 	defer disp.Close()
 	screen = disp.ScreenImage
+	width, height := screen.Bounds().Dx(), screen.Bounds().Dy()
+
+	// create tag buffer
+	tag = new(element)
+	r := image.Rect(sbWidth, 0, width, tagHeight)
+	tag.pos = r.Min
+	tag.buf, err = text.NewBuffer(r, fontPath, nil, text.AcmeBlue)
+	die.On(err, "error creating tag text buffer")
+
+	// create primary buffer
+	primary = new(element)
+	r.Min.Y = tagHeight + 1
+	r.Max.Y = height
+	primary.pos = r.Min
+	if inputFile == nil {
+		// even though inputFile is nil, we must use the value nil. Otherwise,
+		// NewBuffer will report inputFile != nil because it receives a non-nil
+		// interface.
+		primary.buf, err = text.NewBuffer(r, fontPath, nil, text.AcmeYellow)
+	} else {
+		primary.buf, err = text.NewBuffer(r, fontPath, inputFile, text.AcmeYellow)
+		inputFile.Close()
+	}
+	die.On(err, "error creating main text buffer")
+
+	// scrollbar
+	bg := color.RGBA{R: 0x99, G: 0x99, B: 0x4C, A: 0xFF}
+	fg := color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF}
+	primary.sb = scrollbar.New(image.Rect(0, 0, sbWidth, height), bg, fg)
 
 	kbd := disp.InitKeyboard()
 	mouse := disp.InitMouse()
-	buf.Clipboard = snarfer{disp}
-	redraw()
+	primary.buf.Clipboard = snarfer{disp}
+
+	redraw(tag)
+	redraw(primary)
 
 loop:
 	for {
@@ -146,31 +171,32 @@ loop:
 		case <-mouse.Resize:
 			resize()
 		case me := <-mouse.C:
-			buf.SendMouseEvent(me.Point.Sub(bufPos), me.Buttons)
+			primary.buf.SendMouseEvent(me.Point, me.Buttons)
 			for len(mouse.C) > 0 {
 				me = <-mouse.C
-				buf.SendMouseEvent(me.Point.Sub(bufPos), me.Buttons)
+				primary.buf.SendMouseEvent(me.Point, me.Buttons)
 			}
 		case ke := <-kbd.C:
 			switch ke {
 			case keys.Return:
-				n := buf.Dot.Head.Row
-				s := buf.GetLine(n)
+				n := primary.buf.Dot.Head.Row
+				s := primary.buf.GetLine(n)
 				indentation := getIndent(s)
-				buf.SendKey('\n')
-				buf.Load(indentation)
-				buf.Dot = text.Selection{buf.Dot.Tail, buf.Dot.Tail}
+				primary.buf.SendKey('\n')
+				primary.buf.Load(indentation)
+				primary.buf.Dot = text.Selection{primary.buf.Dot.Tail, primary.buf.Dot.Tail}
 			case keys.Escape:
 				break loop
 			case keys.Save:
 				save()
 			default:
-				buf.SendKey(ke)
+				primary.buf.SendKey(ke)
 			}
 		case <-disp.ExitC:
 			break loop
 		}
-		redraw()
+		redraw(tag)
+		redraw(primary)
 
 		// Rest for a moment. This allows mouse.C to fill up with mouse events,
 		// in case we are receiving rapid fire mouse events (in which case we
@@ -179,50 +205,52 @@ loop:
 	}
 }
 
-func redraw() {
-	img, clipr, dirty := buf.Img()
+func redraw(e *element) {
+	img, clipr, dirty := e.buf.Img()
 	if dirty != image.ZR {
 		// it is possible that img.Bounds() has changed, in which case we need to
-		// resize bufImg as well.
-		if bufImg == nil || bufImg.Bounds() != img.Bounds() {
+		// resize buf.img as well.
+		if e.img == nil || e.img.Bounds() != img.Bounds() {
+			fmt.Println("allocating new plan9 image")
 			var err error
-			bufImg, err = disp.AllocImage(img.Bounds(), draw.ABGR32, false, draw.White)
+			e.img, err = disp.AllocImage(img.Bounds(), draw.ABGR32, false, draw.White)
 			die.On(err, "error allocating image")
 		}
-		_, err := bufImg.Load(dirty, img.SubImage(dirty).(*image.RGBA).Pix)
+		_, err := e.img.Load(dirty, img.SubImage(dirty).(*image.RGBA).Pix)
 		die.On(err, "error loading buffer image to plan9 image")
 
-		if buf.Saved() {
+		if e.buf.Saved() {
 			err = disp.SetLabel(filePath)
 		} else {
 			err = disp.SetLabel(filePath + " (unsaved)")
 		}
 		die.On(err, "error setting window label")
 	}
-	if dirty != image.ZR || clipr != oldClipr {
-		screen.Draw(bufImg.Bounds().Add(bufPos), bufImg, nil, clipr.Min)
+	if dirty != image.ZR || clipr != e.oldClipr {
+		fmt.Printf("drawing to screen. dirty: %v, clipr: %v\n", dirty, clipr)
+		screen.Draw(e.img.Bounds().Add(e.pos), e.img, nil, clipr.Min)
 		drawScrollbar(clipr, img.Bounds())
 		disp.Flush()
 	}
-	oldClipr = clipr
+	e.oldClipr = clipr
 }
 
 func resize() {
 	err := disp.Attach(draw.Refmesg)
 	die.On(err, "error reattaching display after resize")
 	r := screen.Bounds()
-	buf.Resize(r.Dx()-sbWidth, r.Dy())
-	sb.Resize(sbWidth, r.Dy())
+	primary.buf.Resize(image.Rect(sbWidth, 0, r.Dx(), r.Dy()))
+	primary.sb.Resize(image.Rect(0, 0, sbWidth, r.Dy()))
 }
 
 func save() {
 	if filePath != "" {
-		err := ioutil.WriteFile(filePath, []byte(buf.Contents()), 0666)
+		err := ioutil.WriteFile(filePath, []byte(primary.buf.Contents()), 0666)
 		die.On(err, "error writing to file")
 	} else {
 		fmt.Fprintln(os.Stderr, "error writing to file: no filename")
 	}
-	buf.SetSaved()
+	primary.buf.SetSaved()
 	err := disp.SetLabel(filePath)
 	die.On(err, "error setting window label")
 }
@@ -243,13 +271,13 @@ func getIndent(line string) string {
 
 func drawScrollbar(visible, actual image.Rectangle) {
 	actual.Max.Y -= visible.Dy()
-	img := sb.Img(visible, actual)
-	if sbImg == nil || sbImg.Bounds() != img.Bounds() {
+	img := primary.sb.Img(visible, actual)
+	if primary.sbImg == nil || primary.sbImg.Bounds() != img.Bounds() {
 		var err error
-		sbImg, err = disp.AllocImage(img.Bounds(), draw.ABGR32, false, draw.White)
+		primary.sbImg, err = disp.AllocImage(img.Bounds(), draw.ABGR32, false, draw.White)
 		die.On(err, "error allocating image")
 	}
-	_, err := sbImg.Load(sbImg.Bounds(), img.Pix)
+	_, err := primary.sbImg.Load(primary.sbImg.Bounds(), img.Pix)
 	die.On(err, "error loading scrollbar image to plan9 image")
-	screen.Draw(screen.Bounds(), sbImg, nil, image.ZP)
+	screen.Draw(screen.Bounds(), primary.sbImg, nil, image.ZP)
 }
