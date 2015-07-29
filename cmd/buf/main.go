@@ -14,7 +14,6 @@ import (
 	"image/color"
 	"io/ioutil"
 	"os"
-	"runtime"
 	"runtime/pprof"
 	"time"
 	"unicode"
@@ -44,6 +43,7 @@ type element struct {
 
 var (
 	filePath string
+	current  *element // the currently active element
 	tag      *element
 	primary  *element
 	disp     *draw.Display
@@ -77,8 +77,6 @@ func usage() {
 }
 
 func main() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
 	flag.Usage = usage
 	flag.Parse()
 	if len(flag.Args()) > 1 {
@@ -165,32 +163,34 @@ func main() {
 	redraw(tag)
 	redraw(primary)
 
+	current = primary
 loop:
 	for {
 		select {
 		case <-mouse.Resize:
 			resize()
 		case me := <-mouse.C:
-			primary.buf.SendMouseEvent(me.Point, me.Buttons)
+			updateCurrent(me.Point)
+			current.buf.SendMouseEvent(me.Point, me.Buttons)
 			for len(mouse.C) > 0 {
 				me = <-mouse.C
-				primary.buf.SendMouseEvent(me.Point, me.Buttons)
+				current.buf.SendMouseEvent(me.Point, me.Buttons)
 			}
 		case ke := <-kbd.C:
 			switch ke {
 			case keys.Return:
-				n := primary.buf.Dot.Head.Row
-				s := primary.buf.GetLine(n)
+				n := current.buf.Dot.Head.Row
+				s := current.buf.GetLine(n)
 				indentation := getIndent(s)
-				primary.buf.SendKey('\n')
-				primary.buf.Load(indentation)
-				primary.buf.Dot = text.Selection{primary.buf.Dot.Tail, primary.buf.Dot.Tail}
+				current.buf.SendKey('\n')
+				current.buf.Load(indentation)
+				current.buf.Dot = text.Selection{current.buf.Dot.Tail, current.buf.Dot.Tail}
 			case keys.Escape:
 				break loop
 			case keys.Save:
 				save()
 			default:
-				primary.buf.SendKey(ke)
+				current.buf.SendKey(ke)
 			}
 		case <-disp.ExitC:
 			break loop
@@ -227,12 +227,23 @@ func redraw(e *element) {
 		die.On(err, "error setting window label")
 	}
 	if dirty != image.ZR || clipr != e.oldClipr {
-		fmt.Printf("drawing to screen. dirty: %v, clipr: %v\n", dirty, clipr)
 		screen.Draw(e.img.Bounds().Add(e.pos), e.img, nil, clipr.Min)
 		drawScrollbar(clipr, img.Bounds())
+		drawTagBorder() // XXX this gets drawn twice
 		disp.Flush()
 	}
 	e.oldClipr = clipr
+}
+
+func updateCurrent(pt image.Point) {
+	if pt.In(tag.img.Bounds().Add(tag.pos)) {
+		current = tag
+		return
+	}
+	if pt.In(primary.img.Bounds().Add(primary.pos)) {
+		current = primary
+		return
+	}
 }
 
 func resize() {
@@ -280,4 +291,12 @@ func drawScrollbar(visible, actual image.Rectangle) {
 	_, err := primary.sbImg.Load(primary.sbImg.Bounds(), img.Pix)
 	die.On(err, "error loading scrollbar image to plan9 image")
 	screen.Draw(screen.Bounds(), primary.sbImg, nil, image.ZP)
+}
+
+func drawTagBorder() {
+	p0, p1 := tag.img.Bounds().Min, tag.img.Bounds().Max
+	p0 = p0.Add(tag.pos)
+	p1 = p1.Add(tag.pos)
+	p0.Y += tag.img.Bounds().Dy()
+	screen.Line(p0, p1, 0, 0, 0, disp.Black, image.ZP)
 }
