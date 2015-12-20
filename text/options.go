@@ -23,14 +23,14 @@ var acmeCursor = func(height int) image.Image {
 	return cursor
 }
 
-var AcmeYellow = OptionSet{
+var AcmeYellowTheme = OptionSet{
 	BGColor:  color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF},
 	SelColor: color.RGBA{R: 0xEE, G: 0xEE, B: 0x9E, A: 0xFF},
 	Margin:   image.Pt(4, 0),
 	Cursor:   acmeCursor,
 }
 
-var AcmeBlue = OptionSet{
+var AcmeBlueTheme = OptionSet{
 	BGColor:  color.RGBA{R: 0xEA, G: 0xFF, B: 0xFF, A: 0xFF},
 	SelColor: color.RGBA{R: 0x88, G: 0x88, B: 0xCC, A: 0xFF},
 	Margin:   image.Pt(4, 0),

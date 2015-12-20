@@ -20,7 +20,7 @@ func (b *Buffer) redraw() {
 			line.dirty = false
 
 			// the top left pixel of the line, relative to the image it's being drawn onto
-			pt := image.Pt(0, row*b.font.height).Add(b.margin)
+			pt := image.Pt(0, row*b.lineHeight).Add(b.margin)
 
 			// make sure b.img is big enough to show this line and one full clipr past it
 			if pt.Y+b.clipr.Dy() >= b.img.Bounds().Dy() {
@@ -31,7 +31,7 @@ func (b *Buffer) redraw() {
 			// clear the line, unless it is completely selected
 			if !selection || row <= b.Dot.Head.Row || row >= b.Dot.Tail.Row {
 				// clear all the way to the left side of the image; the margin may have bits of cursor in it
-				r := image.Rect(b.img.Bounds().Min.X, pt.Y, pt.X+b.img.Bounds().Dx(), pt.Y+b.font.height)
+				r := image.Rect(b.img.Bounds().Min.X, pt.Y, pt.X+b.img.Bounds().Dx(), pt.Y+b.lineHeight)
 				draw.Draw(b.img, r, b.bgCol, image.ZP, draw.Src)
 			}
 
@@ -77,7 +77,7 @@ func (b *Buffer) scroll(pt image.Point) {
 	// check boundaries
 	min := b.img.Bounds().Min
 	max := b.img.Bounds().Max
-	max.Y = (len(b.lines)-1)*b.font.height + b.clipr.Dy()
+	max.Y = (len(b.lines)-1)*b.lineHeight + b.clipr.Dy()
 	if b.clipr.Min.X < min.X {
 		b.clipr = image.Rect(min.X, b.clipr.Min.Y, min.X+b.clipr.Dx(), b.clipr.Max.Y)
 	}
@@ -103,7 +103,7 @@ func (b *Buffer) getxpx(a Address) int {
 
 // returns y (pixels) for a given row
 func (b *Buffer) getypx(row int) int {
-	return row * b.font.height
+	return row * b.lineHeight
 }
 
 func (b *Buffer) growImg() {
@@ -118,7 +118,7 @@ func (b *Buffer) growImg() {
 
 func (b *Buffer) shrinkImg() {
 	r := b.img.Bounds()
-	height := (len(b.lines)-1)*b.font.height + b.clipr.Dy()
+	height := (len(b.lines)-1)*b.lineHeight + b.clipr.Dy()
 	if r.Max.Y != height {
 		r.Max.Y = height
 		b.img = b.img.SubImage(r).(*image.RGBA)
@@ -129,8 +129,8 @@ func (b *Buffer) shrinkImg() {
 func (b *Buffer) dirtyLine(row int) {
 	b.lines[row].dirty = true
 	r := b.img.Bounds()
-	r.Min.Y = row * b.font.height
-	r.Max.Y = r.Min.Y + b.font.height
+	r.Min.Y = row * b.lineHeight
+	r.Max.Y = r.Min.Y + b.lineHeight
 	b.dirty = b.dirty.Union(r)
 }
 
@@ -140,19 +140,19 @@ func (b *Buffer) dirtyLines(row1, row2 int) {
 		line.dirty = true
 	}
 	r := b.img.Bounds()
-	r.Min.Y = row1 * b.font.height
-	r.Max.Y = row2*b.font.height + b.font.height
+	r.Min.Y = row1 * b.lineHeight
+	r.Max.Y = row2*b.lineHeight + b.lineHeight
 	b.dirty = b.dirty.Union(r)
 }
 
 // autoScroll does nothing if b.Dot.Head is currently in view, or
 // scrolls so that it is 20% down from the top of the screen if it is not.
 func (b *Buffer) autoScroll() {
-	headpx := b.Dot.Head.Row * b.font.height
-	if headpx < b.clipr.Min.Y || headpx > b.clipr.Max.Y-b.font.height {
+	headpx := b.Dot.Head.Row * b.lineHeight
+	if headpx < b.clipr.Min.Y || headpx > b.clipr.Max.Y-b.lineHeight {
 		padding := int(0.20 * float64(b.clipr.Dy()))
-		padding -= padding % b.font.height
-		scrollpt := image.Pt(0, b.Dot.Head.Row*b.font.height-padding)
+		padding -= padding % b.lineHeight
+		scrollpt := image.Pt(0, b.Dot.Head.Row*b.lineHeight-padding)
 		b.clipr = image.Rectangle{scrollpt, scrollpt.Add(b.clipr.Size())}
 		b.scroll(image.ZP) // this doesn't scroll, but fixes b.clipr if it is out-of-bounds
 	}

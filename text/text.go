@@ -67,10 +67,10 @@ func (b *Buffer) load(s string, recordAction bool) {
 		// the beginning and end of the current line are attached to the first and last of the
 		// lines that are being loaded
 		lNew[0] = &line{s: []rune(string(b.lines[row].s[:col]) + input[0])}
-		lNew[0].px = b.font.getPx(b.margin.X, string(lNew[0].s))
+		lNew[0].px = b.font.measure(b.margin.X, string(lNew[0].s))
 		last := len(lNew) - 1
 		lNew[last] = &line{s: []rune(input[len(input)-1] + string(b.lines[row].s[col:]))}
-		lNew[last].px = b.font.getPx(b.margin.X, string(lNew[last].s))
+		lNew[last].px = b.font.measure(b.margin.X, string(lNew[last].s))
 
 		// entirely new lines
 		for i := 1; i < len(lNew)-1; i++ {
@@ -103,7 +103,7 @@ func (b *Buffer) load1(s string) {
 	before := string(b.lines[row].s[:col])
 	after := string(b.lines[row].s[col:])
 	b.lines[row].s = []rune(before + s + after)
-	b.lines[row].px = b.font.getPx(b.margin.X, string(b.lines[row].s))
+	b.lines[row].px = b.font.measure(b.margin.X, string(b.lines[row].s))
 	b.Dot.Tail.Col += len([]rune(s))
 	b.dirtyLine(row)
 }

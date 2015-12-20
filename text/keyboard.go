@@ -5,51 +5,57 @@ import (
 	"log"
 	"unicode"
 
-	"sigint.ca/graphics/keys"
+	"golang.org/x/mobile/event/key"
 )
 
-func (b *Buffer) handleKey(r rune) {
-	key := r
-	switch key {
-	case keys.Backspace:
+func (b *Buffer) handleKey(e key.Event) {
+	switch {
+	case e.Code == key.CodeDeleteBackspace:
 		b.backspace()
 		b.commitAction()
-	case keys.Return:
+	case e.Code == key.CodeReturnEnter:
 		b.newline()
 		b.commitAction()
-	case keys.Up:
+	case e.Code == key.CodeTab:
+		b.input('\t')
+	case e.Code == key.CodeUpArrow:
 		b.scroll(image.Pt(0, -18*b.font.height))
 		b.commitAction()
-	case keys.Left:
+	case e.Code == key.CodeLeftArrow:
 		b.left()
 		b.commitAction()
-	case keys.Right:
+	case e.Code == key.CodeRightArrow:
 		b.right()
 		b.commitAction()
-	case keys.Down:
+	case e.Code == key.CodeDownArrow:
 		b.scroll(image.Pt(0, 18*b.font.height))
 		b.commitAction()
-	case keys.Copy:
+	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
+		// copy
 		b.snarf()
 		b.commitAction()
-	case keys.Paste:
+	case e.Modifiers == key.ModMeta && e.Code == key.CodeV:
+		// paste
 		b.paste()
 		b.commitAction()
-	case keys.Cut:
+	case e.Modifiers == key.ModMeta && e.Code == key.CodeX:
+		// cut
 		b.snarf()
 		b.deleteSel(true)
 		b.commitAction()
-	case keys.Redo:
+	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
+		// redo
 		b.commitAction()
 		b.redo()
-	case keys.Undo:
+	case e.Modifiers == key.ModMeta && e.Code == key.CodeZ:
+		// undo
 		b.commitAction()
 		b.undo()
 	default:
-		if unicode.IsGraphic(r) || r == '\t' {
-			b.input(r)
+		if unicode.IsGraphic(e.Rune) {
+			b.input(e.Rune)
 		} else {
-			log.Printf("text: unhandled key: %d\n", r)
+			log.Printf("text: unhandled key: %d\n", e.Rune)
 		}
 	}
 }

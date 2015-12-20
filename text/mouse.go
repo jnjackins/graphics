@@ -2,39 +2,33 @@ package text
 
 import (
 	"image"
+	"sort"
 	"time"
-)
 
-const (
-	b1 = 1 << iota
-	b2
-	b3
-	b4 // mouse wheel up
-	b5 // mouse wheel down
+	"golang.org/x/mobile/event/mouse"
 )
 
 const dClickPause = 500 * time.Millisecond
 
-func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
-	pos = pos.Sub(b.pos)       // asdjust for placement of the buffer
-	pos = pos.Add(b.clipr.Min) // adjust for scrolling
+func (b *Buffer) handleMouseEvent(e mouse.Event) {
+	pos := image.Pt(int(e.X), int(e.Y)).Add(b.clipr.Min) // adjust for scrolling
+	button := e.Button
 
-	oldbuttons := b.mButtons
 	oldpos := b.mPos
-	b.mButtons = buttons
+	b.mButton = button
 	b.mPos = pos
 
-	switch buttons {
-	case b1:
-		click := oldbuttons == 0
-		sweep := oldbuttons == buttons
-		if click {
+	switch button {
+	case mouse.ButtonLeft:
+		if e.Direction == mouse.DirPress {
+			// click
 			a := b.pt2Address(pos)
+			olda := b.pt2Address(oldpos)
 			b.mSweepOrigin = a
-			b.click(a, buttons)
-			b.dirtyLine(a.Row)
+			b.click(a, olda, button)
 			b.commitAction()
-		} else if sweep {
+		} else if e.Direction == mouse.DirNone {
+			// sweep
 			// possibly scroll by sweeping past the edge of the window
 			if pos.Y <= b.clipr.Min.Y {
 				b.scroll(image.Pt(0, -b.font.height))
@@ -45,15 +39,15 @@ func (b *Buffer) handleMouseEvent(pos image.Point, buttons int) {
 			}
 
 			a := b.pt2Address(pos)
-			oldA := b.pt2Address(oldpos)
-			if a != oldA {
-				b.sweep(oldA, a)
+			olda := b.pt2Address(oldpos)
+			if a != olda {
+				b.sweep(olda, a)
 			}
 		}
-	case b4:
-		b.scroll(image.Pt(0, -b.font.height))
-	case b5:
-		b.scroll(image.Pt(0, b.font.height))
+	case mouse.ButtonWheelDown:
+		b.scroll(image.Pt(0, -b.lineHeight))
+	case mouse.ButtonWheelUp:
+		b.scroll(image.Pt(0, b.lineHeight))
 	}
 }
 
@@ -73,41 +67,39 @@ func (b *Buffer) pt2Address(pt image.Point) Address {
 		return pos
 	}
 
-	// TODO: seems wasteful to iterate over the whole line here
 	line := b.lines[pos.Row]
-	for i := 1; i < len(line.px); i++ {
-		if line.px[i] > pt.X {
-			pos.Col = i - 1
-			return pos
-		}
+	// the column number is found by looking for the smallest px element
+	// which is larger than pt.X, and returning the column number before that.
+	// If no px elements are larger than pt.X, then return the last column on
+	// the line.
+	if pt.X <= line.px[0] {
+		pos.Col = 0
+	} else if pt.X > line.px[len(line.px)-1] {
+		pos.Col = len(line.px)
+	} else {
+		n := sort.Search(len(line.px), func(i int) bool {
+			return line.px[i] > pt.X
+		})
+		pos.Col = n - 1
 	}
-	pos.Col = len(line.s)
 	return pos
 }
 
-func (b *Buffer) click(pos Address, buttons int) {
-	switch buttons {
-	case b1:
+func (b *Buffer) click(a, olda Address, button mouse.Button) {
+	switch button {
+	case mouse.ButtonLeft:
 		b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
-		b.Dot.Head, b.Dot.Tail = pos, pos
-		b.dirtyLine(pos.Row)
-		if b.dClicking == true && pos == b.Dot.Head && pos == b.Dot.Tail {
-			b.dClick(pos)
-			b.dClicking = false
-			b.dClickTimer.Stop()
+		b.Dot.Head, b.Dot.Tail = a, a
+		b.dirtyLine(a.Row)
+
+		if time.Since(b.lastClickTime) < dClickPause && a == olda {
+			// double click
+			b.expandSel(a)
+			b.lastClickTime = time.Time{}
 		} else {
-			b.dClicking = true
-			if b.dClickTimer != nil {
-				b.dClickTimer.Stop()
-			}
-			// TODO: this is racy
-			b.dClickTimer = time.AfterFunc(dClickPause, func() { b.dClicking = false })
+			b.lastClickTime = time.Now()
 		}
 	}
-}
-
-func (b *Buffer) dClick(a Address) {
-	b.expandSel(a)
 }
 
 func (b *Buffer) sweep(from, to Address) {
