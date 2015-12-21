@@ -61,7 +61,7 @@ func (b *Buffer) handleKey(e key.Event) {
 }
 
 func (b *Buffer) input(r rune) {
-	b.load(string(r), true)
+	b.loadRune(r, true)
 	b.Dot.Head = b.Dot.Tail
 }
 
@@ -93,6 +93,6 @@ func (b *Buffer) right() {
 }
 
 func (b *Buffer) newline() {
-	b.load("\n", true)
+	b.loadRune('\n', true)
 	b.Dot.Head = b.Dot.Tail
 }

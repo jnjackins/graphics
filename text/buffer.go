@@ -1,6 +1,7 @@
 package text // import "sigint.ca/graphics/text"
 
 import (
+	"bytes"
 	"image"
 	"time"
 
@@ -75,7 +76,7 @@ func (b *Buffer) Release() {
 }
 
 func (b *Buffer) Bounds() image.Rectangle {
-	return b.img.Bounds()
+	return b.clipr
 }
 
 func (b *Buffer) Size() image.Point {
@@ -104,21 +105,17 @@ func (b *Buffer) RGBA() (img *image.RGBA) {
 	return b.img
 }
 
-func (b *Buffer) Clipr() image.Rectangle {
-	return b.clipr
-}
-
 // Contents returns the contents of the buffer as a string.
-// TODO: return a writer
-func (b *Buffer) Contents() string {
-	var s string
+// TODO: benchmark DecodeRune loop vs conversions
+func (b *Buffer) Contents() []byte {
+	var buf bytes.Buffer
 	for i, line := range b.lines {
-		s += string(line.s)
+		buf.WriteString(string(line.s))
 		if i < len(b.lines)-1 {
-			s += "\n"
+			buf.WriteByte('\n')
 		}
 	}
-	return s
+	return buf.Bytes()
 }
 
 // GetLine returns a string containing the text of the nth line, where
@@ -128,8 +125,8 @@ func (b *Buffer) GetLine(n int) string {
 }
 
 // Load replaces the current selection with s.
-func (b *Buffer) Load(s string) {
-	b.load(s, true)
+func (b *Buffer) Load(s []byte) {
+	b.loadBytes(s, true)
 }
 
 func (b *Buffer) SetSaved() {

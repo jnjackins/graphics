@@ -1,6 +1,7 @@
 package text
 
 import (
+	"bytes"
 	"strings"
 	"unicode"
 )
@@ -49,76 +50,102 @@ type Selection struct {
 	Head, Tail Address // the beginning and end points of the selection
 }
 
-// load replaces the current selection with s.
-func (b *Buffer) load(s string, recordAction bool) {
+func (b *Buffer) loadBytes(s []byte, recordHist bool) {
 	b.deleteSel(true)
-	input := strings.Split(s, "\n")
-	if len(input) == 1 {
-		b.load1(s)
-	} else {
-		row, col := b.Dot.Head.Row, b.Dot.Head.Col
 
-		// unchanged lines
-		lPreceding := b.lines[:row]
-		lFollowing := b.lines[row+1:]
-
-		lNew := make([]*line, len(input))
-
-		// the beginning and end of the current line are attached to the first and last of the
-		// lines that are being loaded
-		lNew[0] = &line{s: []rune(string(b.lines[row].s[:col]) + input[0])}
-		lNew[0].px = b.font.measure(b.margin.X, string(lNew[0].s))
-		last := len(lNew) - 1
-		lNew[last] = &line{s: []rune(input[len(input)-1] + string(b.lines[row].s[col:]))}
-		lNew[last].px = b.font.measure(b.margin.X, string(lNew[last].s))
-
-		// entirely new lines
-		for i := 1; i < len(lNew)-1; i++ {
-			lNew[i] = &line{s: []rune(input[i])}
+	buf := bytes.NewBuffer(s)
+	input := make([][]rune, 0, len(s)/80)
+	for buf.Len() > 0 {
+		s, err := buf.ReadString('\n')
+		if err != nil {
+			break
 		}
-
-		// put everything together
-		b.lines = append(lPreceding, append(lNew, lFollowing...)...)
-
-		// fix selection; b.Dot.Head is already fine
-		b.Dot.Tail.Row = row + len(lNew) - 1
-		b.Dot.Tail.Col = len([]rune(input[len(input)-1]))
-		b.dirtyLines(row, len(b.lines))
-		b.autoScroll()
+		input = append(input, []rune(s))
 	}
-	if recordAction {
-		if b.currentAction.insertion == nil {
+
+	if len(input) == 1 {
+		b.loadLine(input[0])
+	} else {
+		b.loadLines(input)
+	}
+
+	if recordHist {
+		ins := b.currentAction.insertion
+		if ins == nil {
 			b.currentAction.insertion = &change{bounds: b.Dot, text: b.contents(b.Dot)}
 		} else {
 			// append to b.currentAction if the user simply typed another rune
-			b.currentAction.insertion.bounds.Tail = b.Dot.Tail
-			b.currentAction.insertion.text += b.contents(b.Dot)
+			ins.bounds.Tail = b.Dot.Tail
+			ins.text = append(ins.text, b.contents(b.Dot)...)
 		}
 	}
 }
 
-// load1 inserts a string with no line breaks at b.Dot, assuming an empty selection.
-func (b *Buffer) load1(s string) {
+func (b *Buffer) loadRune(r rune, recordHist bool) {
+	b.deleteSel(true)
+
+	if r == '\n' {
+		b.loadLines([][]rune{{'\n'}})
+		return
+	}
+	b.loadLine([]rune{r})
+}
+
+// load replaces the current selection with s.
+func (b *Buffer) loadLines(input [][]rune) {
 	row, col := b.Dot.Head.Row, b.Dot.Head.Col
-	before := string(b.lines[row].s[:col])
-	after := string(b.lines[row].s[col:])
-	b.lines[row].s = []rune(before + s + after)
-	b.lines[row].px = b.font.measure(b.margin.X, string(b.lines[row].s))
-	b.Dot.Tail.Col += len([]rune(s))
+
+	// unchanged lines
+	lPreceding := b.lines[:row]
+	lFollowing := b.lines[row+1:]
+
+	lNew := make([]*line, len(input))
+
+	// the beginning and end of the current line are attached to the first and last of the
+	// lines that are being loaded
+	lNew[0] = &line{s: append(b.lines[row].s[:col], input[0]...)}
+	lNew[0].px = b.font.measure(b.margin.X, lNew[0].s)
+	last := len(lNew) - 1
+	lNew[last] = &line{s: append(input[len(input)-1], b.lines[row].s[col:]...)}
+	lNew[last].px = b.font.measure(b.margin.X, lNew[last].s)
+
+	// entirely new lines
+	for i := 1; i < len(lNew)-1; i++ {
+		lNew[i] = &line{s: input[i]}
+	}
+
+	// put everything together
+	b.lines = append(lPreceding, append(lNew, lFollowing...)...)
+
+	// fix selection; b.Dot.Head is already fine
+	b.Dot.Tail.Row = row + len(lNew) - 1
+	b.Dot.Tail.Col = len(input[len(input)-1])
+	b.dirtyLines(row, len(b.lines))
+	b.autoScroll()
+}
+
+// loadLine inserts a string with no line breaks at b.Dot, assuming an empty selection.
+func (b *Buffer) loadLine(s []rune) {
+	row, col := b.Dot.Head.Row, b.Dot.Head.Col
+	before := b.lines[row].s[:col]
+	after := b.lines[row].s[col:]
+	b.lines[row].s = append(append(before, s...), after...)
+	b.lines[row].px = b.font.measure(b.margin.X, b.lines[row].s)
+	b.Dot.Tail.Col += len(s)
 	b.dirtyLine(row)
 }
 
-func (b *Buffer) contents(sel Selection) string {
+func (b *Buffer) contents(sel Selection) []byte {
 	a1, a2 := sel.Head, sel.Tail
 	if a1.Row == a2.Row {
-		return string(b.lines[a1.Row].s[a1.Col:a2.Col])
+		return []byte(string(b.lines[a1.Row].s[a1.Col:a2.Col]))
 	} else {
 		sel := string(b.lines[a1.Row].s[a1.Col:]) + "\n"
 		for i := a1.Row + 1; i < a2.Row; i++ {
 			sel += string(b.lines[i].s) + "\n"
 		}
 		sel += string(b.lines[a2.Row].s[:a2.Col])
-		return sel
+		return []byte(sel)
 	}
 }
 

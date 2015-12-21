@@ -21,8 +21,7 @@ type fontface struct {
 // draw draws s onto dst starting at pt, up to a maximum length of maxw pixels.
 // It returns a slice of x-coords for each rune, as well as a string containing
 // the portion of s which exceeded maxw and was not drawn.
-func (f fontface) draw(dst draw.Image, pt image.Point, s string, maxw int) ([]int, string) {
-	remaining := s
+func (f fontface) draw(dst draw.Image, pt image.Point, s []rune, maxw int) []int {
 	px := make([]int, 1, len(s)+1)
 	px[0] = pt.X
 	dot := fixed.P(pt.X, pt.Y+f.height)
@@ -41,18 +40,17 @@ func (f fontface) draw(dst draw.Image, pt image.Point, s string, maxw int) ([]in
 		}
 		dot.X += advance
 		if maxw > 0 && int(dot.X>>6) > maxw {
-			return px, remaining
+			return px
 		}
-		remaining = remaining[1:]
 		draw.DrawMask(dst, dr, image.Black, dr.Min, mask, maskp, draw.Over)
 		px = append(px, int(dot.X>>6))
 	}
-	return px, remaining
+	return px
 }
 
 // measure returns a slice of character positions in pixels for s,
 // beginning from the pixel value start.
-func (f fontface) measure(start int, s string) []int {
+func (f fontface) measure(start int, s []rune) []int {
 	px := make([]int, 1, len(s)+1)
 	px[0] = start
 	dot := fixed.I(start)

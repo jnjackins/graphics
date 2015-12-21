@@ -3,8 +3,8 @@ package text
 import "log"
 
 type Clipboard interface {
-	Get() string
-	Put(string)
+	Get() []byte
+	Put([]byte)
 }
 
 func (b *Buffer) snarf() {
@@ -17,7 +17,7 @@ func (b *Buffer) snarf() {
 
 func (b *Buffer) paste() {
 	if b.Clipboard != nil {
-		b.load(b.Clipboard.Get(), true)
+		b.loadBytes(b.Clipboard.Get(), true)
 	} else {
 		log.Println("paste: clipboard not setup")
 	}
