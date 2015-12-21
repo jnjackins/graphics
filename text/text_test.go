@@ -31,8 +31,9 @@ func BenchmarkLoadBytes(b *testing.B) {
 	face := basicfont.Face7x13
 	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
-	var input = []byte(`The quick brown fox jumps over the lazy dog.
-速い茶色のキツネは、のろまなイヌに飛びかかりました。`)
+	input := []byte(`The quick brown fox jumps over the lazy dog.
+速い茶色のキツネは、のろまなイヌに飛びかかりました。
+The quick brown fox jumps over the lazy dog.`)
 	for i := 0; i < b.N; i++ {
 		buf.loadBytes(input, false)
 	}
@@ -52,6 +53,6 @@ func BenchmarkLoadRuneUnicode(b *testing.B) {
 	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	for i := 0; i < b.N; i++ {
-		buf.loadRune('a', false)
+		buf.loadRune('せ', false)
 	}
 }

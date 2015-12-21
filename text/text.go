@@ -53,14 +53,10 @@ type Selection struct {
 func (b *Buffer) loadBytes(s []byte, recordHist bool) {
 	b.deleteSel(true)
 
-	buf := bytes.NewBuffer(s)
-	input := make([][]rune, 0, len(s)/80)
-	for buf.Len() > 0 {
-		s, err := buf.ReadString('\n')
-		if err != nil {
-			break
-		}
-		input = append(input, []rune(s))
+	lines := bytes.Split(s, []byte("\n"))
+	input := make([][]rune, len(lines))
+	for i, line := range lines {
+		input[i] = bytes.Runes(line)
 	}
 
 	if len(input) == 1 {

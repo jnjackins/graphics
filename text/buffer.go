@@ -106,7 +106,6 @@ func (b *Buffer) RGBA() (img *image.RGBA) {
 }
 
 // Contents returns the contents of the buffer as a string.
-// TODO: benchmark DecodeRune loop vs conversions
 func (b *Buffer) Contents() []byte {
 	var buf bytes.Buffer
 	for i, line := range b.lines {
