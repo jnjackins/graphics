@@ -41,7 +41,7 @@ func (b *Buffer) redraw() {
 			}
 
 			// draw font overtop
-			line.px = b.font.draw(b.img, pt, line.s, -1)
+			line.px = b.font.draw(b.img, pt, line.s)
 		}
 	}
 	if grown {

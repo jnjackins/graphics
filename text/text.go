@@ -50,6 +50,20 @@ type Selection struct {
 	Head, Tail Address // the beginning and end points of the selection
 }
 
+// loadRune inserts a printable utf8 encoded character, replacing the current
+// selection.
+// TODO: history?
+func (b *Buffer) loadRune(r rune, recordHist bool) {
+	b.deleteSel(recordHist)
+	if r == '\n' {
+		b.loadLines([][]rune{{}})
+		return
+	}
+	b.loadLine([]rune{r})
+}
+
+// loadBytes replaces the current selection with s, and handles arbitrary
+// utf8 input, including newlines.
 func (b *Buffer) loadBytes(s []byte, recordHist bool) {
 	b.deleteSel(recordHist)
 
@@ -77,17 +91,6 @@ func (b *Buffer) loadBytes(s []byte, recordHist bool) {
 	}
 }
 
-func (b *Buffer) loadRune(r rune, recordHist bool) {
-	b.deleteSel(recordHist)
-
-	if r == '\n' {
-		b.loadLines([][]rune{{'\n'}})
-		return
-	}
-	b.loadLine([]rune{r})
-}
-
-// load replaces the current selection with s.
 func (b *Buffer) loadLines(input [][]rune) {
 	row, col := b.Dot.Head.Row, b.Dot.Head.Col
 
@@ -120,7 +123,6 @@ func (b *Buffer) loadLines(input [][]rune) {
 	b.autoScroll()
 }
 
-// loadLine inserts a string with no line breaks at b.Dot, assuming an empty selection.
 func (b *Buffer) loadLine(s []rune) {
 	row, col := b.Dot.Head.Row, b.Dot.Head.Col
 	before := b.lines[row].s[:col]

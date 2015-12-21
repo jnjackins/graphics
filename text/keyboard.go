@@ -19,7 +19,7 @@ func (b *Buffer) handleKey(e key.Event) {
 	case e.Code == key.CodeTab:
 		b.input('\t')
 	case e.Code == key.CodeUpArrow:
-		b.scroll(image.Pt(0, -18*b.font.height))
+		b.scroll(image.Pt(0, -18*b.lineHeight))
 		b.commitAction()
 	case e.Code == key.CodeLeftArrow:
 		b.left()
@@ -28,7 +28,7 @@ func (b *Buffer) handleKey(e key.Event) {
 		b.right()
 		b.commitAction()
 	case e.Code == key.CodeDownArrow:
-		b.scroll(image.Pt(0, 18*b.font.height))
+		b.scroll(image.Pt(0, 18*b.lineHeight))
 		b.commitAction()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
 		// copy
@@ -93,6 +93,6 @@ func (b *Buffer) right() {
 }
 
 func (b *Buffer) newline() {
-	b.loadRune('\n', true)
+	b.loadBytes([]byte("\n"), true)
 	b.Dot.Head = b.Dot.Tail
 }

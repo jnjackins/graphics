@@ -31,11 +31,11 @@ func (b *Buffer) handleMouseEvent(e mouse.Event) {
 			// sweep
 			// possibly scroll by sweeping past the edge of the window
 			if pos.Y <= b.clipr.Min.Y {
-				b.scroll(image.Pt(0, -b.font.height))
-				pos.Y -= b.font.height
+				b.scroll(image.Pt(0, -b.lineHeight))
+				pos.Y -= b.lineHeight
 			} else if pos.Y >= b.clipr.Max.Y {
-				b.scroll(image.Pt(0, b.font.height))
-				pos.Y += b.font.height
+				b.scroll(image.Pt(0, b.lineHeight))
+				pos.Y += b.lineHeight
 			}
 
 			a := b.pt2Address(pos)
@@ -58,7 +58,7 @@ func (b *Buffer) pt2Address(pt image.Point) Address {
 	}
 
 	var pos Address
-	pos.Row = pt.Y / b.font.height
+	pos.Row = pt.Y / b.lineHeight
 
 	// end of the last line if pos is below the last line
 	if pos.Row > len(b.lines)-1 {
@@ -75,7 +75,7 @@ func (b *Buffer) pt2Address(pt image.Point) Address {
 	if pt.X <= line.px[0] {
 		pos.Col = 0
 	} else if pt.X > line.px[len(line.px)-1] {
-		pos.Col = len(line.px)
+		pos.Col = len(line.px) - 1
 	} else {
 		n := sort.Search(len(line.px), func(i int) bool {
 			return line.px[i] > pt.X
