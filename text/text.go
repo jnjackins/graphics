@@ -51,7 +51,7 @@ type Selection struct {
 }
 
 func (b *Buffer) loadBytes(s []byte, recordHist bool) {
-	b.deleteSel(true)
+	b.deleteSel(recordHist)
 
 	lines := bytes.Split(s, []byte("\n"))
 	input := make([][]rune, len(lines))
@@ -78,7 +78,7 @@ func (b *Buffer) loadBytes(s []byte, recordHist bool) {
 }
 
 func (b *Buffer) loadRune(r rune, recordHist bool) {
-	b.deleteSel(true)
+	b.deleteSel(recordHist)
 
 	if r == '\n' {
 		b.loadLines([][]rune{{'\n'}})
@@ -145,11 +145,11 @@ func (b *Buffer) contents(sel Selection) []byte {
 	}
 }
 
-func (b *Buffer) deleteSel(recordAction bool) {
+func (b *Buffer) deleteSel(recordHist bool) {
 	if b.Dot.Head == b.Dot.Tail {
 		return
 	}
-	if recordAction {
+	if recordHist {
 		b.currentAction.deletion = &change{bounds: b.Dot, text: b.contents(b.Dot)}
 	}
 	col1, row1, col2, row2 := b.Dot.Head.Col, b.Dot.Head.Row, b.Dot.Tail.Col, b.Dot.Tail.Row

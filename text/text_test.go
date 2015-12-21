@@ -9,21 +9,11 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	/*
-		f, err := os.Create("load.prof")
-		if err != nil {
-			b.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-	*/
-
+	//f, _ := os.Create("load.prof")
+	//pprof.StartCPUProfile(f)
 	status := m.Run()
-
-	/*
-		pprof.StopCPUProfile()
-		f.Close()
-	*/
-
+	//pprof.StopCPUProfile()
+	//f.Close()
 	os.Exit(status)
 }
 
