@@ -80,7 +80,7 @@ func (b *Buffer) Bounds() image.Rectangle {
 }
 
 func (b *Buffer) Size() image.Point {
-	return b.img.Bounds().Size()
+	return b.clipr.Size()
 }
 
 // Resize resizes the Buffer. Subsequent calls to Img will return an image of
@@ -140,7 +140,7 @@ func (b *Buffer) Saved() bool {
 	return true
 }
 
-// SendKey sends a keystroke to be interpreted by the Buffer.
+// SendKey sends a key event to be interpreted by the Buffer.
 func (b *Buffer) SendKey(e key.Event) {
 	b.handleKey(e)
 }
