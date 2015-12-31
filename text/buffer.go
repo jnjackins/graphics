@@ -20,15 +20,16 @@ type Buffer struct {
 	dirty image.Rectangle // the portion that is dirty (the user needs to redraw)
 
 	// configurable
-	bgCol      *image.Uniform
-	selCol     *image.Uniform
+	bgcol      *image.Uniform
+	selcol     *image.Uniform
 	margin     image.Point
 	lineHeight int
 	cursor     image.Image // the cursor to draw when nothing is selected
 	font       fontface
 
 	// internal state
-	lines []*line // the text data
+	dot   selection // the current selection
+	lines []*line   // the text data
 
 	// history
 	lastAction    *action // the most recently performed action
@@ -39,10 +40,8 @@ type Buffer struct {
 	lastClickTime time.Time    // used to detect a double-click
 	mButton       mouse.Button // the button of the most recent mouse event
 	mPos          image.Point  // the position of the most recent mouse event
-	mSweepOrigin  Address      // keeps track of the origin of a sweep
+	mSweepOrigin  address      // keeps track of the origin of a sweep
 
-	// public variables
-	Dot       Selection // the current selection
 	Clipboard Clipboard // the Clipboard to be used for copy or paste events
 }
 
@@ -57,8 +56,8 @@ func NewBuffer(size image.Point, face font.Face, height int, opt OptionSet) *Buf
 		clear: r,
 		dirty: r,
 
-		bgCol:      image.NewUniform(opt.BGColor),
-		selCol:     image.NewUniform(opt.SelColor),
+		bgcol:      image.NewUniform(opt.BGColor),
+		selcol:     image.NewUniform(opt.SelColor),
 		margin:     opt.Margin,
 		lineHeight: height,
 		cursor:     opt.Cursor(height),

@@ -14,12 +14,12 @@ type OptionSet struct {
 }
 
 var acmeCursor = func(height int) image.Image {
-	bgCol := image.NewUniform(color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF})
+	bgcol := image.NewUniform(color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF})
 	cursor := image.NewRGBA(image.Rect(0, 0, 3, height))
 	draw.Draw(cursor, cursor.Rect, image.Black, image.ZP, draw.Src)
 	h := height - 3
-	draw.Draw(cursor, image.Rect(0, 3, 1, h), bgCol, image.ZP, draw.Src)
-	draw.Draw(cursor, image.Rect(2, 3, 3, h), bgCol, image.ZP, draw.Src)
+	draw.Draw(cursor, image.Rect(0, 3, 1, h), bgcol, image.ZP, draw.Src)
+	draw.Draw(cursor, image.Rect(2, 3, 3, h), bgcol, image.ZP, draw.Src)
 	return cursor
 }
 

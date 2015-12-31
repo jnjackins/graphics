@@ -44,7 +44,7 @@ func (b *Buffer) handleKey(e key.Event) {
 		b.commitAction()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
 		last := len(b.lines) - 1
-		b.sel(Address{0, 0}, Address{last, len(b.lines[last].s)})
+		b.sel(address{0, 0}, address{last, len(b.lines[last].s)})
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
 		// redo
 		b.commitAction()
@@ -62,37 +62,37 @@ func (b *Buffer) handleKey(e key.Event) {
 
 func (b *Buffer) input(r rune) {
 	b.loadRune(r, true)
-	b.Dot.Head = b.Dot.Tail
+	b.dot.head = b.dot.tail
 }
 
 func (b *Buffer) backspace() {
-	b.Dot.Head = b.prevAddress(b.Dot.Head)
+	b.dot.head = b.prevaddress(b.dot.head)
 	b.deleteSel(false) // don't update the current action
 
 	if b.currentAction.insertion != nil {
 		// This is the only case where the insertion must happen before the deletion.
 		// Update b.currentAction manually here to make it an insertion only.
-		b.currentAction.insertion.bounds.Tail.Col--
+		b.currentAction.insertion.bounds.tail.col--
 		text := b.currentAction.insertion.text
 		b.currentAction.insertion.text = text[:len(text)-1]
 	}
 }
 
 func (b *Buffer) left() {
-	b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
-	a := b.prevAddress(b.Dot.Head)
-	b.Dot.Head, b.Dot.Tail = a, a
-	b.dirtyLine(b.Dot.Head.Row) // new dot may be in a higher row
+	b.dirtyLines(b.dot.head.row, b.dot.tail.row+1)
+	a := b.prevaddress(b.dot.head)
+	b.dot.head, b.dot.tail = a, a
+	b.dirtyLine(b.dot.head.row) // new dot may be in a higher row
 }
 
 func (b *Buffer) right() {
-	b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
-	a := b.nextAddress(b.Dot.Tail)
-	b.Dot.Head, b.Dot.Tail = a, a
-	b.dirtyLine(b.Dot.Head.Row) // new dot may be in a lower row
+	b.dirtyLines(b.dot.head.row, b.dot.tail.row+1)
+	a := b.nextaddress(b.dot.tail)
+	b.dot.head, b.dot.tail = a, a
+	b.dirtyLine(b.dot.head.row) // new dot may be in a lower row
 }
 
 func (b *Buffer) newline() {
 	b.loadBytes([]byte("\n"), true)
-	b.Dot.Head = b.Dot.Tail
+	b.dot.head = b.dot.tail
 }

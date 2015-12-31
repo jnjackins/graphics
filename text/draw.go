@@ -7,11 +7,11 @@ import (
 
 func (b *Buffer) redraw() {
 	// clear an area if requested
-	draw.Draw(b.img, b.clear, b.bgCol, image.ZP, draw.Src)
+	draw.Draw(b.img, b.clear, b.bgcol, image.ZP, draw.Src)
 	b.dirty = b.dirty.Union(b.clear)
 	b.clear = image.ZR
 
-	selection := !(b.Dot.Head == b.Dot.Tail)
+	selection := !(b.dot.head == b.dot.tail)
 
 	// redraw dirty lines
 	var grown bool
@@ -29,14 +29,14 @@ func (b *Buffer) redraw() {
 			}
 
 			// clear the line, unless it is completely selected
-			if !selection || row <= b.Dot.Head.Row || row >= b.Dot.Tail.Row {
+			if !selection || row <= b.dot.head.row || row >= b.dot.tail.row {
 				// clear all the way to the left side of the image; the margin may have bits of cursor in it
 				r := image.Rect(b.img.Bounds().Min.X, pt.Y, pt.X+b.img.Bounds().Dx(), pt.Y+b.lineHeight)
-				draw.Draw(b.img, r, b.bgCol, image.ZP, draw.Src)
+				draw.Draw(b.img, r, b.bgcol, image.ZP, draw.Src)
 			}
 
 			// draw selection rectangles
-			if selection && (row >= b.Dot.Head.Row && row <= b.Dot.Tail.Row) {
+			if selection && (row >= b.dot.head.row && row <= b.dot.tail.row) {
 				b.drawSel(row)
 			}
 
@@ -51,24 +51,24 @@ func (b *Buffer) redraw() {
 	// draw cursor
 	if !selection {
 		// subtract a pixel from x coordinate to match acme
-		pt := image.Pt(b.getxpx(b.Dot.Head)-1, b.getypx(b.Dot.Head.Row))
+		pt := image.Pt(b.getxpx(b.dot.head)-1, b.getypx(b.dot.head.row))
 		draw.Draw(b.img, b.cursor.Bounds().Add(pt), b.cursor, image.ZP, draw.Src)
 	}
 }
 
 func (b *Buffer) drawSel(row int) {
 	x1 := b.margin.X
-	if row == b.Dot.Head.Row {
-		x1 = b.getxpx(b.Dot.Head)
+	if row == b.dot.head.row {
+		x1 = b.getxpx(b.dot.head)
 	}
 	x2 := b.img.Bounds().Dx()
-	if row == b.Dot.Tail.Row {
-		x2 = b.getxpx(b.Dot.Tail)
+	if row == b.dot.tail.row {
+		x2 = b.getxpx(b.dot.tail)
 	}
 	min := image.Pt(x1, b.getypx(row))
 	max := image.Pt(x2, b.getypx(row+1))
 	r := image.Rectangle{min, max}
-	draw.Draw(b.img, r, b.selCol, image.ZP, draw.Src)
+	draw.Draw(b.img, r, b.selcol, image.ZP, draw.Src)
 }
 
 func (b *Buffer) scroll(pt image.Point) {
@@ -92,13 +92,13 @@ func (b *Buffer) scroll(pt image.Point) {
 	}
 }
 
-// returns x (pixels) for a given Address
-func (b *Buffer) getxpx(a Address) int {
-	l := b.lines[a.Row]
-	if a.Col >= len(l.px) {
+// returns x (pixels) for a given address
+func (b *Buffer) getxpx(a address) int {
+	l := b.lines[a.row]
+	if a.col >= len(l.px) {
 		return l.px[len(l.px)-1]
 	}
-	return l.px[a.Col]
+	return l.px[a.col]
 }
 
 // returns y (pixels) for a given row
@@ -110,7 +110,7 @@ func (b *Buffer) growImg() {
 	r := b.img.Bounds()
 	r.Max.Y += b.img.Bounds().Dy() // new image is double the old
 	newImg := image.NewRGBA(r)
-	draw.Draw(newImg, newImg.Bounds(), b.bgCol, image.ZP, draw.Src)
+	draw.Draw(newImg, newImg.Bounds(), b.bgcol, image.ZP, draw.Src)
 	draw.Draw(newImg, newImg.Bounds(), b.img, image.ZP, draw.Src)
 	b.img = newImg
 	b.dirty = b.img.Bounds()
@@ -145,14 +145,14 @@ func (b *Buffer) dirtyLines(row1, row2 int) {
 	b.dirty = b.dirty.Union(r)
 }
 
-// autoScroll does nothing if b.Dot.Head is currently in view, or
+// autoScroll does nothing if b.dot.head is currently in view, or
 // scrolls so that it is 20% down from the top of the screen if it is not.
 func (b *Buffer) autoScroll() {
-	headpx := b.Dot.Head.Row * b.lineHeight
+	headpx := b.dot.head.row * b.lineHeight
 	if headpx < b.clipr.Min.Y || headpx > b.clipr.Max.Y-b.lineHeight {
 		padding := int(0.20 * float64(b.clipr.Dy()))
 		padding -= padding % b.lineHeight
-		scrollpt := image.Pt(0, b.Dot.Head.Row*b.lineHeight-padding)
+		scrollpt := image.Pt(0, b.dot.head.row*b.lineHeight-padding)
 		b.clipr = image.Rectangle{scrollpt, scrollpt.Add(b.clipr.Size())}
 		b.scroll(image.ZP) // this doesn't scroll, but fixes b.clipr if it is out-of-bounds
 	}

@@ -8,7 +8,7 @@ type action struct {
 }
 
 type change struct {
-	bounds Selection
+	bounds selection
 	text   []byte
 }
 
@@ -18,11 +18,11 @@ func (b *Buffer) redo() {
 		b.lastAction = b.lastAction.next
 
 		if a.deletion != nil {
-			b.Dot = a.deletion.bounds
+			b.dot = a.deletion.bounds
 			b.deleteSel(false)
 		}
 		if a.insertion != nil {
-			b.Dot = Selection{a.insertion.bounds.Head, a.insertion.bounds.Head}
+			b.dot = selection{a.insertion.bounds.head, a.insertion.bounds.head}
 			b.loadBytes(a.insertion.text, false)
 		}
 
@@ -37,11 +37,11 @@ func (b *Buffer) undo() {
 		b.lastAction = b.lastAction.prev
 
 		if a.insertion != nil {
-			b.Dot = a.insertion.bounds
+			b.dot = a.insertion.bounds
 			b.deleteSel(false)
 		}
 		if a.deletion != nil {
-			b.Dot = Selection{a.deletion.bounds.Head, a.deletion.bounds.Head}
+			b.dot = selection{a.deletion.bounds.head, a.deletion.bounds.head}
 			b.loadBytes(a.deletion.text, false)
 		}
 

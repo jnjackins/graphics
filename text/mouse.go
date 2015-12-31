@@ -22,8 +22,8 @@ func (b *Buffer) handleMouseEvent(e mouse.Event) {
 	case mouse.ButtonLeft:
 		if e.Direction == mouse.DirPress {
 			// click
-			a := b.pt2Address(pos)
-			olda := b.pt2Address(oldpos)
+			a := b.pt2address(pos)
+			olda := b.pt2address(oldpos)
 			b.mSweepOrigin = a
 			b.click(a, olda, button)
 			b.commitAction()
@@ -38,8 +38,8 @@ func (b *Buffer) handleMouseEvent(e mouse.Event) {
 				pos.Y += b.lineHeight
 			}
 
-			a := b.pt2Address(pos)
-			olda := b.pt2Address(oldpos)
+			a := b.pt2address(pos)
+			olda := b.pt2address(oldpos)
 			if a != olda {
 				b.sweep(olda, a)
 			}
@@ -51,46 +51,46 @@ func (b *Buffer) handleMouseEvent(e mouse.Event) {
 	}
 }
 
-func (b *Buffer) pt2Address(pt image.Point) Address {
+func (b *Buffer) pt2address(pt image.Point) address {
 	// (0,0) if pt is above the buffer
 	if pt.Y < 0 {
-		return Address{}
+		return address{}
 	}
 
-	var pos Address
-	pos.Row = pt.Y / b.lineHeight
+	var pos address
+	pos.row = pt.Y / b.lineHeight
 
 	// end of the last line if pos is below the last line
-	if pos.Row > len(b.lines)-1 {
-		pos.Row = len(b.lines) - 1
-		pos.Col = len(b.lines[pos.Row].s)
+	if pos.row > len(b.lines)-1 {
+		pos.row = len(b.lines) - 1
+		pos.col = len(b.lines[pos.row].s)
 		return pos
 	}
 
-	line := b.lines[pos.Row]
+	line := b.lines[pos.row]
 	// the column number is found by looking for the smallest px element
 	// which is larger than pt.X, and returning the column number before that.
 	// If no px elements are larger than pt.X, then return the last column on
 	// the line.
 	if pt.X <= line.px[0] {
-		pos.Col = 0
+		pos.col = 0
 	} else if pt.X > line.px[len(line.px)-1] {
-		pos.Col = len(line.px) - 1
+		pos.col = len(line.px) - 1
 	} else {
 		n := sort.Search(len(line.px), func(i int) bool {
 			return line.px[i] > pt.X
 		})
-		pos.Col = n - 1
+		pos.col = n - 1
 	}
 	return pos
 }
 
-func (b *Buffer) click(a, olda Address, button mouse.Button) {
+func (b *Buffer) click(a, olda address, button mouse.Button) {
 	switch button {
 	case mouse.ButtonLeft:
-		b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
-		b.Dot.Head, b.Dot.Tail = a, a
-		b.dirtyLine(a.Row)
+		b.dirtyLines(b.dot.head.row, b.dot.tail.row+1)
+		b.dot.head, b.dot.tail = a, a
+		b.dirtyLine(a.row)
 
 		if time.Since(b.lastClickTime) < dClickPause && a == olda {
 			// double click
@@ -102,10 +102,10 @@ func (b *Buffer) click(a, olda Address, button mouse.Button) {
 	}
 }
 
-func (b *Buffer) sweep(from, to Address) {
+func (b *Buffer) sweep(from, to address) {
 	// mark all the rows between to and from as dirty
 	// (to and from can be more than one row apart, if they are sweeping quickly)
-	r1, r2 := to.Row, from.Row
+	r1, r2 := to.row, from.row
 	if r1 > r2 {
 		r1, r2 = r2, r1
 	}
@@ -113,11 +113,11 @@ func (b *Buffer) sweep(from, to Address) {
 
 	// set the selection
 	if to.lessThan(b.mSweepOrigin) {
-		b.Dot = Selection{to, b.mSweepOrigin}
+		b.dot = selection{to, b.mSweepOrigin}
 	} else if to != b.mSweepOrigin {
-		b.Dot = Selection{b.mSweepOrigin, to}
+		b.dot = selection{b.mSweepOrigin, to}
 	} else {
-		b.dirtyLine(to.Row)
-		b.Dot = Selection{b.mSweepOrigin, b.mSweepOrigin}
+		b.dirtyLine(to.row)
+		b.dot = selection{b.mSweepOrigin, b.mSweepOrigin}
 	}
 }
