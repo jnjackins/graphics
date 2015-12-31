@@ -2,7 +2,6 @@ package text
 
 import (
 	"image"
-	"log"
 	"unicode"
 
 	"golang.org/x/mobile/event/key"
@@ -52,10 +51,8 @@ func (b *Buffer) handleKey(e key.Event) {
 		b.commitAction()
 		b.undo()
 	default:
-		if unicode.IsGraphic(e.Rune) {
+		if unicode.IsGraphic(e.Rune) && e.Modifiers&key.ModMeta == 0 {
 			b.input(e.Rune)
-		} else {
-			log.Printf("text: unhandled key: %d\n", e.Rune)
 		}
 	}
 }
