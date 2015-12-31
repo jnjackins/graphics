@@ -42,6 +42,9 @@ func (b *Buffer) handleKey(e key.Event) {
 		b.snarf()
 		b.deleteSel(true)
 		b.commitAction()
+	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
+		last := len(b.lines) - 1
+		b.sel(Address{0, 0}, Address{last, len(b.lines[last].s)})
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
 		// redo
 		b.commitAction()

@@ -175,6 +175,12 @@ func isAlnum(c rune) bool {
 	return unicode.IsLetter(c) || unicode.IsNumber(c)
 }
 
+func (b *Buffer) sel(a1, a2 Address) {
+	b.Dot.Head = a1
+	b.Dot.Tail = a2
+	b.dirtyLines(b.Dot.Head.Row, b.Dot.Tail.Row+1)
+}
+
 // expandSel selects some text around a. Based on acme's double click selection rules.
 func (b *Buffer) expandSel(a Address) {
 	b.Dot.Head, b.Dot.Tail = a, a
