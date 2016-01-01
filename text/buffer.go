@@ -123,8 +123,10 @@ func (b *Buffer) GetLine(n int) string {
 }
 
 // Load replaces the current selection with s.
+// TODO: clients no longer control selection
 func (b *Buffer) Load(s []byte) {
 	b.loadBytes(s, true)
+	b.sel(address{}, address{})
 }
 
 // SetSaved instructs the buffer that the current contents should be
