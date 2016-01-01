@@ -127,10 +127,15 @@ func (b *Buffer) Load(s []byte) {
 	b.loadBytes(s, true)
 }
 
+// SetSaved instructs the buffer that the current contents should be
+// considered "saved". After calling SetSaved, the client can call
+// Saved to see if the Buffer has unsaved content.
 func (b *Buffer) SetSaved() {
 	b.savedAction = b.lastAction
 }
 
+// Saved reports whether the Buffer has been modified since the last
+// time SetSaved was called.
 func (b *Buffer) Saved() bool {
 	committed := b.commitAction()
 	if committed || b.lastAction != b.savedAction {
@@ -140,8 +145,8 @@ func (b *Buffer) Saved() bool {
 }
 
 // SendKey sends a key event to be interpreted by the Buffer.
-func (b *Buffer) SendKey(e key.Event) {
-	b.handleKey(e)
+func (b *Buffer) SendKeyEvent(e key.Event) {
+	b.handleKeyEvent(e)
 }
 
 // SendMouseEvent sends a mouse event to be interpreted by the Buffer.

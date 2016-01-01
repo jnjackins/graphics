@@ -7,7 +7,7 @@ import (
 	"golang.org/x/mobile/event/key"
 )
 
-func (b *Buffer) handleKey(e key.Event) {
+func (b *Buffer) handleKeyEvent(e key.Event) {
 	switch {
 	case e.Code == key.CodeDeleteBackspace:
 		b.backspace()
