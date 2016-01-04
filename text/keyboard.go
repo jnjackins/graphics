@@ -69,12 +69,12 @@ func (b *Buffer) backspace() {
 	b.dot.head = b.prevaddress(b.dot.head)
 	b.deleteSel(false) // don't update the current action
 
-	if b.currentAction.insertion != nil {
+	if b.currentAction.ins != nil {
 		// This is the only case where the insertion must happen before the deletion.
 		// Update b.currentAction manually here to make it an insertion only.
-		b.currentAction.insertion.bounds.tail.col--
-		text := b.currentAction.insertion.text
-		b.currentAction.insertion.text = text[:len(text)-1]
+		b.currentAction.ins.bounds.tail.col--
+		text := b.currentAction.ins.text
+		b.currentAction.ins.text = text[:len(text)-1]
 	}
 }
 

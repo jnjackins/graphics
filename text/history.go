@@ -2,8 +2,7 @@ package text
 
 // each editor action is a deletion followed by an insertion.
 type action struct {
-	deletion   *change
-	insertion  *change
+	del, ins   *change
 	prev, next *action
 }
 
@@ -17,13 +16,13 @@ func (b *Buffer) redo() {
 		a := b.lastAction.next
 		b.lastAction = b.lastAction.next
 
-		if a.deletion != nil {
-			b.dot = a.deletion.bounds
+		if a.del != nil {
+			b.dot = a.del.bounds
 			b.deleteSel(false)
 		}
-		if a.insertion != nil {
-			b.dot = selection{a.insertion.bounds.head, a.insertion.bounds.head}
-			b.loadBytes(a.insertion.text, false)
+		if a.ins != nil {
+			b.dot = selection{a.ins.bounds.head, a.ins.bounds.head}
+			b.loadBytes(a.ins.text, false)
 		}
 
 		b.dirtyLines(0, len(b.lines))
@@ -36,13 +35,13 @@ func (b *Buffer) undo() {
 		a := b.lastAction
 		b.lastAction = b.lastAction.prev
 
-		if a.insertion != nil {
-			b.dot = a.insertion.bounds
+		if a.ins != nil {
+			b.dot = a.ins.bounds
 			b.deleteSel(false)
 		}
-		if a.deletion != nil {
-			b.dot = selection{a.deletion.bounds.head, a.deletion.bounds.head}
-			b.loadBytes(a.deletion.text, false)
+		if a.del != nil {
+			b.dot = selection{a.del.bounds.head, a.del.bounds.head}
+			b.loadBytes(a.del.text, false)
 		}
 
 		b.dirtyLines(0, len(b.lines))
@@ -53,7 +52,7 @@ func (b *Buffer) undo() {
 // commitAction finalizes b.currentAction and adds it to the list, to become the
 // new b.lastAction.
 func (b *Buffer) commitAction() bool {
-	if b.currentAction.deletion == nil && b.currentAction.insertion == nil {
+	if b.currentAction.del == nil && b.currentAction.ins == nil {
 		return false
 	}
 	if b.lastAction != nil {
@@ -64,4 +63,10 @@ func (b *Buffer) commitAction() bool {
 	b.lastAction = b.currentAction
 	b.currentAction = new(action)
 	return true
+}
+
+func (b *Buffer) clearHist() {
+	b.lastAction.prev = nil
+	b.lastAction.next = nil
+	b.savedAction = b.lastAction
 }

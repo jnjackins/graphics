@@ -60,6 +60,18 @@ func (b *Buffer) loadRune(r rune, recordHist bool) {
 		return
 	}
 	b.loadLine([]rune{r})
+
+	// TODO: this is verbatim copied from loadBytes
+	if recordHist {
+		ins := b.currentAction.ins
+		if ins == nil {
+			b.currentAction.ins = &change{bounds: b.dot, text: b.contents(b.dot)}
+		} else {
+			// append to b.currentAction if the user simply typed another rune
+			ins.bounds.tail = b.dot.tail
+			ins.text = append(ins.text, b.contents(b.dot)...)
+		}
+	}
 }
 
 // loadBytes replaces the current selection with s, and handles arbitrary
@@ -80,9 +92,9 @@ func (b *Buffer) loadBytes(s []byte, recordHist bool) {
 	}
 
 	if recordHist {
-		ins := b.currentAction.insertion
+		ins := b.currentAction.ins
 		if ins == nil {
-			b.currentAction.insertion = &change{bounds: b.dot, text: b.contents(b.dot)}
+			b.currentAction.ins = &change{bounds: b.dot, text: b.contents(b.dot)}
 		} else {
 			// append to b.currentAction if the user simply typed another rune
 			ins.bounds.tail = b.dot.tail
@@ -152,7 +164,7 @@ func (b *Buffer) deleteSel(recordHist bool) {
 		return
 	}
 	if recordHist {
-		b.currentAction.deletion = &change{bounds: b.dot, text: b.contents(b.dot)}
+		b.currentAction.del = &change{bounds: b.dot, text: b.contents(b.dot)}
 	}
 	col1, row1, col2, row2 := b.dot.head.col, b.dot.head.row, b.dot.tail.col, b.dot.tail.row
 	line := b.lines[row1].s[:col1]

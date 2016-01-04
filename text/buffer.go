@@ -33,7 +33,7 @@ type Buffer struct {
 
 	// history
 	lastAction    *action // the most recently performed action
-	savedAction   *action // used by Changed to report whether the buffer has changed
+	savedAction   *action // used by Saved to report whether the buffer has changed
 	currentAction *action // the action currently in progress
 
 	// mouse related state
@@ -139,11 +139,7 @@ func (b *Buffer) SetSaved() {
 // Saved reports whether the Buffer has been modified since the last
 // time SetSaved was called.
 func (b *Buffer) Saved() bool {
-	committed := b.commitAction()
-	if committed || b.lastAction != b.savedAction {
-		return false
-	}
-	return true
+	return b.commitAction() || b.lastAction != b.savedAction
 }
 
 // SendKey sends a key event to be interpreted by the Buffer.
