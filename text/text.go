@@ -1,58 +1,23 @@
 package text
 
-import (
-	"bytes"
-	"strings"
-	"unicode"
-)
-
-const (
-	leftbrackets  = "{[(<"
-	rightbrackets = "}])>"
-	quotes        = "'`\""
-)
+import "bytes"
 
 type line struct {
 	s     []rune
-	px    []int // x-coord of the rightmost pixels of each rune in s
+	adv   []int // advances (widths in pixels) of each rune in s
 	dirty bool  // true if the line needs to be redrawn (px needs to be repopulated)
-}
-
-type address struct {
-	row, col int
-}
-
-func (a1 address) lessThan(a2 address) bool {
-	return a1.row < a2.row || (a1.row == a2.row && a1.col < a2.col)
-}
-
-func (b *Buffer) nextaddress(a address) address {
-	if a.col < len(b.lines[a.row].s) {
-		a.col++
-	} else if a.row < len(b.lines)-1 {
-		a.col = 0
-		a.row++
-	}
-	return a
-}
-
-func (b *Buffer) prevaddress(a address) address {
-	if a.col > 0 {
-		a.col--
-	} else if a.row > 0 {
-		a.row--
-		a.col = len(b.lines[a.row].s)
-	}
-	return a
 }
 
 type selection struct {
 	head, tail address // the beginning and end points of the selection
 }
 
-// loadRune inserts a printable utf8 encoded character, replacing the current
+type address struct {
+	row, col int
+}
+
+// loadRune inserts a single printable utf8 encoded character, replacing the current
 // selection.
-// TODO: history?
 func (b *Buffer) loadRune(r rune, recordHist bool) {
 	b.deleteSel(recordHist)
 	if r == '\n' {
@@ -61,16 +26,13 @@ func (b *Buffer) loadRune(r rune, recordHist bool) {
 	}
 	b.loadLine([]rune{r})
 
-	// TODO: this is verbatim copied from loadBytes
 	if recordHist {
 		ins := b.currentAction.ins
 		if ins == nil {
-			b.currentAction.ins = &change{bounds: b.dot, text: b.contents(b.dot)}
-		} else {
-			// append to b.currentAction if the user simply typed another rune
-			ins.bounds.tail = b.dot.tail
-			ins.text = append(ins.text, b.contents(b.dot)...)
+			ins = &change{bounds: b.dot}
 		}
+		ins.bounds.tail = b.dot.tail
+		ins.text = append(ins.text, b.contents(b.dot)...)
 	}
 }
 
@@ -94,55 +56,55 @@ func (b *Buffer) loadBytes(s []byte, recordHist bool) {
 	if recordHist {
 		ins := b.currentAction.ins
 		if ins == nil {
-			b.currentAction.ins = &change{bounds: b.dot, text: b.contents(b.dot)}
-		} else {
-			// append to b.currentAction if the user simply typed another rune
-			ins.bounds.tail = b.dot.tail
-			ins.text = append(ins.text, b.contents(b.dot)...)
+			ins = &change{bounds: b.dot}
 		}
+		ins.bounds.tail = b.dot.tail
+		ins.text = append(ins.text, b.contents(b.dot)...)
 	}
 }
 
 func (b *Buffer) loadLines(input [][]rune) {
 	row, col := b.dot.head.row, b.dot.head.col
 
-	// unchanged lines
-	lPreceding := b.lines[:row]
-	lFollowing := b.lines[row+1:]
-
-	lNew := make([]*line, len(input))
+	newLines := make([]*line, len(input))
 
 	// the beginning and end of the current line are attached to the first and last of the
 	// lines that are being loaded
-	lNew[0] = &line{s: append(b.lines[row].s[:col], input[0]...)}
-	lNew[0].px = b.font.measure(b.margin.X, lNew[0].s)
-	last := len(lNew) - 1
-	lNew[last] = &line{s: append(input[len(input)-1], b.lines[row].s[col:]...)}
-	lNew[last].px = b.font.measure(b.margin.X, lNew[last].s)
+	newLines[0] = &line{s: append(b.lines[row].s[:col], input[0]...)}
+	newLines[0].adv = b.font.measure(b.margin.X, newLines[0].s)
+	last := len(newLines) - 1
+	newLines[last] = &line{s: append(input[len(input)-1], b.lines[row].s[col:]...)}
+	newLines[last].adv = b.font.measure(b.margin.X, newLines[last].s)
 
 	// entirely new lines
-	for i := 1; i < len(lNew)-1; i++ {
-		lNew[i] = &line{s: input[i]}
+	for i := 1; i < len(newLines)-1; i++ {
+		newLines[i] = &line{s: input[i]}
 	}
 
 	// put everything together
-	b.lines = append(lPreceding, append(lNew, lFollowing...)...)
+	pre, post := b.lines[:row], b.lines[row+1:]
+	b.lines = append(append(pre, newLines...), post...)
 
 	// fix selection; b.dot.head is already fine
-	b.dot.tail.row = row + len(lNew) - 1
+	b.dot.tail.row = row + len(newLines) - 1
 	b.dot.tail.col = len(input[len(input)-1])
 	b.dirtyLines(row, len(b.lines))
 	b.autoScroll()
 }
 
 func (b *Buffer) loadLine(s []rune) {
-	row, col := b.dot.head.row, b.dot.head.col
-	before := b.lines[row].s[:col]
-	after := b.lines[row].s[col:]
-	b.lines[row].s = append(append(before, s...), after...)
-	b.lines[row].px = b.font.measure(b.margin.X, b.lines[row].s)
+	pos := b.dot.head
+	b.lines[pos.row].s = insertRunes(b.lines[pos.row].s, s, pos.col)
+
+	// TODO: why do we have to measure here? should be measured when drawn
+	b.lines[pos.row].adv = b.font.measure(b.margin.X, b.lines[pos.row].s)
+
 	b.dot.tail.col += len(s)
-	b.dirtyLine(row)
+	b.dirtyLine(pos.row)
+}
+
+func insertRunes(dst, src []rune, pos int) []rune {
+	return append(append(dst[:pos], src...), dst[pos:]...)
 }
 
 func (b *Buffer) contents(sel selection) []byte {
@@ -181,117 +143,4 @@ func (b *Buffer) deleteSel(recordHist bool) {
 		b.shrinkImg()
 	}
 	b.dot.tail = b.dot.head
-}
-
-func isAlnum(c rune) bool {
-	return unicode.IsLetter(c) || unicode.IsNumber(c)
-}
-
-func (b *Buffer) sel(a1, a2 address) {
-	b.dot.head = a1
-	b.dot.tail = a2
-	b.dirtyLines(b.dot.head.row, b.dot.tail.row+1)
-}
-
-// expandSel selects some text around a. Based on acme's double click selection rules.
-func (b *Buffer) expandSel(a address) {
-	b.dot.head, b.dot.tail = a, a
-	line := b.lines[a.row].s
-
-	// select bracketed text
-	if b.selDelimited(leftbrackets, rightbrackets) {
-		b.dirtyLines(b.dot.head.row, b.dot.tail.row+1)
-		return
-	}
-
-	// select line
-	if a.col == len(line) || a.col == 0 {
-		b.dot.head.col = 0
-		if a.row+1 < len(b.lines) {
-			b.dot.tail.row++
-			b.dot.tail.col = 0
-		} else {
-			b.dot.tail.col = len(line)
-		}
-		return
-	}
-
-	// select quoted text
-	if b.selDelimited(quotes, quotes) {
-		b.dirtyLines(b.dot.head.row, b.dot.tail.row+1)
-		return
-	}
-
-	// Select a word. If we're on a non-alphanumeric, attempt to select a word to
-	// the left of the click; otherwise expand across alphanumerics in both directions.
-	for col := a.col; col > 0 && isAlnum(line[col-1]); col-- {
-		b.dot.head.col--
-	}
-	if isAlnum(line[a.col]) {
-		for col := a.col; col < len(line) && isAlnum(line[col]); col++ {
-			b.dot.tail.col++
-		}
-	}
-}
-
-// returns true if a selection was attempted, successfully or not
-func (b *Buffer) selDelimited(delims1, delims2 string) bool {
-	addr := b.dot.head
-	var delim int
-	var line = b.lines[addr.row].s
-	var next func(address) address
-	var rightwards bool
-	if addr.col > 0 {
-		if delim = strings.IndexRune(delims1, line[addr.col-1]); delim != -1 {
-			// scan to the right, from a left delimiter
-			next = b.nextaddress
-			rightwards = true
-
-			// the user double-clicked to the right of a left delimiter; move addr
-			// to the delimiter itself
-			addr.col--
-		}
-	}
-	if next == nil && addr.col < len(line) {
-		if delim = strings.IndexRune(delims2, line[addr.col]); delim != -1 {
-			// scan to the left, from a right delimiter
-			// swap delimiters so that delim1 refers to the first one we encountered
-			delims1, delims2 = delims2, delims1
-			next = b.prevaddress
-		}
-	}
-	if next == nil {
-		return false
-	}
-
-	stack := 0
-	match := addr
-	prev := address{-1, -1}
-	for match != prev {
-		prev = match
-		match = next(match)
-		line := b.lines[match.row].s
-		if match.col > len(line)-1 {
-			continue
-		}
-		c := line[match.col]
-		if c == rune(delims2[delim]) && stack == 0 {
-			if rightwards {
-				b.dot.head, b.dot.tail = addr, match
-			} else {
-				b.dot.head, b.dot.tail = match, addr
-			}
-			b.dot.head.col++ // move the head of the selection past the left delimiter
-			return true
-		} else if c == 0 {
-			return true
-		}
-		if delims1 != delims2 && c == rune(delims1[delim]) {
-			stack++
-		}
-		if delims1 != delims2 && c == rune(delims2[delim]) {
-			stack--
-		}
-	}
-	return true
 }

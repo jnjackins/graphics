@@ -72,13 +72,13 @@ func (b *Buffer) pt2address(pt image.Point) address {
 	// which is larger than pt.X, and returning the column number before that.
 	// If no px elements are larger than pt.X, then return the last column on
 	// the line.
-	if pt.X <= line.px[0] {
+	if pt.X <= line.adv[0] {
 		pos.col = 0
-	} else if pt.X > line.px[len(line.px)-1] {
-		pos.col = len(line.px) - 1
+	} else if pt.X > line.adv[len(line.adv)-1] {
+		pos.col = len(line.adv) - 1
 	} else {
-		n := sort.Search(len(line.px), func(i int) bool {
-			return line.px[i] > pt.X
+		n := sort.Search(len(line.adv), func(i int) bool {
+			return line.adv[i] > pt.X
 		})
 		pos.col = n - 1
 	}
@@ -120,4 +120,8 @@ func (b *Buffer) sweep(from, to address) {
 		b.dirtyLine(to.row)
 		b.dot = selection{b.mSweepOrigin, b.mSweepOrigin}
 	}
+}
+
+func (a1 address) lessThan(a2 address) bool {
+	return a1.row < a2.row || (a1.row == a2.row && a1.col < a2.col)
 }

@@ -43,8 +43,7 @@ func (b *Buffer) handleKeyEvent(e key.Event) {
 		b.deleteSel(true)
 		b.commitAction()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
-		last := len(b.lines) - 1
-		b.sel(address{0, 0}, address{last, len(b.lines[last].s)})
+		b.selAll()
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
 		// redo
 		b.commitAction()
@@ -66,7 +65,7 @@ func (b *Buffer) input(r rune) {
 }
 
 func (b *Buffer) backspace() {
-	b.dot.head = b.prevaddress(b.dot.head)
+	b.dot.head = b.prevAddress(b.dot.head)
 	b.deleteSel(false) // don't update the current action
 
 	if b.currentAction.ins != nil {
@@ -80,14 +79,14 @@ func (b *Buffer) backspace() {
 
 func (b *Buffer) left() {
 	b.dirtyLines(b.dot.head.row, b.dot.tail.row+1)
-	a := b.prevaddress(b.dot.head)
+	a := b.prevAddress(b.dot.head)
 	b.dot.head, b.dot.tail = a, a
 	b.dirtyLine(b.dot.head.row) // new dot may be in a higher row
 }
 
 func (b *Buffer) right() {
 	b.dirtyLines(b.dot.head.row, b.dot.tail.row+1)
-	a := b.nextaddress(b.dot.tail)
+	a := b.nextAddress(b.dot.tail)
 	b.dot.head, b.dot.tail = a, a
 	b.dirtyLine(b.dot.head.row) // new dot may be in a lower row
 }

@@ -63,7 +63,7 @@ func NewBuffer(size image.Point, face font.Face, height int, opt OptionSet) *Buf
 		cursor:     opt.Cursor(height),
 		font:       fontface{face: face, height: height - 3},
 
-		lines: []*line{&line{s: []rune{}, px: []int{opt.Margin.X}}},
+		lines: []*line{&line{s: []rune{}, adv: []int{opt.Margin.X}}},
 
 		lastAction:    new(action),
 		currentAction: new(action),
@@ -122,11 +122,13 @@ func (b *Buffer) GetLine(n int) string {
 	return string(b.lines[n].s)
 }
 
-// Load replaces the current selection with s.
-// TODO: clients no longer control selection
+// Load replaces the contents of the buffer with s, and
+// resets the Buffer's history.
 func (b *Buffer) Load(s []byte) {
-	b.loadBytes(s, true)
+	b.selAll()
+	b.loadBytes(s, false)
 	b.sel(address{}, address{})
+	b.clearHist()
 }
 
 // SetSaved instructs the buffer that the current contents should be

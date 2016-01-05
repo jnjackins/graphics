@@ -41,7 +41,7 @@ func (b *Buffer) redraw() {
 			}
 
 			// draw font overtop
-			line.px = b.font.draw(b.img, pt, line.s)
+			line.adv = b.font.draw(b.img, pt, line.s)
 		}
 	}
 	if grown {
@@ -95,10 +95,10 @@ func (b *Buffer) scroll(pt image.Point) {
 // returns x (pixels) for a given address
 func (b *Buffer) getxpx(a address) int {
 	l := b.lines[a.row]
-	if a.col >= len(l.px) {
-		return l.px[len(l.px)-1]
+	if a.col >= len(l.adv) {
+		return l.adv[len(l.adv)-1]
 	}
-	return l.px[a.col]
+	return l.adv[a.col]
 }
 
 // returns y (pixels) for a given row
