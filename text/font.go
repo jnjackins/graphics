@@ -24,10 +24,9 @@ func (f fontface) draw(dst draw.Image, pt image.Point, s []rune) []int {
 	px := make([]int, 1, len(s)+1)
 	px[0] = pt.X
 	dot := fixed.P(pt.X, pt.Y+f.height)
-	var tab bool
 	for _, r := range s {
-		if r == '\t' {
-			tab = true
+		tab := r == '\t'
+		if tab {
 			r = ' '
 		}
 		dr, mask, maskp, advance, ok := f.face.Glyph(dot, r)
