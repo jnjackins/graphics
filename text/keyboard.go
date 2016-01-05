@@ -53,9 +53,18 @@ func (b *Buffer) handleKeyEvent(e key.Event) {
 		b.commitAction()
 		b.undo()
 	default:
-		if unicode.IsGraphic(e.Rune) && e.Modifiers&key.ModMeta == 0 {
+		if isGraphic(e.Rune) && e.Modifiers&key.ModMeta == 0 {
 			b.input(e.Rune)
 		}
+	}
+}
+
+func isGraphic(r rune) bool {
+	switch r {
+	case '\t':
+		return true
+	default:
+		return unicode.IsGraphic(r)
 	}
 }
 
