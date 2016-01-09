@@ -1,7 +1,7 @@
 // this file was adapted from the freetype package at
 // https://github.com/jnjackins/freetype-go.
 
-package text
+package editor
 
 import (
 	"image"

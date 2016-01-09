@@ -1,4 +1,4 @@
-package text
+package editor
 
 import (
 	"bytes"
@@ -15,7 +15,7 @@ func TestContents(t *testing.T) {
 	input := []byte(`The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
 The quick brown fox jumps over the lazy dog.`)
-	buf.loadBytes(input, false)
+	buf.loadBytes(input)
 
 	output := buf.Contents()
 	if !bytes.Equal(input, output) {
@@ -30,7 +30,7 @@ func BenchmarkContents(b *testing.B) {
 	input := []byte(`The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
 The quick brown fox jumps over the lazy dog.`)
-	buf.loadBytes(input, false)
+	buf.loadBytes(input)
 
 	for i := 0; i < b.N; i++ {
 		_ = buf.Contents()

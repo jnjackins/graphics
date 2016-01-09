@@ -1,4 +1,4 @@
-package text
+package editor
 
 import (
 	"image"
@@ -25,7 +25,7 @@ func BenchmarkLoadBytes(b *testing.B) {
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
 The quick brown fox jumps over the lazy dog.`)
 	for i := 0; i < b.N; i++ {
-		buf.loadBytes(input, false)
+		buf.loadBytes(input)
 	}
 }
 
@@ -34,7 +34,7 @@ func BenchmarkLoadRuneASCII(b *testing.B) {
 	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	for i := 0; i < b.N; i++ {
-		buf.loadRune('a', false)
+		buf.loadRune('a')
 	}
 }
 
@@ -43,6 +43,6 @@ func BenchmarkLoadRuneUnicode(b *testing.B) {
 	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	for i := 0; i < b.N; i++ {
-		buf.loadRune('せ', false)
+		buf.loadRune('せ')
 	}
 }

@@ -1,6 +1,10 @@
-package text
+package editor
 
-import "bytes"
+import (
+	"bytes"
+
+	"sigint.ca/graphics/editor/internal/text"
+)
 
 type line struct {
 	s     []rune
@@ -8,38 +12,21 @@ type line struct {
 	dirty bool  // true if the line needs to be redrawn (px needs to be repopulated)
 }
 
-type selection struct {
-	head, tail address // the beginning and end points of the selection
-}
-
-type address struct {
-	row, col int
-}
-
-// loadRune inserts a single printable utf8 encoded character, replacing the current
-// selection.
-func (b *Buffer) loadRune(r rune, recordHist bool) {
-	b.deleteSel(recordHist)
+// loadRune inserts a single printable utf8 encoded character, replacing
+// any selection
+func (b *Buffer) loadRune(r rune) {
+	b.dot = b.clear(b.dot)
 	if r == '\n' {
 		b.loadLines([][]rune{{}})
 		return
 	}
 	b.loadLine([]rune{r})
-
-	if recordHist {
-		ins := b.currentAction.ins
-		if ins == nil {
-			ins = &change{bounds: b.dot}
-		}
-		ins.bounds.tail = b.dot.tail
-		ins.text = append(ins.text, b.contents(b.dot)...)
-	}
 }
 
 // loadBytes replaces the current selection with s, and handles arbitrary
 // utf8 input, including newlines.
-func (b *Buffer) loadBytes(s []byte, recordHist bool) {
-	b.deleteSel(recordHist)
+func (b *Buffer) loadBytes(s []byte) {
+	b.dot = b.clear(b.dot)
 
 	lines := bytes.Split(s, []byte("\n"))
 	input := make([][]rune, len(lines))
@@ -52,19 +39,10 @@ func (b *Buffer) loadBytes(s []byte, recordHist bool) {
 	} else {
 		b.loadLines(input)
 	}
-
-	if recordHist {
-		ins := b.currentAction.ins
-		if ins == nil {
-			ins = &change{bounds: b.dot}
-		}
-		ins.bounds.tail = b.dot.tail
-		ins.text = append(ins.text, b.contents(b.dot)...)
-	}
 }
 
 func (b *Buffer) loadLines(input [][]rune) {
-	row, col := b.dot.head.row, b.dot.head.col
+	row, col := b.dot.From.Row, b.dot.From.Col
 
 	newLines := make([]*line, len(input))
 
@@ -85,50 +63,47 @@ func (b *Buffer) loadLines(input [][]rune) {
 	pre, post := b.lines[:row], b.lines[row+1:]
 	b.lines = append(append(pre, newLines...), post...)
 
-	// fix selection; b.dot.head is already fine
-	b.dot.tail.row = row + len(newLines) - 1
-	b.dot.tail.col = len(input[len(input)-1])
+	// fix selection; b.dot.From is already fine
+	b.dot.To.Row = row + len(newLines) - 1
+	b.dot.To.Col = len(input[len(input)-1])
 	b.dirtyLines(row, len(b.lines))
 	b.autoScroll()
 }
 
 func (b *Buffer) loadLine(s []rune) {
-	pos := b.dot.head
-	b.lines[pos.row].s = insertRunes(b.lines[pos.row].s, s, pos.col)
+	addr := b.dot.From
+	b.lines[addr.Row].s = insertRunes(b.lines[addr.Row].s, s, addr.Col)
 
 	// TODO: why do we have to measure here? should be measured when drawn
-	b.lines[pos.row].adv = b.font.measure(b.margin.X, b.lines[pos.row].s)
+	b.lines[addr.Row].adv = b.font.measure(b.margin.X, b.lines[addr.Row].s)
 
-	b.dot.tail.col += len(s)
-	b.dirtyLine(pos.row)
+	b.dot.To.Col += len(s)
+	b.dirtyLine(addr.Row)
 }
 
 func insertRunes(dst, src []rune, pos int) []rune {
 	return append(append(dst[:pos], src...), dst[pos:]...)
 }
 
-func (b *Buffer) contents(sel selection) []byte {
-	a1, a2 := sel.head, sel.tail
-	if a1.row == a2.row {
-		return []byte(string(b.lines[a1.row].s[a1.col:a2.col]))
+func (b *Buffer) contents(sel text.Selection) string {
+	a1, a2 := sel.From, sel.To
+	if a1.Row == a2.Row {
+		return string(b.lines[a1.Row].s[a1.Col:a2.Col])
 	} else {
-		sel := string(b.lines[a1.row].s[a1.col:]) + "\n"
-		for i := a1.row + 1; i < a2.row; i++ {
+		sel := string(b.lines[a1.Row].s[a1.Col:]) + "\n"
+		for i := a1.Row + 1; i < a2.Row; i++ {
 			sel += string(b.lines[i].s) + "\n"
 		}
-		sel += string(b.lines[a2.row].s[:a2.col])
-		return []byte(sel)
+		sel += string(b.lines[a2.Row].s[:a2.Col])
+		return sel
 	}
 }
 
-func (b *Buffer) deleteSel(recordHist bool) {
-	if b.dot.head == b.dot.tail {
-		return
+func (b *Buffer) clear(sel text.Selection) text.Selection {
+	if sel.IsEmpty() {
+		return sel
 	}
-	if recordHist {
-		b.currentAction.del = &change{bounds: b.dot, text: b.contents(b.dot)}
-	}
-	col1, row1, col2, row2 := b.dot.head.col, b.dot.head.row, b.dot.tail.col, b.dot.tail.row
+	col1, row1, col2, row2 := sel.From.Col, sel.From.Row, sel.To.Col, sel.To.Row
 	line := b.lines[row1].s[:col1]
 	b.lines[row1].s = append(line, b.lines[row2].s[col2:]...)
 	b.dirtyLine(row1)
@@ -137,10 +112,11 @@ func (b *Buffer) deleteSel(recordHist bool) {
 		b.dirtyLines(row1+1, len(b.lines))
 
 		// make sure we clean up the garbage left after the (new) final line
-		b.clear = b.img.Bounds()
-		b.clear.Min.Y = b.font.height * (len(b.lines) - 1)
+		b.clearr = b.img.Bounds()
+		b.clearr.Min.Y = b.font.height * (len(b.lines) - 1)
 		b.autoScroll()
 		b.shrinkImg()
 	}
-	b.dot.tail = b.dot.head
+	sel.To = sel.From
+	return sel
 }

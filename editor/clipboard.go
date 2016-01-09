@@ -1,4 +1,4 @@
-package text
+package editor
 
 import "log"
 
@@ -9,7 +9,7 @@ type Clipboard interface {
 
 func (b *Buffer) snarf() {
 	if b.Clipboard != nil {
-		err := b.Clipboard.Put(b.contents(b.dot))
+		err := b.Clipboard.Put([]byte(b.contents(b.dot)))
 		if err != nil {
 			panic(err)
 		}
@@ -24,7 +24,7 @@ func (b *Buffer) paste() {
 		if err != nil {
 			panic(err)
 		}
-		b.loadBytes(buf, true)
+		b.loadBytes(buf)
 	} else {
 		log.Println("paste: clipboard not setup")
 	}

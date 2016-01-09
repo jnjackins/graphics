@@ -1,9 +1,11 @@
-package text
+package editor
 
 import (
 	"image"
 	"sort"
 	"time"
+
+	"sigint.ca/graphics/editor/internal/text"
 
 	"golang.org/x/mobile/event/mouse"
 )
@@ -26,7 +28,7 @@ func (b *Buffer) handleMouseEvent(e mouse.Event) {
 			olda := b.pt2address(oldpos)
 			b.mSweepOrigin = a
 			b.click(a, olda, button)
-			b.commitAction()
+			b.history.Commit()
 		} else if e.Direction == mouse.DirNone {
 			// sweep
 			// possibly scroll by sweeping past the edge of the window
@@ -51,46 +53,46 @@ func (b *Buffer) handleMouseEvent(e mouse.Event) {
 	}
 }
 
-func (b *Buffer) pt2address(pt image.Point) address {
+func (b *Buffer) pt2address(pt image.Point) text.Address {
 	// (0,0) if pt is above the buffer
 	if pt.Y < 0 {
-		return address{}
+		return text.Address{}
 	}
 
-	var pos address
-	pos.row = pt.Y / b.lineHeight
+	var addr text.Address
+	addr.Row = pt.Y / b.lineHeight
 
-	// end of the last line if pos is below the last line
-	if pos.row > len(b.lines)-1 {
-		pos.row = len(b.lines) - 1
-		pos.col = len(b.lines[pos.row].s)
-		return pos
+	// end of the last line if addr is below the last line
+	if addr.Row > len(b.lines)-1 {
+		addr.Row = len(b.lines) - 1
+		addr.Col = len(b.lines[addr.Row].s)
+		return addr
 	}
 
-	line := b.lines[pos.row]
+	line := b.lines[addr.Row]
 	// the column number is found by looking for the smallest px element
 	// which is larger than pt.X, and returning the column number before that.
 	// If no px elements are larger than pt.X, then return the last column on
 	// the line.
 	if pt.X <= line.adv[0] {
-		pos.col = 0
+		addr.Col = 0
 	} else if pt.X > line.adv[len(line.adv)-1] {
-		pos.col = len(line.adv) - 1
+		addr.Col = len(line.adv) - 1
 	} else {
 		n := sort.Search(len(line.adv), func(i int) bool {
 			return line.adv[i] > pt.X
 		})
-		pos.col = n - 1
+		addr.Col = n - 1
 	}
-	return pos
+	return addr
 }
 
-func (b *Buffer) click(a, olda address, button mouse.Button) {
+func (b *Buffer) click(a, olda text.Address, button mouse.Button) {
 	switch button {
 	case mouse.ButtonLeft:
-		b.dirtyLines(b.dot.head.row, b.dot.tail.row+1)
-		b.dot.head, b.dot.tail = a, a
-		b.dirtyLine(a.row)
+		b.dirtyLines(b.dot.From.Row, b.dot.To.Row+1)
+		b.dot.From, b.dot.To = a, a
+		b.dirtyLine(a.Row)
 
 		if time.Since(b.lastClickTime) < dClickPause && a == olda {
 			// double click
@@ -102,26 +104,22 @@ func (b *Buffer) click(a, olda address, button mouse.Button) {
 	}
 }
 
-func (b *Buffer) sweep(from, to address) {
+func (b *Buffer) sweep(from, to text.Address) {
 	// mark all the rows between to and from as dirty
 	// (to and from can be more than one row apart, if they are sweeping quickly)
-	r1, r2 := to.row, from.row
+	r1, r2 := to.Row, from.Row
 	if r1 > r2 {
 		r1, r2 = r2, r1
 	}
 	b.dirtyLines(r1, r2+1)
 
 	// set the selection
-	if to.lessThan(b.mSweepOrigin) {
-		b.dot = selection{to, b.mSweepOrigin}
+	if to.LessThan(b.mSweepOrigin) {
+		b.dot = text.Selection{to, b.mSweepOrigin}
 	} else if to != b.mSweepOrigin {
-		b.dot = selection{b.mSweepOrigin, to}
+		b.dot = text.Selection{b.mSweepOrigin, to}
 	} else {
-		b.dirtyLine(to.row)
-		b.dot = selection{b.mSweepOrigin, b.mSweepOrigin}
+		b.dirtyLine(to.Row)
+		b.dot = text.Selection{b.mSweepOrigin, b.mSweepOrigin}
 	}
-}
-
-func (a1 address) lessThan(a2 address) bool {
-	return a1.row < a2.row || (a1.row == a2.row && a1.col < a2.col)
 }

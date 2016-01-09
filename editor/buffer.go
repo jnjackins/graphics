@@ -1,9 +1,12 @@
-package text // import "sigint.ca/graphics/text"
+package editor // import "sigint.ca/graphics/editor"
 
 import (
 	"bytes"
 	"image"
 	"time"
+
+	"sigint.ca/graphics/editor/internal/hist"
+	"sigint.ca/graphics/editor/internal/text"
 
 	"golang.org/x/image/font"
 	"golang.org/x/mobile/event/key"
@@ -14,10 +17,10 @@ import (
 // will maintain a graphical representation of itself accessible by the Img method.
 type Buffer struct {
 	// images and drawing data
-	img   *image.RGBA
-	clipr image.Rectangle // the part of the image in view
-	clear image.Rectangle // to be cleared next redraw
-	dirty image.Rectangle // the portion that is dirty (the user needs to redraw)
+	img    *image.RGBA
+	clipr  image.Rectangle // the part of the image in view
+	clearr image.Rectangle // to be cleared next redraw
+	dirty  image.Rectangle // the portion that is dirty (the user needs to redraw)
 
 	// configurable
 	bgcol      *image.Uniform
@@ -28,19 +31,19 @@ type Buffer struct {
 	font       fontface
 
 	// internal state
-	dot   selection // the current selection
-	lines []*line   // the text data
+	dot   text.Selection // the current selection
+	lines []*line        // the text data
 
 	// history
-	lastAction    *action // the most recently performed action
-	savedAction   *action // used by Saved to report whether the buffer has changed
-	currentAction *action // the action currently in progress
+	history     *hist.History        // represents the Buffer's history
+	savePoint   *hist.Transformation // records the last time the buffer was saved, for use by Saved and SetSaved
+	uncommitted []rune               // recent input which hasn't yet been committed to history
 
 	// mouse related state
 	lastClickTime time.Time    // used to detect a double-click
 	mButton       mouse.Button // the button of the most recent mouse event
 	mPos          image.Point  // the position of the most recent mouse event
-	mSweepOrigin  address      // keeps track of the origin of a sweep
+	mSweepOrigin  text.Address // keeps track of the origin of a sweep
 
 	Clipboard Clipboard // the Clipboard to be used for copy or paste events
 }
@@ -51,10 +54,10 @@ type Buffer struct {
 func NewBuffer(size image.Point, face font.Face, height int, opt OptionSet) *Buffer {
 	r := image.Rectangle{Max: size}
 	b := &Buffer{
-		img:   image.NewRGBA(r), // grows as needed
-		clipr: r,
-		clear: r,
-		dirty: r,
+		img:    image.NewRGBA(r), // grows as needed
+		clipr:  r,
+		clearr: r,
+		dirty:  r,
 
 		bgcol:      image.NewUniform(opt.BGColor),
 		selcol:     image.NewUniform(opt.SelColor),
@@ -65,8 +68,7 @@ func NewBuffer(size image.Point, face font.Face, height int, opt OptionSet) *Buf
 
 		lines: []*line{&line{s: []rune{}, adv: []int{opt.Margin.X}}},
 
-		lastAction:    new(action),
-		currentAction: new(action),
+		history: new(hist.History),
 	}
 	return b
 }
@@ -88,7 +90,7 @@ func (b *Buffer) Resize(size image.Point) {
 	r := image.Rectangle{Max: size}
 	b.img = image.NewRGBA(r)
 	b.clipr = r
-	b.clear = r
+	b.clearr = r
 	b.dirtyLines(0, len(b.lines))
 }
 
@@ -104,7 +106,7 @@ func (b *Buffer) RGBA() (img *image.RGBA) {
 	return b.img
 }
 
-// Contents returns the contents of the buffer as a string.
+// Contents returns the contents of the buffer.
 func (b *Buffer) Contents() []byte {
 	var buf bytes.Buffer
 	for i, line := range b.lines {
@@ -126,22 +128,26 @@ func (b *Buffer) GetLine(n int) string {
 // resets the Buffer's history.
 func (b *Buffer) Load(s []byte) {
 	b.selAll()
-	b.loadBytes(s, false)
-	b.sel(address{}, address{})
-	b.clearHist()
+	b.loadBytes(s)
+	b.history = new(hist.History)
+	b.dot.To = b.dot.From
 }
 
 // SetSaved instructs the buffer that the current contents should be
 // considered "saved". After calling SetSaved, the client can call
 // Saved to see if the Buffer has unsaved content.
 func (b *Buffer) SetSaved() {
-	b.savedAction = b.lastAction
+	// TODO: ensure b.uncommitted is empty?
+	if len(b.uncommitted) > 0 {
+		panic("TODO")
+	}
+	b.savePoint = b.history.Current()
 }
 
 // Saved reports whether the Buffer has been modified since the last
 // time SetSaved was called.
 func (b *Buffer) Saved() bool {
-	return b.commitAction() || b.lastAction != b.savedAction
+	return b.history.Current() == b.savePoint && len(b.uncommitted) == 0
 }
 
 // SendKey sends a key event to be interpreted by the Buffer.
