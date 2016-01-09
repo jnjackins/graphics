@@ -21,7 +21,7 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		preChunk.Sel = text.Sel(row, col, row, col)
 	} else {
 		preChunk.Sel = ed.dot
-		preChunk.Text = ed.contents(ed.dot)
+		preChunk.Text = ed.contents(preChunk.Sel)
 	}
 	postChunk = preChunk
 
@@ -41,7 +41,8 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 			postChunk.Text = string(uncommitted[:len(uncommitted)-1])
 			postChunk.Sel.To.Col += len(uncommitted) - 1
 		} else {
-			preChunk.Sel.From.Col-- // select the character before the cursor
+			preChunk.Sel.From.Col--                   // select the character before the cursor
+			preChunk.Text = ed.contents(preChunk.Sel) // TODO: avoid this double calculation (use defer?)
 			postChunk.Sel = text.Selection{preChunk.Sel.From, preChunk.Sel.From}
 		}
 

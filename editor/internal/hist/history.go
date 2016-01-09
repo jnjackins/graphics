@@ -16,12 +16,16 @@ type Transformation struct {
 }
 
 func (t *Transformation) String() string {
-	return fmt.Sprintf("%q %v -> %q %v", t.Pre.Text, t.Pre.Sel, t.Post.Text, t.Post.Sel)
+	return fmt.Sprintf("%v -> %v", t.Pre, t.Post)
 }
 
 type Chunk struct {
 	Text string
 	Sel  text.Selection
+}
+
+func (c Chunk) String() string {
+	return fmt.Sprintf("%q %v", c.Text, c.Sel)
 }
 
 func (h *History) Current() *Transformation {

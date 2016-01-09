@@ -150,7 +150,7 @@ func (ed *Editor) Saved() bool {
 	return ed.history.Current() == ed.savePoint && len(ed.uncommitted) == 0
 }
 
-// SendKey sends a key event to be interpreted by the Editor.
+// SendKeyEvent sends a key event to be interpreted by the Editor.
 func (ed *Editor) SendKeyEvent(e key.Event) {
 	ed.handleKeyEvent(e)
 }
