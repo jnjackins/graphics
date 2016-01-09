@@ -13,9 +13,9 @@ import (
 	"golang.org/x/mobile/event/mouse"
 )
 
-// Buffer represents a text buffer which, if you send it keystrokes and mouse events,
+// Editor represents a text buffer which, if you send it keystrokes and mouse events,
 // will maintain a graphical representation of itself accessible by the Img method.
-type Buffer struct {
+type Editor struct {
 	// images and drawing data
 	img    *image.RGBA
 	clipr  image.Rectangle // the part of the image in view
@@ -35,7 +35,7 @@ type Buffer struct {
 	lines []*line        // the text data
 
 	// history
-	history     *hist.History        // represents the Buffer's history
+	history     *hist.History        // represents the Editor's history
 	savePoint   *hist.Transformation // records the last time the buffer was saved, for use by Saved and SetSaved
 	uncommitted []rune               // recent input which hasn't yet been committed to history
 
@@ -48,12 +48,12 @@ type Buffer struct {
 	Clipboard Clipboard // the Clipboard to be used for copy or paste events
 }
 
-// NewBuffer returns a new buffer with a clipping rectangle of size r. If init
+// NewEditor returns a new buffer with a clipping rectangle of size r. If init
 // is not nil, the buffer uses ioutil.ReadAll(init) to initialize the text
-// in the buffer. The caller should do any necessary cleanup on init after NewBuffer returns.
-func NewBuffer(size image.Point, face font.Face, height int, opt OptionSet) *Buffer {
+// in the buffer. The caller should do any necessary cleanup on init after NewEditor returns.
+func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Editor {
 	r := image.Rectangle{Max: size}
-	b := &Buffer{
+	ed := &Editor{
 		img:    image.NewRGBA(r), // grows as needed
 		clipr:  r,
 		clearr: r,
@@ -70,48 +70,48 @@ func NewBuffer(size image.Point, face font.Face, height int, opt OptionSet) *Buf
 
 		history: new(hist.History),
 	}
-	return b
+	return ed
 }
 
-func (b *Buffer) Release() {
+func (ed *Editor) Release() {
 }
 
-func (b *Buffer) Bounds() image.Rectangle {
-	return b.clipr
+func (ed *Editor) Bounds() image.Rectangle {
+	return ed.clipr
 }
 
-func (b *Buffer) Size() image.Point {
-	return b.clipr.Size()
+func (ed *Editor) Size() image.Point {
+	return ed.clipr.Size()
 }
 
-// Resize resizes the Buffer. Subsequent calls to Img will return an image of
+// Resize resizes the Editor. Subsequent calls to Img will return an image of
 // at least size r, and a clipping rectangle of size r.
-func (b *Buffer) Resize(size image.Point) {
+func (ed *Editor) Resize(size image.Point) {
 	r := image.Rectangle{Max: size}
-	b.img = image.NewRGBA(r)
-	b.clipr = r
-	b.clearr = r
-	b.dirtyLines(0, len(b.lines))
+	ed.img = image.NewRGBA(r)
+	ed.clipr = r
+	ed.clearr = r
+	ed.dirtyLines(0, len(ed.lines))
 }
 
-// Img returns an image representing the current state of the Buffer, a rectangle
+// Img returns an image representing the current state of the Editor, a rectangle
 // representing the portion of the image in view based on the current scrolling position,
 // and a rectangle representing the portion of the image that has changed and needs
 // to be redrawn onto the display by the caller.
-func (b *Buffer) RGBA() (img *image.RGBA) {
-	if b.dirty != image.ZR {
-		b.redraw()
-		b.dirty = image.ZR
+func (ed *Editor) RGBA() (img *image.RGBA) {
+	if ed.dirty != image.ZR {
+		ed.redraw()
+		ed.dirty = image.ZR
 	}
-	return b.img
+	return ed.img
 }
 
 // Contents returns the contents of the buffer.
-func (b *Buffer) Contents() []byte {
+func (ed *Editor) Contents() []byte {
 	var buf bytes.Buffer
-	for i, line := range b.lines {
+	for i, line := range ed.lines {
 		buf.WriteString(string(line.s))
-		if i < len(b.lines)-1 {
+		if i < len(ed.lines)-1 {
 			buf.WriteByte('\n')
 		}
 	}
@@ -120,42 +120,42 @@ func (b *Buffer) Contents() []byte {
 
 // GetLine returns a string containing the text of the nth line, where
 // the first line of the buffer is line 0.
-func (b *Buffer) GetLine(n int) string {
-	return string(b.lines[n].s)
+func (ed *Editor) GetLine(n int) string {
+	return string(ed.lines[n].s)
 }
 
 // Load replaces the contents of the buffer with s, and
-// resets the Buffer's history.
-func (b *Buffer) Load(s []byte) {
-	b.selAll()
-	b.loadBytes(s)
-	b.history = new(hist.History)
-	b.dot.To = b.dot.From
+// resets the Editor's history.
+func (ed *Editor) Load(s []byte) {
+	ed.selAll()
+	ed.loadBytes(s)
+	ed.history = new(hist.History)
+	ed.dot.To = ed.dot.From
 }
 
 // SetSaved instructs the buffer that the current contents should be
 // considered "saved". After calling SetSaved, the client can call
-// Saved to see if the Buffer has unsaved content.
-func (b *Buffer) SetSaved() {
-	// TODO: ensure b.uncommitted is empty?
-	if len(b.uncommitted) > 0 {
+// Saved to see if the Editor has unsaved content.
+func (ed *Editor) SetSaved() {
+	// TODO: ensure ed.uncommitted is empty?
+	if len(ed.uncommitted) > 0 {
 		panic("TODO")
 	}
-	b.savePoint = b.history.Current()
+	ed.savePoint = ed.history.Current()
 }
 
-// Saved reports whether the Buffer has been modified since the last
+// Saved reports whether the Editor has been modified since the last
 // time SetSaved was called.
-func (b *Buffer) Saved() bool {
-	return b.history.Current() == b.savePoint && len(b.uncommitted) == 0
+func (ed *Editor) Saved() bool {
+	return ed.history.Current() == ed.savePoint && len(ed.uncommitted) == 0
 }
 
-// SendKey sends a key event to be interpreted by the Buffer.
-func (b *Buffer) SendKeyEvent(e key.Event) {
-	b.handleKeyEvent(e)
+// SendKey sends a key event to be interpreted by the Editor.
+func (ed *Editor) SendKeyEvent(e key.Event) {
+	ed.handleKeyEvent(e)
 }
 
-// SendMouseEvent sends a mouse event to be interpreted by the Buffer.
-func (b *Buffer) SendMouseEvent(e mouse.Event) {
-	b.handleMouseEvent(e)
+// SendMouseEvent sends a mouse event to be interpreted by the Editor.
+func (ed *Editor) SendMouseEvent(e mouse.Event) {
+	ed.handleMouseEvent(e)
 }

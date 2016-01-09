@@ -10,7 +10,7 @@ import (
 
 func TestContents(t *testing.T) {
 	face := basicfont.Face7x13
-	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	input := []byte(`The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
@@ -25,7 +25,7 @@ The quick brown fox jumps over the lazy dog.`)
 
 func BenchmarkContents(b *testing.B) {
 	face := basicfont.Face7x13
-	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	input := []byte(`The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。

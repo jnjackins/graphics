@@ -1,5 +1,5 @@
 // this file was adapted from the freetype package at
-// https://github.com/jnjackins/freetype-go.
+// https://githued.com/jnjackins/freetype-go.
 
 package editor
 

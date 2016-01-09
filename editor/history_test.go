@@ -12,7 +12,7 @@ import (
 
 func TestHistoryLoad(t *testing.T) {
 	face := basicfont.Face7x13
-	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	caseNum := 1
 	expect := func(expected string) {
@@ -87,7 +87,7 @@ func TestHistoryLoad(t *testing.T) {
 
 func TestHistoryNoLoad(t *testing.T) {
 	face := basicfont.Face7x13
-	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	caseNum := 1
 	expect := func(expected string) {

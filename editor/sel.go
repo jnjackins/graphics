@@ -7,55 +7,55 @@ import (
 	"sigint.ca/graphics/editor/internal/text"
 )
 
-func (b *Buffer) sel(a1, a2 text.Address) {
-	b.dot.From = a1
-	b.dot.To = a2
-	b.dirtyLines(b.dot.From.Row, b.dot.To.Row+1)
+func (ed *Editor) sel(a1, a2 text.Address) {
+	ed.dot.From = a1
+	ed.dot.To = a2
+	ed.dirtyLines(ed.dot.From.Row, ed.dot.To.Row+1)
 }
 
-func (b *Buffer) selAll() {
-	last := len(b.lines) - 1
-	b.sel(text.Address{0, 0}, text.Address{last, len(b.lines[last].s)})
+func (ed *Editor) selAll() {
+	last := len(ed.lines) - 1
+	ed.sel(text.Address{0, 0}, text.Address{last, len(ed.lines[last].s)})
 }
 
 // expandSel selects some text around a. Based on acme's double click selection rules.
-func (b *Buffer) expandSel(a text.Address) {
-	b.dot.From, b.dot.To = a, a
-	line := b.lines[a.Row].s
+func (ed *Editor) expandSel(a text.Address) {
+	ed.dot.From, ed.dot.To = a, a
+	line := ed.lines[a.Row].s
 
 	// select bracketed text
-	if b.selDelimited("{[(<", "}])>") {
-		b.dirtyLines(b.dot.From.Row, b.dot.To.Row+1)
+	if ed.selDelimited("{[(<", "}])>") {
+		ed.dirtyLines(ed.dot.From.Row, ed.dot.To.Row+1)
 		return
 	}
 
 	// select line
 	if a.Col == len(line) || a.Col == 0 {
-		b.dot.From.Col = 0
-		if a.Row+1 < len(b.lines) {
-			b.dot.To.Row++
-			b.dot.To.Col = 0
+		ed.dot.From.Col = 0
+		if a.Row+1 < len(ed.lines) {
+			ed.dot.To.Row++
+			ed.dot.To.Col = 0
 		} else {
-			b.dot.To.Col = len(line)
+			ed.dot.To.Col = len(line)
 		}
 		return
 	}
 
 	// select quoted text
 	const quotes = "\"'`"
-	if b.selDelimited(quotes, quotes) {
-		b.dirtyLines(b.dot.From.Row, b.dot.To.Row+1)
+	if ed.selDelimited(quotes, quotes) {
+		ed.dirtyLines(ed.dot.From.Row, ed.dot.To.Row+1)
 		return
 	}
 
 	// Select a word. If we're on a non-alphanumeric, attempt to select a word to
 	// the left of the click; otherwise expand across alphanumerics in both directions.
 	for col := a.Col; col > 0 && isAlnum(line[col-1]); col-- {
-		b.dot.From.Col--
+		ed.dot.From.Col--
 	}
 	if isAlnum(line[a.Col]) {
 		for col := a.Col; col < len(line) && isAlnum(line[col]); col++ {
-			b.dot.To.Col++
+			ed.dot.To.Col++
 		}
 	}
 }
@@ -65,16 +65,16 @@ func isAlnum(c rune) bool {
 }
 
 // returns true if a selection was attempted, successfully or not
-func (b *Buffer) selDelimited(delims1, delims2 string) bool {
-	addr := b.dot.From
+func (ed *Editor) selDelimited(delims1, delims2 string) bool {
+	addr := ed.dot.From
 	var delim int
-	var line = b.lines[addr.Row].s
+	var line = ed.lines[addr.Row].s
 	var next func(text.Address) text.Address
 	var rightwards bool
 	if addr.Col > 0 {
 		if delim = strings.IndexRune(delims1, line[addr.Col-1]); delim != -1 {
 			// scan to the right, from a left delimiter
-			next = b.nextAddress
+			next = ed.nextAddress
 			rightwards = true
 
 			// the user double-clicked to the right of a left delimiter; move addr
@@ -87,7 +87,7 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 			// scan to the left, from a right delimiter
 			// swap delimiters so that delim1 refers to the first one we encountered
 			delims1, delims2 = delims2, delims1
-			next = b.prevAddress
+			next = ed.prevAddress
 		}
 	}
 	if next == nil {
@@ -100,18 +100,18 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 	for match != prev {
 		prev = match
 		match = next(match)
-		line := b.lines[match.Row].s
+		line := ed.lines[match.Row].s
 		if match.Col > len(line)-1 {
 			continue
 		}
 		c := line[match.Col]
 		if c == rune(delims2[delim]) && stack == 0 {
 			if rightwards {
-				b.dot.From, b.dot.To = addr, match
+				ed.dot.From, ed.dot.To = addr, match
 			} else {
-				b.dot.From, b.dot.To = match, addr
+				ed.dot.From, ed.dot.To = match, addr
 			}
-			b.dot.From.Col++ // move the head of the selection past the left delimiter
+			ed.dot.From.Col++ // move the head of the selection past the left delimiter
 			return true
 		} else if c == 0 {
 			return true
@@ -126,22 +126,22 @@ func (b *Buffer) selDelimited(delims1, delims2 string) bool {
 	return true
 }
 
-func (b *Buffer) nextAddress(a text.Address) text.Address {
-	if a.Col < len(b.lines[a.Row].s) {
+func (ed *Editor) nextAddress(a text.Address) text.Address {
+	if a.Col < len(ed.lines[a.Row].s) {
 		a.Col++
-	} else if a.Row < len(b.lines)-1 {
+	} else if a.Row < len(ed.lines)-1 {
 		a.Col = 0
 		a.Row++
 	}
 	return a
 }
 
-func (b *Buffer) prevAddress(a text.Address) text.Address {
+func (ed *Editor) prevAddress(a text.Address) text.Address {
 	if a.Col > 0 {
 		a.Col--
 	} else if a.Row > 0 {
 		a.Row--
-		a.Col = len(b.lines[a.Row].s)
+		a.Col = len(ed.lines[a.Row].s)
 	}
 	return a
 }

@@ -11,28 +11,28 @@ import (
 )
 
 // TODO: clean up history processing somehow
-func (b *Buffer) handleKeyEvent(e key.Event) {
+func (ed *Editor) handleKeyEvent(e key.Event) {
 	var preChunk, postChunk hist.Chunk
 
 	// prepare the first part of the history transformation
-	if b.dot.IsEmpty() {
+	if ed.dot.IsEmpty() {
 		// adjust for uncommitted input
-		row, col := b.dot.From.Row, b.dot.From.Col-len(b.uncommitted)
+		row, col := ed.dot.From.Row, ed.dot.From.Col-len(ed.uncommitted)
 		preChunk.Sel = text.Sel(row, col, row, col)
 	} else {
-		preChunk.Sel = b.dot
-		preChunk.Text = b.contents(b.dot)
+		preChunk.Sel = ed.dot
+		preChunk.Text = ed.contents(ed.dot)
 	}
 	postChunk = preChunk
 
 	// handle a single typed rune
 	if isGraphic(e.Rune) && e.Modifiers&key.ModMeta == 0 {
-		b.input(e.Rune)
+		ed.input(e.Rune)
 		return // don't commit history on each single-rune input
 	}
 
-	uncommitted := b.uncommitted
-	b.uncommitted = nil
+	uncommitted := ed.uncommitted
+	ed.uncommitted = nil
 
 	// handle all other key events
 	switch {
@@ -45,7 +45,7 @@ func (b *Buffer) handleKeyEvent(e key.Event) {
 			postChunk.Sel = text.Selection{preChunk.Sel.From, preChunk.Sel.From}
 		}
 
-		b.backspace()
+		ed.backspace()
 	case e.Code == key.CodeReturnEnter:
 		if len(uncommitted) > 0 {
 			postChunk.Text = string(append(uncommitted, '\n'))
@@ -55,75 +55,75 @@ func (b *Buffer) handleKeyEvent(e key.Event) {
 		postChunk.Sel.To.Row++
 		postChunk.Sel.To.Col = 0
 
-		b.newline()
+		ed.newline()
 	case e.Code == key.CodeUpArrow:
 		if len(uncommitted) > 0 {
 			postChunk.Text = string(uncommitted)
 			postChunk.Sel.To.Col += len(uncommitted)
 		}
 
-		b.scroll(image.Pt(0, -18*b.lineHeight))
+		ed.scroll(image.Pt(0, -18*ed.lineHeight))
 	case e.Code == key.CodeLeftArrow:
 		if len(uncommitted) > 0 {
 			postChunk.Text = string(uncommitted)
 			postChunk.Sel.To.Col += len(uncommitted)
 		}
 
-		b.left()
+		ed.left()
 	case e.Code == key.CodeRightArrow:
 		if len(uncommitted) > 0 {
 			postChunk.Text = string(uncommitted)
 			postChunk.Sel.To.Col += len(uncommitted)
 		}
 
-		b.right()
+		ed.right()
 	case e.Code == key.CodeDownArrow:
 		if len(uncommitted) > 0 {
 			postChunk.Text = string(uncommitted)
 			postChunk.Sel.To.Col += len(uncommitted)
 		}
 
-		b.scroll(image.Pt(0, 18*b.lineHeight))
+		ed.scroll(image.Pt(0, 18*ed.lineHeight))
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
 		if len(uncommitted) > 0 {
 			postChunk.Text = string(uncommitted)
 			postChunk.Sel.To.Col += len(uncommitted)
 		}
 
-		b.snarf()
+		ed.snarf()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeV:
 
-		b.paste()
+		ed.paste()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeX:
-		b.snarf()
-		b.dot = b.clear(b.dot)
+		ed.snarf()
+		ed.dot = ed.clear(ed.dot)
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
 		if len(uncommitted) > 0 {
 			postChunk.Text = string(uncommitted)
 			postChunk.Sel.To.Col += len(uncommitted)
 		}
 
-		b.selAll()
+		ed.selAll()
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
-		b.redo()
+		ed.redo()
 		return
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeZ:
 		if len(uncommitted) > 0 {
 			postChunk.Text = string(uncommitted)
 			postChunk.Sel.To.Col += len(uncommitted)
-			b.history.Current().Pre = preChunk
-			b.history.Current().Post = postChunk
-			b.history.Commit()
+			ed.history.Current().Pre = preChunk
+			ed.history.Current().Post = postChunk
+			ed.history.Commit()
 		}
 
-		b.undo()
+		ed.undo()
 		return
 	}
 
 	if preChunk != postChunk {
-		b.history.Current().Pre = preChunk
-		b.history.Current().Post = postChunk
-		b.history.Commit()
+		ed.history.Current().Pre = preChunk
+		ed.history.Current().Post = postChunk
+		ed.history.Commit()
 	}
 }
 
@@ -135,32 +135,32 @@ func isGraphic(r rune) bool {
 	return unicode.IsGraphic(r)
 }
 
-func (b *Buffer) input(r rune) {
-	b.uncommitted = append(b.uncommitted, r) // to be committed to history later
-	b.loadRune(r)
-	b.dot.From = b.dot.To
+func (ed *Editor) input(r rune) {
+	ed.uncommitted = append(ed.uncommitted, r) // to be committed to history later
+	ed.loadRune(r)
+	ed.dot.From = ed.dot.To
 }
 
-func (b *Buffer) backspace() {
-	b.dot.From = b.prevAddress(b.dot.From)
-	b.dot = b.clear(b.dot)
+func (ed *Editor) backspace() {
+	ed.dot.From = ed.prevAddress(ed.dot.From)
+	ed.dot = ed.clear(ed.dot)
 }
 
-func (b *Buffer) left() {
-	b.dirtyLines(b.dot.From.Row, b.dot.To.Row+1)
-	a := b.prevAddress(b.dot.From)
-	b.dot.From, b.dot.To = a, a
-	b.dirtyLine(b.dot.From.Row) // new dot may be in a higher row
+func (ed *Editor) left() {
+	ed.dirtyLines(ed.dot.From.Row, ed.dot.To.Row+1)
+	a := ed.prevAddress(ed.dot.From)
+	ed.dot.From, ed.dot.To = a, a
+	ed.dirtyLine(ed.dot.From.Row) // new dot may be in a higher row
 }
 
-func (b *Buffer) right() {
-	b.dirtyLines(b.dot.From.Row, b.dot.To.Row+1)
-	a := b.nextAddress(b.dot.To)
-	b.dot.From, b.dot.To = a, a
-	b.dirtyLine(b.dot.From.Row) // new dot may be in a lower row
+func (ed *Editor) right() {
+	ed.dirtyLines(ed.dot.From.Row, ed.dot.To.Row+1)
+	a := ed.nextAddress(ed.dot.To)
+	ed.dot.From, ed.dot.To = a, a
+	ed.dirtyLine(ed.dot.From.Row) // new dot may be in a lower row
 }
 
-func (b *Buffer) newline() {
-	b.loadBytes([]byte("\n"))
-	b.dot.From = b.dot.To
+func (ed *Editor) newline() {
+	ed.loadBytes([]byte("\n"))
+	ed.dot.From = ed.dot.To
 }

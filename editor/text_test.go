@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 
 func BenchmarkLoadBytes(b *testing.B) {
 	face := basicfont.Face7x13
-	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	input := []byte(`The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
@@ -31,7 +31,7 @@ The quick brown fox jumps over the lazy dog.`)
 
 func BenchmarkLoadRuneASCII(b *testing.B) {
 	face := basicfont.Face7x13
-	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	for i := 0; i < b.N; i++ {
 		buf.loadRune('a')
@@ -40,7 +40,7 @@ func BenchmarkLoadRuneASCII(b *testing.B) {
 
 func BenchmarkLoadRuneUnicode(b *testing.B) {
 	face := basicfont.Face7x13
-	buf := NewBuffer(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	for i := 0; i < b.N; i++ {
 		buf.loadRune('せ')

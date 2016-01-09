@@ -12,64 +12,64 @@ import (
 
 const dClickPause = 500 * time.Millisecond
 
-func (b *Buffer) handleMouseEvent(e mouse.Event) {
-	pos := image.Pt(int(e.X), int(e.Y)).Add(b.clipr.Min) // adjust for scrolling
+func (ed *Editor) handleMouseEvent(e mouse.Event) {
+	pos := image.Pt(int(e.X), int(e.Y)).Add(ed.clipr.Min) // adjust for scrolling
 	button := e.Button
 
-	oldpos := b.mPos
-	b.mButton = button
-	b.mPos = pos
+	oldpos := ed.mPos
+	ed.mButton = button
+	ed.mPos = pos
 
 	switch button {
 	case mouse.ButtonLeft:
 		if e.Direction == mouse.DirPress {
 			// click
-			a := b.pt2address(pos)
-			olda := b.pt2address(oldpos)
-			b.mSweepOrigin = a
-			b.click(a, olda, button)
-			b.history.Commit()
+			a := ed.pt2address(pos)
+			olda := ed.pt2address(oldpos)
+			ed.mSweepOrigin = a
+			ed.click(a, olda, button)
+			ed.history.Commit()
 		} else if e.Direction == mouse.DirNone {
 			// sweep
 			// possibly scroll by sweeping past the edge of the window
-			if pos.Y <= b.clipr.Min.Y {
-				b.scroll(image.Pt(0, -b.lineHeight))
-				pos.Y -= b.lineHeight
-			} else if pos.Y >= b.clipr.Max.Y {
-				b.scroll(image.Pt(0, b.lineHeight))
-				pos.Y += b.lineHeight
+			if pos.Y <= ed.clipr.Min.Y {
+				ed.scroll(image.Pt(0, -ed.lineHeight))
+				pos.Y -= ed.lineHeight
+			} else if pos.Y >= ed.clipr.Max.Y {
+				ed.scroll(image.Pt(0, ed.lineHeight))
+				pos.Y += ed.lineHeight
 			}
 
-			a := b.pt2address(pos)
-			olda := b.pt2address(oldpos)
+			a := ed.pt2address(pos)
+			olda := ed.pt2address(oldpos)
 			if a != olda {
-				b.sweep(olda, a)
+				ed.sweep(olda, a)
 			}
 		}
 	case mouse.ButtonWheelDown:
-		b.scroll(image.Pt(0, -b.lineHeight))
+		ed.scroll(image.Pt(0, -ed.lineHeight))
 	case mouse.ButtonWheelUp:
-		b.scroll(image.Pt(0, b.lineHeight))
+		ed.scroll(image.Pt(0, ed.lineHeight))
 	}
 }
 
-func (b *Buffer) pt2address(pt image.Point) text.Address {
+func (ed *Editor) pt2address(pt image.Point) text.Address {
 	// (0,0) if pt is above the buffer
 	if pt.Y < 0 {
 		return text.Address{}
 	}
 
 	var addr text.Address
-	addr.Row = pt.Y / b.lineHeight
+	addr.Row = pt.Y / ed.lineHeight
 
 	// end of the last line if addr is below the last line
-	if addr.Row > len(b.lines)-1 {
-		addr.Row = len(b.lines) - 1
-		addr.Col = len(b.lines[addr.Row].s)
+	if addr.Row > len(ed.lines)-1 {
+		addr.Row = len(ed.lines) - 1
+		addr.Col = len(ed.lines[addr.Row].s)
 		return addr
 	}
 
-	line := b.lines[addr.Row]
+	line := ed.lines[addr.Row]
 	// the column number is found by looking for the smallest px element
 	// which is larger than pt.X, and returning the column number before that.
 	// If no px elements are larger than pt.X, then return the last column on
@@ -87,39 +87,39 @@ func (b *Buffer) pt2address(pt image.Point) text.Address {
 	return addr
 }
 
-func (b *Buffer) click(a, olda text.Address, button mouse.Button) {
+func (ed *Editor) click(a, olda text.Address, button mouse.Button) {
 	switch button {
 	case mouse.ButtonLeft:
-		b.dirtyLines(b.dot.From.Row, b.dot.To.Row+1)
-		b.dot.From, b.dot.To = a, a
-		b.dirtyLine(a.Row)
+		ed.dirtyLines(ed.dot.From.Row, ed.dot.To.Row+1)
+		ed.dot.From, ed.dot.To = a, a
+		ed.dirtyLine(a.Row)
 
-		if time.Since(b.lastClickTime) < dClickPause && a == olda {
+		if time.Since(ed.lastClickTime) < dClickPause && a == olda {
 			// double click
-			b.expandSel(a)
-			b.lastClickTime = time.Time{}
+			ed.expandSel(a)
+			ed.lastClickTime = time.Time{}
 		} else {
-			b.lastClickTime = time.Now()
+			ed.lastClickTime = time.Now()
 		}
 	}
 }
 
-func (b *Buffer) sweep(from, to text.Address) {
+func (ed *Editor) sweep(from, to text.Address) {
 	// mark all the rows between to and from as dirty
 	// (to and from can be more than one row apart, if they are sweeping quickly)
 	r1, r2 := to.Row, from.Row
 	if r1 > r2 {
 		r1, r2 = r2, r1
 	}
-	b.dirtyLines(r1, r2+1)
+	ed.dirtyLines(r1, r2+1)
 
 	// set the selection
-	if to.LessThan(b.mSweepOrigin) {
-		b.dot = text.Selection{to, b.mSweepOrigin}
-	} else if to != b.mSweepOrigin {
-		b.dot = text.Selection{b.mSweepOrigin, to}
+	if to.LessThan(ed.mSweepOrigin) {
+		ed.dot = text.Selection{to, ed.mSweepOrigin}
+	} else if to != ed.mSweepOrigin {
+		ed.dot = text.Selection{ed.mSweepOrigin, to}
 	} else {
-		b.dirtyLine(to.Row)
-		b.dot = text.Selection{b.mSweepOrigin, b.mSweepOrigin}
+		ed.dirtyLine(to.Row)
+		ed.dot = text.Selection{ed.mSweepOrigin, ed.mSweepOrigin}
 	}
 }

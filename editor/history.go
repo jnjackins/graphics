@@ -1,19 +1,19 @@
 package editor
 
-func (b *Buffer) undo() {
-	ch, ok := b.history.Undo()
+func (ed *Editor) undo() {
+	ch, ok := ed.history.Undo()
 	if !ok {
 		return
 	}
-	b.sel(ch.Sel.From, ch.Sel.To)
-	b.loadBytes([]byte(ch.Text))
+	ed.sel(ch.Sel.From, ch.Sel.To)
+	ed.loadBytes([]byte(ch.Text))
 }
 
-func (b *Buffer) redo() {
-	ch, ok := b.history.Redo()
+func (ed *Editor) redo() {
+	ch, ok := ed.history.Redo()
 	if !ok {
 		return
 	}
-	b.sel(ch.Sel.From, ch.Sel.To)
-	b.loadBytes([]byte(ch.Text))
+	ed.sel(ch.Sel.From, ch.Sel.To)
+	ed.loadBytes([]byte(ch.Text))
 }

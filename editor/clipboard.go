@@ -7,9 +7,9 @@ type Clipboard interface {
 	Put([]byte) error
 }
 
-func (b *Buffer) snarf() {
-	if b.Clipboard != nil {
-		err := b.Clipboard.Put([]byte(b.contents(b.dot)))
+func (ed *Editor) snarf() {
+	if ed.Clipboard != nil {
+		err := ed.Clipboard.Put([]byte(ed.contents(ed.dot)))
 		if err != nil {
 			panic(err)
 		}
@@ -18,13 +18,13 @@ func (b *Buffer) snarf() {
 	}
 }
 
-func (b *Buffer) paste() {
-	if b.Clipboard != nil {
-		buf, err := b.Clipboard.Get()
+func (ed *Editor) paste() {
+	if ed.Clipboard != nil {
+		buf, err := ed.Clipboard.Get()
 		if err != nil {
 			panic(err)
 		}
-		b.loadBytes(buf)
+		ed.loadBytes(buf)
 	} else {
 		log.Println("paste: clipboard not setup")
 	}
