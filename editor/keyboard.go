@@ -12,6 +12,10 @@ import (
 
 // TODO: clean up history processing somehow
 func (ed *Editor) handleKeyEvent(e key.Event) {
+	if e.Direction == key.DirRelease {
+		return
+	}
+
 	var preChunk, postChunk hist.Chunk
 
 	// prepare the first part of the history transformation
