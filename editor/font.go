@@ -31,7 +31,7 @@ func (f fontface) draw(dst draw.Image, pt image.Point, s string) []int16 {
 		}
 		dr, mask, maskp, advance, ok := f.face.Glyph(dot, r)
 		if !ok {
-			panic("bad glyph")
+			panic("internal error: draw: bad glyph")
 		}
 		if tab {
 			advance *= tabwidth
@@ -50,9 +50,16 @@ func (f fontface) measure(start int, s string) []int16 {
 	px[0] = int16(start) // TODO: check for overflow
 	dot := fixed.I(start)
 	for _, r := range s {
+		tab := r == '\t'
+		if tab {
+			r = ' '
+		}
 		advance, ok := f.face.GlyphAdvance(r)
 		if !ok {
-			panic("NOT OK")
+			panic("internal error: measure: GlyphAdvance not ok")
+		}
+		if tab {
+			advance *= tabwidth
 		}
 		dot += advance
 		px = append(px, int16(dot>>6))
