@@ -94,7 +94,7 @@ func (ed *Editor) click(a, olda text.Address, button mouse.Button) {
 
 		if time.Since(ed.lastClickTime) < dClickPause && a == olda {
 			// double click
-			ed.buf.AutoSelect(a)
+			ed.dot = ed.buf.AutoSelect(a)
 			ed.lastClickTime = time.Time{}
 		} else {
 			ed.lastClickTime = time.Now()
