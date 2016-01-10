@@ -24,7 +24,7 @@ func (ed *Editor) paste() {
 		if err != nil {
 			panic(err)
 		}
-		ed.putBytes(s)
+		ed.putString(string(s))
 	} else {
 		log.Println("paste: clipboard not setup")
 	}

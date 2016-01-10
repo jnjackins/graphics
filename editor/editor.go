@@ -107,7 +107,7 @@ func (ed *Editor) Contents() []byte {
 // resets the Editor's history.
 func (ed *Editor) Load(s []byte) {
 	ed.buf.ClearSel(ed.dot)
-	ed.buf.InsertBytes(text.Address{0, 0}, s)
+	ed.buf.InsertString(text.Address{0, 0}, string(s))
 	ed.history = new(hist.History)
 	ed.dot = text.Selection{}
 }

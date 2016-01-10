@@ -144,48 +144,6 @@ func (b *Buffer) InsertString(a Address, s string) Address {
 	return a
 }
 
-// InsertBytes
-func (b *Buffer) InsertBytes(a Address, s []byte) Address {
-	inputLines := bytes.Split(s, []byte("\n"))
-	if len(inputLines) == 1 {
-		// fast path for inserts with no newline
-		return b.insertBytesSingle(a, s)
-	}
-
-	// grow b.Lines as necessary
-	for i := 0; i < len(inputLines)-1; i++ {
-		b.Lines = append(b.Lines, &Line{})
-	}
-	copy(b.Lines[a.Row+len(inputLines)-1:], b.Lines[a.Row:])
-
-	// add all completely new lines
-	for i := 1; i < len(inputLines)-1; i++ {
-		b.Lines[a.Row+i] = &Line{
-			s: inputLines[i],
-		}
-	}
-
-	// last line is new, but is constructed from the last input line
-	// and part of the original row
-	part1 := inputLines[len(inputLines)-1]
-	part2 := []byte{}
-	split := byteCount(b.Lines[a.Row].s, a.Col)
-	if split < len(b.Lines[a.Row].s) {
-		part2 = b.Lines[a.Row].s[split:]
-	}
-	b.Lines[a.Row+len(inputLines)-1] = &Line{
-		s: append(part1, part2...),
-	}
-
-	// finally, append the first line of input to the remainder
-	// of the original line
-	b.Lines[a.Row].s = append(b.Lines[a.Row].s[:split], inputLines[0]...)
-
-	a.Row += len(inputLines) - 1
-	a.Col = utf8.RuneCount(inputLines[len(inputLines)-1])
-	return a
-}
-
 func (b *Buffer) insertStringSingle(a Address, s string) Address {
 	l := b.Lines[a.Row].s
 
@@ -200,23 +158,6 @@ func (b *Buffer) insertStringSingle(a Address, s string) Address {
 	b.Lines[a.Row].s = l
 
 	a.Col += utf8.RuneCountInString(s)
-	return a
-}
-
-func (b *Buffer) insertBytesSingle(a Address, s []byte) Address {
-	l := b.Lines[a.Row].s
-
-	c := byteCount(l, a.Col)  // split the line at c
-	l = append(l, s...)       // grow l by len(s)
-	copy(l[c+len(s):], l[c:]) // shift second part over
-
-	// insert s
-	for i := 0; i < len(s); i++ {
-		l[c+i] = s[i]
-	}
-	b.Lines[a.Row].s = l
-
-	a.Col += utf8.RuneCount(s)
 	return a
 }
 

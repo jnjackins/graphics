@@ -52,6 +52,18 @@ func TestInsertStringLines(t *testing.T) {
 	}
 }
 
+func TestInsertStringMiddle(t *testing.T) {
+	buf := NewBuffer()
+
+	buf.InsertString(Address{0, 0}, "the quick brown fox\njumps over\nthe lazy dog\n")
+	buf.InsertString(Address{1, 6}, "angrily ")
+
+	got := string(buf.Contents())
+	if got != "the quick brown fox\njumps angrily over\nthe lazy dog\n" {
+		t.Errorf("got %q, wanted %q", got, "the quick brown fox\njumps angrily over\n the lazy dog\n")
+	}
+}
+
 func TestGetSel(t *testing.T) {
 	buf := NewBuffer()
 	buf.InsertString(Address{0, 0}, "the 早い\nbrown 狐\njumps over the lazy 犬")
