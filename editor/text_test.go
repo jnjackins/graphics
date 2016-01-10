@@ -2,47 +2,53 @@ package editor
 
 import (
 	"image"
-	"os"
 	"testing"
 
 	"golang.org/x/image/font/basicfont"
 )
 
-func TestMain(m *testing.M) {
-	//f, _ := os.Create("load.prof")
-	//pprof.StartCPUProfile(f)
-	status := m.Run()
-	//pprof.StopCPUProfile()
-	//f.Close()
-	os.Exit(status)
-}
-
-func BenchmarkLoadBytes(b *testing.B) {
+func BenchmarkPutBytes(b *testing.B) {
 	face := basicfont.Face7x13
-	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	ed := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	input := []byte(`The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
 The quick brown fox jumps over the lazy dog.`)
 	for i := 0; i < b.N; i++ {
-		buf.loadBytes(input)
+		ed.putBytes(input)
 	}
 }
 
-func BenchmarkLoadRuneASCII(b *testing.B) {
+func BenchmarkPutString(b *testing.B) {
 	face := basicfont.Face7x13
-	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	ed := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
+	input := `The quick brown fox jumps over the lazy dog.
+速い茶色のキツネは、のろまなイヌに飛びかかりました。
+The quick brown fox jumps over the lazy dog.`
 	for i := 0; i < b.N; i++ {
-		buf.loadRune('a')
+		ed.putString(input)
 	}
 }
 
-func BenchmarkLoadRuneUnicode(b *testing.B) {
+func BenchmarkLoadRuneOne(b *testing.B) {
 	face := basicfont.Face7x13
-	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	ed := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
 	for i := 0; i < b.N; i++ {
-		buf.loadRune('せ')
+		ed.putString("a")
+	}
+}
+
+func BenchmarkLoadRuneMany(b *testing.B) {
+	face := basicfont.Face7x13
+	ed := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < 100; j++ {
+			ed.putString("a")
+			ed.dot.From = ed.dot.To
+		}
+		ed.selAll()
 	}
 }

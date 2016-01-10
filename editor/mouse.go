@@ -63,24 +63,24 @@ func (ed *Editor) pt2address(pt image.Point) text.Address {
 	addr.Row = pt.Y / ed.lineHeight
 
 	// end of the last line if addr is below the last line
-	if addr.Row > len(ed.lines)-1 {
-		addr.Row = len(ed.lines) - 1
-		addr.Col = len(ed.lines[addr.Row].s)
+	if addr.Row > len(ed.buf.Lines)-1 {
+		addr.Row = len(ed.buf.Lines) - 1
+		addr.Col = ed.buf.Lines[addr.Row].RuneCount()
 		return addr
 	}
 
-	line := ed.lines[addr.Row]
+	line := ed.buf.Lines[addr.Row]
 	// the column number is found by looking for the smallest px element
 	// which is larger than pt.X, and returning the column number before that.
 	// If no px elements are larger than pt.X, then return the last column on
 	// the line.
-	if pt.X <= line.adv[0] {
+	if pt.X <= int(ed.adv[line][0]) {
 		addr.Col = 0
-	} else if pt.X > line.adv[len(line.adv)-1] {
-		addr.Col = len(line.adv) - 1
+	} else if pt.X > int(ed.adv[line][len(ed.adv[line])-1]) {
+		addr.Col = len(ed.adv[line]) - 1
 	} else {
-		n := sort.Search(len(line.adv), func(i int) bool {
-			return line.adv[i] > pt.X
+		n := sort.Search(len(ed.adv[line]), func(i int) bool {
+			return int(ed.adv[line][i]) > pt.X
 		})
 		addr.Col = n - 1
 	}
@@ -90,13 +90,11 @@ func (ed *Editor) pt2address(pt image.Point) text.Address {
 func (ed *Editor) click(a, olda text.Address, button mouse.Button) {
 	switch button {
 	case mouse.ButtonLeft:
-		ed.dirtyLines(ed.dot.From.Row, ed.dot.To.Row+1)
 		ed.dot.From, ed.dot.To = a, a
-		ed.dirtyLine(a.Row)
 
 		if time.Since(ed.lastClickTime) < dClickPause && a == olda {
 			// double click
-			ed.expandSel(a)
+			ed.buf.AutoSelect(a)
 			ed.lastClickTime = time.Time{}
 		} else {
 			ed.lastClickTime = time.Now()
@@ -105,21 +103,11 @@ func (ed *Editor) click(a, olda text.Address, button mouse.Button) {
 }
 
 func (ed *Editor) sweep(from, to text.Address) {
-	// mark all the rows between to and from as dirty
-	// (to and from can be more than one row apart, if they are sweeping quickly)
-	r1, r2 := to.Row, from.Row
-	if r1 > r2 {
-		r1, r2 = r2, r1
-	}
-	ed.dirtyLines(r1, r2+1)
-
-	// set the selection
 	if to.LessThan(ed.mSweepOrigin) {
 		ed.dot = text.Selection{to, ed.mSweepOrigin}
 	} else if to != ed.mSweepOrigin {
 		ed.dot = text.Selection{ed.mSweepOrigin, to}
 	} else {
-		ed.dirtyLine(to.Row)
 		ed.dot = text.Selection{ed.mSweepOrigin, ed.mSweepOrigin}
 	}
 }

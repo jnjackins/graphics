@@ -17,9 +17,8 @@ var acmeCursor = func(height int) image.Image {
 	bgcol := image.NewUniform(color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF})
 	cursor := image.NewRGBA(image.Rect(0, 0, 3, height))
 	draw.Draw(cursor, cursor.Rect, image.Black, image.ZP, draw.Src)
-	h := height - 3
-	draw.Draw(cursor, image.Rect(0, 3, 1, h), bgcol, image.ZP, draw.Src)
-	draw.Draw(cursor, image.Rect(2, 3, 3, h), bgcol, image.ZP, draw.Src)
+	draw.Draw(cursor, image.Rect(0, 3, 1, height-3), bgcol, image.ZP, draw.Src)
+	draw.Draw(cursor, image.Rect(2, 3, 3, height-3), bgcol, image.ZP, draw.Src)
 	return cursor
 }
 
@@ -35,4 +34,19 @@ var AcmeBlueTheme = OptionSet{
 	SelColor: color.RGBA{R: 0x88, G: 0x88, B: 0xCC, A: 0xFF},
 	Margin:   image.Pt(4, 0),
 	Cursor:   acmeCursor,
+}
+
+var simpleCursor = func(height int) image.Image {
+	cursor := image.NewRGBA(image.Rect(0, 0, 3, height))
+	draw.Draw(cursor, cursor.Rect, image.Black, image.ZP, draw.Src)
+	draw.Draw(cursor, image.Rect(0, 1, 1, height-1), image.White, image.ZP, draw.Src)
+	draw.Draw(cursor, image.Rect(2, 1, 3, height-1), image.White, image.ZP, draw.Src)
+	return cursor
+}
+
+var SimpleTheme = OptionSet{
+	BGColor:  color.White,
+	SelColor: color.RGBA{R: 0x88, G: 0x88, B: 0xCC, A: 0xFF},
+	Margin:   image.Pt(4, 0),
+	Cursor:   simpleCursor,
 }

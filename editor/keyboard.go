@@ -21,7 +21,7 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		preChunk.Sel = text.Sel(row, col, row, col)
 	} else {
 		preChunk.Sel = ed.dot
-		preChunk.Text = ed.contents(preChunk.Sel)
+		preChunk.Text = ed.buf.GetSel(preChunk.Sel)
 	}
 	postChunk = preChunk
 
@@ -41,8 +41,8 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 			postChunk.Text = string(uncommitted[:len(uncommitted)-1])
 			postChunk.Sel.To.Col += len(uncommitted) - 1
 		} else {
-			preChunk.Sel.From.Col--                   // select the character before the cursor
-			preChunk.Text = ed.contents(preChunk.Sel) // TODO: avoid this double calculation (use defer?)
+			preChunk.Sel.From.Col--                     // select the character before the cursor
+			preChunk.Text = ed.buf.GetSel(preChunk.Sel) // TODO: avoid this double calculation (use defer?)
 			postChunk.Sel = text.Selection{preChunk.Sel.From, preChunk.Sel.From}
 		}
 
@@ -97,7 +97,7 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		ed.paste()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeX:
 		ed.snarf()
-		ed.dot = ed.clear(ed.dot)
+		ed.buf.ClearSel(ed.dot)
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
 		if len(uncommitted) > 0 {
 			postChunk.Text = string(uncommitted)
@@ -138,30 +138,26 @@ func isGraphic(r rune) bool {
 
 func (ed *Editor) input(r rune) {
 	ed.uncommitted = append(ed.uncommitted, r) // to be committed to history later
-	ed.loadRune(r)
+	ed.putString(string(r))
 	ed.dot.From = ed.dot.To
 }
 
 func (ed *Editor) backspace() {
-	ed.dot.From = ed.prevAddress(ed.dot.From)
-	ed.dot = ed.clear(ed.dot)
+	ed.dot.From = ed.buf.PrevAddress(ed.dot.From)
+	ed.dot = ed.buf.ClearSel(ed.dot)
 }
 
 func (ed *Editor) left() {
-	ed.dirtyLines(ed.dot.From.Row, ed.dot.To.Row+1)
-	a := ed.prevAddress(ed.dot.From)
+	a := ed.buf.PrevAddress(ed.dot.From)
 	ed.dot.From, ed.dot.To = a, a
-	ed.dirtyLine(ed.dot.From.Row) // new dot may be in a higher row
 }
 
 func (ed *Editor) right() {
-	ed.dirtyLines(ed.dot.From.Row, ed.dot.To.Row+1)
-	a := ed.nextAddress(ed.dot.To)
+	a := ed.buf.NextAddress(ed.dot.To)
 	ed.dot.From, ed.dot.To = a, a
-	ed.dirtyLine(ed.dot.From.Row) // new dot may be in a lower row
 }
 
 func (ed *Editor) newline() {
-	ed.loadBytes([]byte("\n"))
+	ed.putString("\n")
 	ed.dot.From = ed.dot.To
 }

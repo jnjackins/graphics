@@ -20,9 +20,9 @@ type fontface struct {
 
 // draw draws s onto dst starting at pt. It returns the cumulative advance
 // in pixels of each glyph.
-func (f fontface) draw(dst draw.Image, pt image.Point, s []rune) []int {
-	px := make([]int, 1, len(s)+1)
-	px[0] = pt.X
+func (f fontface) draw(dst draw.Image, pt image.Point, s string) []int16 {
+	px := make([]int16, 1, len(s)+1)
+	px[0] = int16(pt.X) // TODO: check for overflow
 	dot := fixed.P(pt.X, pt.Y+f.height)
 	for _, r := range s {
 		tab := r == '\t'
@@ -38,16 +38,16 @@ func (f fontface) draw(dst draw.Image, pt image.Point, s []rune) []int {
 		}
 		dot.X += advance
 		draw.DrawMask(dst, dr, image.Black, dr.Min, mask, maskp, draw.Over)
-		px = append(px, int(dot.X>>6))
+		px = append(px, int16(dot.X>>6))
 	}
 	return px
 }
 
 // measure returns the cumulative advance in pixel for each glyph in s,
 // beginning from the pixel value start.
-func (f fontface) measure(start int, s []rune) []int {
-	px := make([]int, 1, len(s)+1)
-	px[0] = start
+func (f fontface) measure(start int, s string) []int16 {
+	px := make([]int16, 1, len(s)+1)
+	px[0] = int16(start) // TODO: check for overflow
 	dot := fixed.I(start)
 	for _, r := range s {
 		advance, ok := f.face.GlyphAdvance(r)
@@ -55,7 +55,7 @@ func (f fontface) measure(start int, s []rune) []int {
 			panic("NOT OK")
 		}
 		dot += advance
-		px = append(px, int(dot>>6))
+		px = append(px, int16(dot>>6))
 	}
 	return px
 }

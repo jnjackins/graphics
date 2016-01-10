@@ -9,7 +9,7 @@ type Clipboard interface {
 
 func (ed *Editor) snarf() {
 	if ed.Clipboard != nil {
-		err := ed.Clipboard.Put([]byte(ed.contents(ed.dot)))
+		err := ed.Clipboard.Put([]byte(ed.buf.GetSel(ed.dot)))
 		if err != nil {
 			panic(err)
 		}
@@ -20,11 +20,11 @@ func (ed *Editor) snarf() {
 
 func (ed *Editor) paste() {
 	if ed.Clipboard != nil {
-		buf, err := ed.Clipboard.Get()
+		s, err := ed.Clipboard.Get()
 		if err != nil {
 			panic(err)
 		}
-		ed.loadBytes(buf)
+		ed.putBytes(s)
 	} else {
 		log.Println("paste: clipboard not setup")
 	}

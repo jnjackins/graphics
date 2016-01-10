@@ -5,8 +5,8 @@ func (ed *Editor) undo() {
 	if !ok {
 		return
 	}
-	ed.sel(ch.Sel.From, ch.Sel.To)
-	ed.loadBytes([]byte(ch.Text))
+	ed.dot = ch.Sel
+	ed.putString(ch.Text)
 }
 
 func (ed *Editor) redo() {
@@ -14,6 +14,6 @@ func (ed *Editor) redo() {
 	if !ok {
 		return
 	}
-	ed.sel(ch.Sel.From, ch.Sel.To)
-	ed.loadBytes([]byte(ch.Text))
+	ed.dot = ch.Sel
+	ed.putString(ch.Text)
 }

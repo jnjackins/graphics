@@ -8,41 +8,46 @@ import (
 )
 
 func (ed *Editor) redraw() {
-	// clear an area if requested
-	draw.Draw(ed.img, ed.clearr, ed.bgcol, image.ZP, draw.Src)
-	ed.dirty = ed.dirty.Union(ed.clearr)
-	ed.clearr = image.ZR
+	// TODO: only clear dirty area
+	draw.Draw(ed.img, ed.img.Bounds(), ed.bgcol, image.ZP, draw.Src)
 
-	// redraw dirty lines
 	var grown bool
-	for row, line := range ed.lines {
-		if line.dirty {
-			line.dirty = false
 
-			// the top left pixel of the line, relative to the image it's being drawn onto
-			pt := image.Pt(0, row*ed.lineHeight).Add(ed.margin)
+	// redraw lines
+	// TODO: only redraw dirty lines
+	for row, line := range ed.buf.Lines {
+		// the top left pixel of the line, relative to the image it's being drawn onto
+		pt := image.Pt(0, row*ed.lineHeight).Add(ed.margin)
 
-			// make sure ed.img is big enough to show this line and one full clipr past it
-			if pt.Y+ed.clipr.Dy() >= ed.img.Bounds().Dy() {
-				ed.growImg()
-				grown = true
-			}
-
-			// clear the line, unless it is completely selected
-			if ed.dot.IsEmpty() || row <= ed.dot.From.Row || row >= ed.dot.To.Row {
-				// clear all the way to the left side of the image; the margin may have bits of cursor in it
-				r := image.Rect(ed.img.Bounds().Min.X, pt.Y, pt.X+ed.img.Bounds().Dx(), pt.Y+ed.lineHeight)
-				draw.Draw(ed.img, r, ed.bgcol, image.ZP, draw.Src)
-			}
-
-			// draw selection rectangles
-			if !ed.dot.IsEmpty() && (row >= ed.dot.From.Row && row <= ed.dot.To.Row) {
-				ed.drawSel(row)
-			}
-
-			// draw font overtop
-			line.adv = ed.font.draw(ed.img, pt, line.s)
+		// make sure ed.img is big enough to show this line and one full clipr past it
+		if pt.Y+ed.clipr.Dy() >= ed.img.Bounds().Dy() {
+			ed.growImg()
+			grown = true
 		}
+
+		// clear the line, unless it is completely selected
+		if ed.dot.IsEmpty() || row <= ed.dot.From.Row || row >= ed.dot.To.Row {
+			// clear all the way to the left side of the image; the margin may have bits of cursor in it
+			r := image.Rect(ed.img.Bounds().Min.X, pt.Y, pt.X+ed.img.Bounds().Dx(), pt.Y+ed.lineHeight)
+			draw.Draw(ed.img, r, ed.bgcol, image.ZP, draw.Src)
+		}
+
+		// draw selection rectangles
+		if !ed.dot.IsEmpty() && (row >= ed.dot.From.Row && row <= ed.dot.To.Row) {
+			// If some text has just been inserted (e.g. via paste from clipboard),
+			// it may not have been measured yet - selection rects need to be drawn
+			// before text. This only applies to when row == ed.dot.From.Row or
+			// row == ed.dot.To.Row (otherwise the entire line is selected and character
+			// advances are not necessary).
+			if row == ed.dot.From.Row || row == ed.dot.To.Row {
+				// TODO: avoid measuring if we're sure the line hasn't changed since last draw
+				ed.adv[line] = ed.font.measure(ed.margin.X, line.String())
+			}
+			ed.drawSel(row)
+		}
+
+		// draw font overtop
+		ed.adv[line] = ed.font.draw(ed.img, pt, line.String())
 	}
 	if grown {
 		ed.shrinkImg() // shrink back down to the correct size
@@ -77,7 +82,7 @@ func (ed *Editor) scroll(pt image.Point) {
 	// check boundaries
 	min := ed.img.Bounds().Min
 	max := ed.img.Bounds().Max
-	max.Y = (len(ed.lines)-1)*ed.lineHeight + ed.clipr.Dy()
+	max.Y = (len(ed.buf.Lines)-1)*ed.lineHeight + ed.clipr.Dy()
 	if ed.clipr.Min.X < min.X {
 		ed.clipr = image.Rect(min.X, ed.clipr.Min.Y, min.X+ed.clipr.Dx(), ed.clipr.Max.Y)
 	}
@@ -94,11 +99,11 @@ func (ed *Editor) scroll(pt image.Point) {
 
 // returns x (pixels) for a given address
 func (ed *Editor) getxpx(a text.Address) int {
-	l := ed.lines[a.Row]
-	if a.Col >= len(l.adv) {
-		return l.adv[len(l.adv)-1]
+	l := ed.buf.Lines[a.Row]
+	if a.Col >= len(ed.adv[l]) {
+		return int(ed.adv[l][len(ed.adv[l])-1])
 	}
-	return l.adv[a.Col]
+	return int(ed.adv[l][a.Col])
 }
 
 // returns y (pixels) for a given row
@@ -113,36 +118,15 @@ func (ed *Editor) growImg() {
 	draw.Draw(newImg, newImg.Bounds(), ed.bgcol, image.ZP, draw.Src)
 	draw.Draw(newImg, newImg.Bounds(), ed.img, image.ZP, draw.Src)
 	ed.img = newImg
-	ed.dirty = ed.img.Bounds()
 }
 
 func (ed *Editor) shrinkImg() {
 	r := ed.img.Bounds()
-	height := (len(ed.lines)-1)*ed.lineHeight + ed.clipr.Dy()
+	height := (len(ed.buf.Lines)-1)*ed.lineHeight + ed.clipr.Dy()
 	if r.Max.Y != height {
 		r.Max.Y = height
 		ed.img = ed.img.SubImage(r).(*image.RGBA)
 	}
-	ed.dirty = ed.dirty.Intersect(ed.img.Bounds())
-}
-
-func (ed *Editor) dirtyLine(row int) {
-	ed.lines[row].dirty = true
-	r := ed.img.Bounds()
-	r.Min.Y = row * ed.lineHeight
-	r.Max.Y = r.Min.Y + ed.lineHeight
-	ed.dirty = ed.dirty.Union(r)
-}
-
-// TODO: this is kinda dumb, callers actually need to give row2+1
-func (ed *Editor) dirtyLines(row1, row2 int) {
-	for _, line := range ed.lines[row1:row2] {
-		line.dirty = true
-	}
-	r := ed.img.Bounds()
-	r.Min.Y = row1 * ed.lineHeight
-	r.Max.Y = row2*ed.lineHeight + ed.lineHeight
-	ed.dirty = ed.dirty.Union(r)
 }
 
 // autoScroll does nothing if ed.dot.From is currently in view, or

@@ -1,7 +1,6 @@
 package editor // import "sigint.ca/graphics/editor"
 
 import (
-	"bytes"
 	"image"
 	"time"
 
@@ -17,10 +16,8 @@ import (
 // will maintain a graphical representation of itself accessible by the Img method.
 type Editor struct {
 	// images and drawing data
-	img    *image.RGBA
-	clipr  image.Rectangle // the part of the image in view
-	clearr image.Rectangle // to be cleared next redraw
-	dirty  image.Rectangle // the portion that is dirty (the user needs to redraw)
+	img   *image.RGBA
+	clipr image.Rectangle // the part of the image in view
 
 	// configurable
 	bgcol      *image.Uniform
@@ -30,9 +27,10 @@ type Editor struct {
 	cursor     image.Image // the cursor to draw when nothing is selected
 	font       fontface
 
-	// internal state
-	dot   text.Selection // the current selection
-	lines []*line        // the text data
+	// textual state
+	buf *text.Buffer
+	dot text.Selection         // the current selection
+	adv map[*text.Line][]int16 // pixel advances of the runes in a line
 
 	// history
 	history     *hist.History        // represents the Editor's history
@@ -54,10 +52,8 @@ type Editor struct {
 func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Editor {
 	r := image.Rectangle{Max: size}
 	ed := &Editor{
-		img:    image.NewRGBA(r), // grows as needed
-		clipr:  r,
-		clearr: r,
-		dirty:  r,
+		img:   image.NewRGBA(r), // grows as needed
+		clipr: r,
 
 		bgcol:      image.NewUniform(opt.BGColor),
 		selcol:     image.NewUniform(opt.SelColor),
@@ -66,7 +62,8 @@ func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Edi
 		cursor:     opt.Cursor(height),
 		font:       fontface{face: face, height: height - 3},
 
-		lines: []*line{&line{s: []rune{}, adv: []int{opt.Margin.X}}},
+		buf: text.NewBuffer(),
+		adv: make(map[*text.Line][]int16),
 
 		history: new(hist.History),
 	}
@@ -90,8 +87,6 @@ func (ed *Editor) Resize(size image.Point) {
 	r := image.Rectangle{Max: size}
 	ed.img = image.NewRGBA(r)
 	ed.clipr = r
-	ed.clearr = r
-	ed.dirtyLines(0, len(ed.lines))
 }
 
 // Img returns an image representing the current state of the Editor, a rectangle
@@ -99,42 +94,26 @@ func (ed *Editor) Resize(size image.Point) {
 // and a rectangle representing the portion of the image that has changed and needs
 // to be redrawn onto the display by the caller.
 func (ed *Editor) RGBA() (img *image.RGBA) {
-	if ed.dirty != image.ZR {
-		ed.redraw()
-		ed.dirty = image.ZR
-	}
+	ed.redraw()
 	return ed.img
 }
 
 // Contents returns the contents of the buffer.
 func (ed *Editor) Contents() []byte {
-	var buf bytes.Buffer
-	for i, line := range ed.lines {
-		buf.WriteString(string(line.s))
-		if i < len(ed.lines)-1 {
-			buf.WriteByte('\n')
-		}
-	}
-	return buf.Bytes()
-}
-
-// GetLine returns a string containing the text of the nth line, where
-// the first line of the buffer is line 0.
-func (ed *Editor) GetLine(n int) string {
-	return string(ed.lines[n].s)
+	return ed.buf.Contents()
 }
 
 // Load replaces the contents of the buffer with s, and
 // resets the Editor's history.
 func (ed *Editor) Load(s []byte) {
-	ed.selAll()
-	ed.loadBytes(s)
+	ed.buf.ClearSel(ed.dot)
+	ed.buf.InsertBytes(text.Address{0, 0}, s)
 	ed.history = new(hist.History)
-	ed.dot.To = ed.dot.From
+	ed.dot = text.Selection{}
 }
 
 // SetSaved instructs the buffer that the current contents should be
-// considered "saved". After calling SetSaved, the client can call
+// considered saved. After calling SetSaved, the client can call
 // Saved to see if the Editor has unsaved content.
 func (ed *Editor) SetSaved() {
 	// TODO: ensure ed.uncommitted is empty?
