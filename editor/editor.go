@@ -1,3 +1,4 @@
+// Package editor provides a graphical, editable text area widget.
 package editor // import "sigint.ca/graphics/editor"
 
 import (
@@ -38,7 +39,7 @@ type Editor struct {
 
 	// history
 	history     *hist.History        // represents the Editor's history
-	savePoint   *hist.Transformation // records the last time the buffer was saved, for use by Saved and SetSaved
+	savePoint   *hist.Transformation // records the last time the Editor was saved, for use by Saved and SetSaved
 	uncommitted []rune               // recent input which hasn't yet been committed to history
 
 	// mouse related state
@@ -50,9 +51,8 @@ type Editor struct {
 	clipboard *clip.Clipboard // the clipboard to be used for copy or paste events
 }
 
-// NewEditor returns a new buffer with a clipping rectangle of size r. If init
-// is not nil, the buffer uses ioutil.ReadAll(init) to initialize the text
-// in the buffer. The caller should do any necessary cleanup on init after NewEditor returns.
+// NewEditor returns a new Editor with a clipping rectangle defined by size, a font face
+// defined by face and height, and an OptionSet opt.
 func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Editor {
 	r := image.Rectangle{Max: size}
 	ed := &Editor{
