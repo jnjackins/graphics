@@ -13,8 +13,11 @@ import (
 	"golang.org/x/mobile/event/mouse"
 )
 
-// Editor represents a text buffer which, if you send it keystrokes and mouse events,
-// will maintain a graphical representation of itself accessible by the Img method.
+// An Editor is a graphical, editable text area widget, intended to be
+// compatible with golang.org/x/exp/shiny, or any other graphical
+// window package capable of drawing a widget via an image.RGBA and
+// clipping rectangle. See sigint.ca/cmd/edit for an example program
+// using this type.
 type Editor struct {
 	// images and drawing data
 	img   *image.RGBA
@@ -83,29 +86,28 @@ func (ed *Editor) Size() image.Point {
 	return ed.clipr.Size()
 }
 
-// Resize resizes the Editor. Subsequent calls to Img will return an image of
-// at least size r, and a clipping rectangle of size r.
+// Resize resizes the Editor. Subsequent calls to RGBA will return an image of
+// at least size, and a clipping rectangle of size.
 func (ed *Editor) Resize(size image.Point) {
 	r := image.Rectangle{Max: size}
 	ed.img = image.NewRGBA(r)
 	ed.clipr = r
 }
 
-// Img returns an image representing the current state of the Editor, a rectangle
-// representing the portion of the image in view based on the current scrolling position,
-// and a rectangle representing the portion of the image that has changed and needs
-// to be redrawn onto the display by the caller.
+// RGBA returns an image representing the current state of the Editor. The image
+// may be larger than the rectangle returned by Bounds, which represents
+// the portion of the image currently scrolled into view.
 func (ed *Editor) RGBA() (img *image.RGBA) {
 	ed.redraw()
 	return ed.img
 }
 
-// Contents returns the contents of the buffer.
+// Contents returns the contents of the Editor.
 func (ed *Editor) Contents() []byte {
 	return ed.buf.Contents()
 }
 
-// Load replaces the contents of the buffer with s, and
+// Load replaces the contents of the Editor with s, and
 // resets the Editor's history.
 func (ed *Editor) Load(s []byte) {
 	ed.buf.ClearSel(ed.dot)
@@ -114,7 +116,7 @@ func (ed *Editor) Load(s []byte) {
 	ed.dot = text.Selection{}
 }
 
-// SetSaved instructs the buffer that the current contents should be
+// SetSaved instructs the Editor that the current contents should be
 // considered saved. After calling SetSaved, the client can call
 // Saved to see if the Editor has unsaved content.
 func (ed *Editor) SetSaved() {
