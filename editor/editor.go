@@ -4,6 +4,7 @@ import (
 	"image"
 	"time"
 
+	"sigint.ca/clip"
 	"sigint.ca/graphics/editor/internal/hist"
 	"sigint.ca/graphics/editor/internal/text"
 
@@ -43,7 +44,7 @@ type Editor struct {
 	mPos          image.Point  // the position of the most recent mouse event
 	mSweepOrigin  text.Address // keeps track of the origin of a sweep
 
-	Clipboard Clipboard // the Clipboard to be used for copy or paste events
+	clipboard *clip.Clipboard // the clipboard to be used for copy or paste events
 }
 
 // NewEditor returns a new buffer with a clipping rectangle of size r. If init
@@ -65,7 +66,8 @@ func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Edi
 		buf: text.NewBuffer(),
 		adv: make(map[*text.Line][]int16),
 
-		history: new(hist.History),
+		history:   new(hist.History),
+		clipboard: new(clip.Clipboard),
 	}
 	return ed
 }

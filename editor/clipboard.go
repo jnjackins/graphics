@@ -1,31 +1,12 @@
 package editor
 
-import "log"
-
-type Clipboard interface {
-	Get() ([]byte, error)
-	Put([]byte) error
-}
-
 func (ed *Editor) snarf() {
-	if ed.Clipboard != nil {
-		err := ed.Clipboard.Put([]byte(ed.buf.GetSel(ed.dot)))
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		log.Println("snarf: clipboard not setup")
-	}
+	ed.clipboard.Put([]byte(ed.buf.GetSel(ed.dot)))
 }
 
 func (ed *Editor) paste() {
-	if ed.Clipboard != nil {
-		s, err := ed.Clipboard.Get()
-		if err != nil {
-			panic(err)
-		}
+	s, err := ed.clipboard.Get()
+	if err == nil {
 		ed.putString(string(s))
-	} else {
-		log.Println("paste: clipboard not setup")
 	}
 }

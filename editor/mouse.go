@@ -12,6 +12,7 @@ import (
 
 const dClickPause = 500 * time.Millisecond
 
+// TODO: commit history on click
 func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	pos := image.Pt(int(e.X), int(e.Y)).Add(ed.clipr.Min) // adjust for scrolling
 	button := e.Button
