@@ -12,13 +12,22 @@ import (
 
 const dClickPause = 500 * time.Millisecond
 
-// TODO: commit history on click
 func (ed *Editor) handleMouseEvent(e mouse.Event) {
+	if e.Direction == mouse.DirRelease {
+		return
+	}
+
+	// a mouse event triggers a history commit, in case there is some
+	// uncommitted input
+	// TODO: this assumes mouse events to not cause any text transformations,
+	// and will need to change when cut/paste via mouse chords is added.
+	ed.initTransformation()
+	ed.commitTransformation()
+
 	pos := image.Pt(int(e.X), int(e.Y)).Add(ed.clipr.Min) // adjust for scrolling
 	button := e.Button
 
 	oldpos := ed.mPos
-	ed.mButton = button
 	ed.mPos = pos
 
 	switch button {
@@ -29,7 +38,6 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 			olda := ed.pt2address(oldpos)
 			ed.mSweepOrigin = a
 			ed.click(a, olda, button)
-			ed.history.Commit()
 		} else if e.Direction == mouse.DirNone {
 			// sweep
 			// possibly scroll by sweeping past the edge of the window

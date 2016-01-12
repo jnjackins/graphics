@@ -30,7 +30,7 @@ func NewBuffer() *Buffer {
 }
 
 func (b *Buffer) NextAddress(a Address) Address {
-	if a.Col < len(b.Lines[a.Row].s) {
+	if a.Col < utf8.RuneCount(b.Lines[a.Row].s) {
 		a.Col++
 	} else if a.Row < len(b.Lines)-1 {
 		a.Col = 0
@@ -44,7 +44,7 @@ func (b *Buffer) PrevAddress(a Address) Address {
 		a.Col--
 	} else if a.Row > 0 {
 		a.Row--
-		a.Col = len(b.Lines[a.Row].s)
+		a.Col = utf8.RuneCount(b.Lines[a.Row].s)
 	}
 	return a
 }

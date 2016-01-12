@@ -3,133 +3,62 @@ package editor
 import (
 	"image"
 	"unicode"
-
-	"sigint.ca/graphics/editor/internal/hist"
-	"sigint.ca/graphics/editor/internal/text"
+	"unicode/utf8"
 
 	"golang.org/x/mobile/event/key"
 )
 
-// TODO: clean up history processing somehow
 func (ed *Editor) handleKeyEvent(e key.Event) {
 	if e.Direction == key.DirRelease {
+		// ignore key up events
 		return
 	}
 
-	var preChunk, postChunk hist.Chunk
-
-	// prepare the first part of the history transformation
-	if ed.dot.IsEmpty() {
-		// adjust for uncommitted input
-		row, col := ed.dot.From.Row, ed.dot.From.Col-len(ed.uncommitted)
-		preChunk.Sel = text.Sel(row, col, row, col)
-	} else {
-		preChunk.Sel = ed.dot
-		preChunk.Text = ed.buf.GetSel(preChunk.Sel)
-	}
-	postChunk = preChunk
+	// prepare for a change in the editor's history
+	ed.initTransformation()
 
 	// handle a single typed rune
 	if isGraphic(e.Rune) && e.Modifiers&key.ModMeta == 0 {
+		ed.uncommitted.Post.Text += string(e.Rune)
 		ed.input(e.Rune)
-		return // don't commit history on each single-rune input
-	}
 
-	uncommitted := ed.uncommitted
-	ed.uncommitted = nil
+		// exit early - history isn't updated for each keystroke
+		return
+	}
 
 	// handle all other key events
 	switch {
 	case e.Code == key.CodeDeleteBackspace:
-		if len(uncommitted) > 0 {
-			postChunk.Text = string(uncommitted[:len(uncommitted)-1])
-			postChunk.Sel.To.Col += len(uncommitted) - 1
-		} else {
-			preChunk.Sel.From.Col--                     // select the character before the cursor
-			preChunk.Text = ed.buf.GetSel(preChunk.Sel) // TODO: avoid this double calculation (use defer?)
-			postChunk.Sel = text.Selection{preChunk.Sel.From, preChunk.Sel.From}
-		}
-
 		ed.backspace()
 	case e.Code == key.CodeReturnEnter:
-		if len(uncommitted) > 0 {
-			postChunk.Text = string(append(uncommitted, '\n'))
-		} else {
-			postChunk.Text = "\n"
-		}
-		postChunk.Sel.To.Row++
-		postChunk.Sel.To.Col = 0
-
 		ed.newline()
 	case e.Code == key.CodeUpArrow:
-		if len(uncommitted) > 0 {
-			postChunk.Text = string(uncommitted)
-			postChunk.Sel.To.Col += len(uncommitted)
-		}
-
 		ed.scroll(image.Pt(0, -18*ed.lineHeight))
 	case e.Code == key.CodeLeftArrow:
-		if len(uncommitted) > 0 {
-			postChunk.Text = string(uncommitted)
-			postChunk.Sel.To.Col += len(uncommitted)
-		}
-
 		ed.left()
 	case e.Code == key.CodeRightArrow:
-		if len(uncommitted) > 0 {
-			postChunk.Text = string(uncommitted)
-			postChunk.Sel.To.Col += len(uncommitted)
-		}
-
 		ed.right()
 	case e.Code == key.CodeDownArrow:
-		if len(uncommitted) > 0 {
-			postChunk.Text = string(uncommitted)
-			postChunk.Sel.To.Col += len(uncommitted)
-		}
-
 		ed.scroll(image.Pt(0, 18*ed.lineHeight))
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
-		if len(uncommitted) > 0 {
-			postChunk.Text = string(uncommitted)
-			postChunk.Sel.To.Col += len(uncommitted)
-		}
-
 		ed.snarf()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeV:
-
 		ed.paste()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeX:
 		ed.snarf()
 		ed.buf.ClearSel(ed.dot)
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
-		if len(uncommitted) > 0 {
-			postChunk.Text = string(uncommitted)
-			postChunk.Sel.To.Col += len(uncommitted)
-		}
-
 		ed.selAll()
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
-		ed.redo()
-		return
+		// if there is a new transformation, allow it to be committed before trying to redo
+		defer ed.redo()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeZ:
-		if len(uncommitted) > 0 {
-			postChunk.Text = string(uncommitted)
-			postChunk.Sel.To.Col += len(uncommitted)
-			ed.history.Current().Pre = preChunk
-			ed.history.Current().Post = postChunk
-			ed.history.Commit()
-		}
-
-		ed.undo()
-		return
+		// if there is a new transformation, allow it to be committed before trying to undo
+		defer ed.undo()
 	}
 
-	if preChunk != postChunk {
-		ed.history.Current().Pre = preChunk
-		ed.history.Current().Post = postChunk
-		ed.history.Commit()
-	}
+	// commit any change to the editor's history
+	ed.commitTransformation()
 }
 
 func isGraphic(r rune) bool {
@@ -141,12 +70,23 @@ func isGraphic(r rune) bool {
 }
 
 func (ed *Editor) input(r rune) {
-	ed.uncommitted = append(ed.uncommitted, r) // to be committed to history later
 	ed.putString(string(r))
 	ed.dot.From = ed.dot.To
 }
 
 func (ed *Editor) backspace() {
+	// special history handling specific to backspace
+	if ed.uncommitted.Post.Text != "" {
+		// trim the final uncommitted character
+		_, rSize := utf8.DecodeLastRuneInString(ed.uncommitted.Post.Text)
+		newSize := len(ed.uncommitted.Post.Text) - rSize
+		ed.uncommitted.Post.Text = ed.uncommitted.Post.Text[:newSize]
+	} else {
+		// ed.uncommitted.Pre.Sel.From must also include the rune preceding dot
+		ed.uncommitted.Pre.Sel.From = ed.buf.PrevAddress(ed.uncommitted.Pre.Sel.From)
+		ed.uncommitted.Pre.Text = ed.buf.GetSel(ed.uncommitted.Pre.Sel)
+	}
+
 	ed.dot.From = ed.buf.PrevAddress(ed.dot.From)
 	ed.dot = ed.buf.ClearSel(ed.dot)
 }
@@ -162,6 +102,9 @@ func (ed *Editor) right() {
 }
 
 func (ed *Editor) newline() {
+	// special history handling specific to newline
+	ed.uncommitted.Post.Text += "\n"
+
 	ed.putString("\n")
 	ed.dot.From = ed.dot.To
 }

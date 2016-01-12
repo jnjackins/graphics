@@ -25,7 +25,7 @@ type Chunk struct {
 }
 
 func (c Chunk) String() string {
-	return fmt.Sprintf("%q %v", c.Text, c.Sel)
+	return fmt.Sprintf("%q%v", c.Text, c.Sel)
 }
 
 func (h *History) Current() *Transformation {

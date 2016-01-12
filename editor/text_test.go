@@ -7,18 +7,6 @@ import (
 	"golang.org/x/image/font/basicfont"
 )
 
-func BenchmarkPutBytes(b *testing.B) {
-	face := basicfont.Face7x13
-	ed := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
-
-	input := []byte(`The quick brown fox jumps over the lazy dog.
-速い茶色のキツネは、のろまなイヌに飛びかかりました。
-The quick brown fox jumps over the lazy dog.`)
-	for i := 0; i < b.N; i++ {
-		ed.putBytes(input)
-	}
-}
-
 func BenchmarkPutString(b *testing.B) {
 	face := basicfont.Face7x13
 	ed := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)

@@ -27,10 +27,10 @@ type Editor struct {
 	// configurable
 	bgcol      *image.Uniform
 	selcol     *image.Uniform
-	margin     image.Point
-	lineHeight int
 	cursor     image.Image // the cursor to draw when nothing is selected
 	font       fontface
+	lineHeight int
+	margin     image.Point
 
 	// textual state
 	buf *text.Buffer
@@ -40,11 +40,10 @@ type Editor struct {
 	// history
 	history     *hist.History        // represents the Editor's history
 	savePoint   *hist.Transformation // records the last time the Editor was saved, for use by Saved and SetSaved
-	uncommitted []rune               // recent input which hasn't yet been committed to history
+	uncommitted *hist.Transformation // recent input which hasn't yet been committed to history
 
 	// mouse related state
 	lastClickTime time.Time    // used to detect a double-click
-	mButton       mouse.Button // the button of the most recent mouse event
 	mPos          image.Point  // the position of the most recent mouse event
 	mSweepOrigin  text.Address // keeps track of the origin of a sweep
 
@@ -61,10 +60,10 @@ func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Edi
 
 		bgcol:      image.NewUniform(opt.BGColor),
 		selcol:     image.NewUniform(opt.SelColor),
-		margin:     opt.Margin,
-		lineHeight: height,
 		cursor:     opt.Cursor(height),
 		font:       fontface{face: face, height: height - 3},
+		lineHeight: height,
+		margin:     opt.Margin,
 
 		buf: text.NewBuffer(),
 		adv: make(map[*text.Line][]int16),
@@ -121,7 +120,7 @@ func (ed *Editor) Load(s []byte) {
 // Saved to see if the Editor has unsaved content.
 func (ed *Editor) SetSaved() {
 	// TODO: ensure ed.uncommitted is empty?
-	if len(ed.uncommitted) > 0 {
+	if ed.uncommitted != nil {
 		panic("TODO")
 	}
 	ed.savePoint = ed.history.Current()
@@ -130,7 +129,7 @@ func (ed *Editor) SetSaved() {
 // Saved reports whether the Editor has been modified since the last
 // time SetSaved was called.
 func (ed *Editor) Saved() bool {
-	return ed.history.Current() == ed.savePoint && len(ed.uncommitted) == 0
+	return ed.history.Current() == ed.savePoint && ed.uncommitted == nil
 }
 
 // SendKeyEvent sends a key event to be interpreted by the Editor.

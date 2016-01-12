@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"bytes"
 	"image"
 	"testing"
 
@@ -10,29 +9,29 @@ import (
 
 func TestContents(t *testing.T) {
 	face := basicfont.Face7x13
-	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	ed := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
-	input := []byte(`The quick brown fox jumps over the lazy dog.
+	input := `The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
-The quick brown fox jumps over the lazy dog.`)
-	buf.putBytes(input)
+The quick brown fox jumps over the lazy dog.`
+	ed.putString(input)
 
-	output := buf.Contents()
-	if !bytes.Equal(input, output) {
+	output := ed.Contents()
+	if input != string(output) {
 		t.Errorf("expected %q, got %q", input, output)
 	}
 }
 
 func BenchmarkContents(b *testing.B) {
 	face := basicfont.Face7x13
-	buf := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
+	ed := NewEditor(image.Pt(100, 100), face, face.Height, AcmeYellowTheme)
 
-	input := []byte(`The quick brown fox jumps over the lazy dog.
+	input := `The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
-The quick brown fox jumps over the lazy dog.`)
-	buf.putBytes(input)
+The quick brown fox jumps over the lazy dog.`
+	ed.putString(input)
 
 	for i := 0; i < b.N; i++ {
-		_ = buf.Contents()
+		_ = ed.Contents()
 	}
 }
