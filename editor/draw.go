@@ -8,14 +8,18 @@ import (
 )
 
 func (ed *Editor) redraw() {
-	// TODO: only clear dirty area
-	draw.Draw(ed.img, ed.img.Bounds(), ed.bgcol, image.ZP, draw.Src)
+	dirtyLines, r := ed.getDirty()
+	if len(dirtyLines) == 0 {
+		return
+	}
+	draw.Draw(ed.img, r, ed.bgcol, image.ZP, draw.Src)
 
 	var grown bool
 
 	// redraw lines
-	// TODO: only redraw dirty lines
-	for row, line := range ed.buf.Lines {
+	for row, line := range dirtyLines {
+		line.Dirty = false
+
 		// the top left pixel of the line, relative to the image it's being drawn onto
 		pt := image.Pt(0, row*ed.lineHeight).Add(ed.margin)
 
@@ -41,13 +45,13 @@ func (ed *Editor) redraw() {
 			// advances are not necessary).
 			if row == ed.dot.From.Row || row == ed.dot.To.Row {
 				// TODO: avoid measuring if we're sure the line hasn't changed since last draw
-				ed.adv[line] = ed.font.measure(ed.margin.X, line.String())
+				line.Adv = ed.font.measure(ed.margin.X, line.String())
 			}
 			ed.drawSel(row)
 		}
 
 		// draw font overtop
-		ed.adv[line] = ed.font.draw(ed.img, pt, line.String())
+		line.Adv = ed.font.draw(ed.img, pt, line.String())
 	}
 	if grown {
 		ed.shrinkImg() // shrink back down to the correct size
@@ -59,6 +63,11 @@ func (ed *Editor) redraw() {
 		pt := image.Pt(ed.getxpx(ed.dot.From)-1, ed.getypx(ed.dot.From.Row))
 		draw.Draw(ed.img, ed.cursor.Bounds().Add(pt), ed.cursor, image.ZP, draw.Src)
 	}
+}
+
+// TODO
+func (ed *Editor) getDirty() ([]*text.Line, image.Rectangle) {
+	return ed.buf.Lines, ed.img.Bounds()
 }
 
 func (ed *Editor) drawSel(row int) {
@@ -100,10 +109,10 @@ func (ed *Editor) scroll(pt image.Point) {
 // returns x (pixels) for a given address
 func (ed *Editor) getxpx(a text.Address) int {
 	l := ed.buf.Lines[a.Row]
-	if a.Col >= len(ed.adv[l]) {
-		return int(ed.adv[l][len(ed.adv[l])-1])
+	if a.Col >= len(l.Adv) {
+		return int(l.Adv[len(l.Adv)-1])
 	}
-	return int(ed.adv[l][a.Col])
+	return int(l.Adv[a.Col])
 }
 
 // returns y (pixels) for a given row

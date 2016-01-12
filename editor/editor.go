@@ -20,6 +20,10 @@ import (
 // clipping rectangle. See sigint.ca/cmd/edit for an example program
 // using this type.
 type Editor struct {
+	// textual state
+	buf *text.Buffer
+	dot text.Selection // the current selection
+
 	// images and drawing data
 	img   *image.RGBA
 	clipr image.Rectangle // the part of the image in view
@@ -31,13 +35,6 @@ type Editor struct {
 	font       fontface
 	lineHeight int
 	margin     image.Point
-
-	// textual state
-	buf *text.Buffer
-	dot text.Selection // the current selection
-
-	// TODO: leaky: lines will come and go, but we don't discard their advances
-	adv map[*text.Line][]int16 // pixel advances of the runes in a line
 
 	// history
 	history     *hist.History        // represents the Editor's history
@@ -57,6 +54,8 @@ type Editor struct {
 func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Editor {
 	r := image.Rectangle{Max: size}
 	ed := &Editor{
+		buf: text.NewBuffer(),
+
 		img:   image.NewRGBA(r), // grows as needed
 		clipr: r,
 
@@ -66,9 +65,6 @@ func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Edi
 		font:       fontface{face: face, height: height - 3},
 		lineHeight: height,
 		margin:     opt.Margin,
-
-		buf: text.NewBuffer(),
-		adv: make(map[*text.Line][]int16),
 
 		history:   new(hist.History),
 		clipboard: new(clip.Clipboard),

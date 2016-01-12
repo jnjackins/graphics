@@ -40,7 +40,7 @@ func (b *Buffer) PrevAddress(a Address) Address {
 func (b *Buffer) Contents() []byte {
 	var buf bytes.Buffer
 	for _, l := range b.Lines {
-		buf.Write(l.Bytes())
+		buf.Write(l.bytes())
 		buf.WriteByte('\n')
 	}
 	// trim the extra newline
@@ -69,6 +69,7 @@ func (b *Buffer) GetSel(sel Selection) string {
 	return ret
 }
 
+// TODO: update Dirty in affected lines
 func (b *Buffer) ClearSel(sel Selection) Selection {
 	if sel.IsEmpty() {
 		return sel
@@ -101,7 +102,7 @@ func (b *Buffer) InsertString(addr Address, s string) Address {
 
 	// grow b.Lines as necessary
 	for i := 0; i < len(inputLines)-1; i++ {
-		b.Lines = append(b.Lines, &Line{})
+		b.Lines = append(b.Lines, &Line{Dirty: true})
 	}
 	copy(b.Lines[addr.Row+len(inputLines)-1:], b.Lines[addr.Row:])
 
@@ -137,7 +138,7 @@ func (b *Buffer) AutoSelect(addr Address) Selection {
 	}
 
 	sel := Selection{addr, addr}
-	line := b.Lines[addr.Row].Runes()
+	line := b.Lines[addr.Row].runes()
 
 	// select line
 	if addr.Col == len(line) || addr.Col == 0 {
@@ -179,7 +180,7 @@ func (b *Buffer) selDelimited(addr Address, delims1, delims2 string) (Selection,
 	sel := Selection{addr, addr}
 
 	var delim int
-	var line = b.Lines[addr.Row].Runes()
+	var line = b.Lines[addr.Row].runes()
 	var next func(Address) Address
 	var rightwards bool
 	if addr.Col > 0 {
@@ -211,7 +212,7 @@ func (b *Buffer) selDelimited(addr Address, delims1, delims2 string) (Selection,
 	for match != prev {
 		prev = match
 		match = next(match)
-		line := b.Lines[match.Row].Runes()
+		line := b.Lines[match.Row].runes()
 		if match.Col > len(line)-1 {
 			continue
 		}

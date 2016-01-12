@@ -2,21 +2,25 @@ package text
 
 type Line struct {
 	s []rune
+
+	// for use by the client
+	Adv   []int16
+	Dirty bool
 }
 
 func newLineFromString(s string) *Line {
-	return &Line{s: []rune(s)}
+	return &Line{s: []rune(s), Dirty: true}
 }
 
 func (l *Line) String() string {
 	return string(l.s)
 }
 
-func (l *Line) Bytes() []byte {
+func (l *Line) bytes() []byte {
 	return []byte(string(l.s))
 }
 
-func (l *Line) Runes() []rune {
+func (l *Line) runes() []rune {
 	return l.s
 }
 
@@ -31,6 +35,7 @@ func (l *Line) elemFromCol(col int) (elem int) {
 // insert inserts s into l at column col, and returns the new
 // column (i.e. col + the number of columns inserted)
 func (l *Line) insertString(col int, s string) int {
+	l.Dirty = true
 	runes := []rune(s)
 	l.s = append(l.s, runes...) // grow l by len(s)
 	copy(l.s[col+len(runes):], l.s[col:])

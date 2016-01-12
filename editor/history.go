@@ -43,7 +43,6 @@ func (ed *Editor) commitTransformation() {
 	} else {
 		ed.uncommitted.Post.Sel = ed.uncommitted.Pre.Sel
 		for range ed.uncommitted.Post.Text {
-			// TODO: this is inefficient
 			ed.uncommitted.Post.Sel.To = ed.buf.NextAddress(ed.uncommitted.Post.Sel.To)
 		}
 	}

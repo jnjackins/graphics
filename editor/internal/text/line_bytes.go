@@ -9,21 +9,25 @@ import (
 
 type Line struct {
 	s []byte
+
+	// for use by the client
+	Adv   []int16
+	Dirty bool
 }
 
 func newLineFromString(s string) *Line {
-	return &Line{s: []byte(s)}
+	return &Line{s: []byte(s), Dirty: true}
 }
 
 func (l *Line) String() string {
 	return string(l.s)
 }
 
-func (l *Line) Bytes() []byte {
+func (l *Line) bytes() []byte {
 	return l.s
 }
 
-func (l *Line) Runes() []rune {
+func (l *Line) runes() []rune {
 	return bytes.Runes(l.s)
 }
 
@@ -42,6 +46,7 @@ func (l *Line) elemFromCol(col int) (elem int) {
 // insert inserts s into l at column col, and returns the new
 // column (i.e. col + the number of columns inserted)
 func (l *Line) insertString(col int, s string) int {
+	l.Dirty = true
 	elem := l.elemFromCol(col)
 	l.s = append(l.s, s...) // grow l by len(s)
 	copy(l.s[elem+len(s):], l.s[elem:])

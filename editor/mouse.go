@@ -83,13 +83,13 @@ func (ed *Editor) pt2address(pt image.Point) text.Address {
 	// which is larger than pt.X, and returning the column number before that.
 	// If no px elements are larger than pt.X, then return the last column on
 	// the line.
-	if pt.X <= int(ed.adv[line][0]) {
+	if pt.X <= int(line.Adv[0]) {
 		addr.Col = 0
-	} else if pt.X > int(ed.adv[line][len(ed.adv[line])-1]) {
-		addr.Col = len(ed.adv[line]) - 1
+	} else if pt.X > int(line.Adv[len(line.Adv)-1]) {
+		addr.Col = len(line.Adv) - 1
 	} else {
-		n := sort.Search(len(ed.adv[line]), func(i int) bool {
-			return int(ed.adv[line][i]) > pt.X
+		n := sort.Search(len(line.Adv), func(i int) bool {
+			return int(line.Adv[i]) > pt.X
 		})
 		addr.Col = n - 1
 	}
