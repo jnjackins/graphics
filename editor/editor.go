@@ -34,7 +34,9 @@ type Editor struct {
 
 	// textual state
 	buf *text.Buffer
-	dot text.Selection         // the current selection
+	dot text.Selection // the current selection
+
+	// TODO: leaky: lines will come and go, but we don't discard their advances
 	adv map[*text.Line][]int16 // pixel advances of the runes in a line
 
 	// history

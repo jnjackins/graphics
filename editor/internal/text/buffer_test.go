@@ -85,17 +85,6 @@ func TestClearSel(t *testing.T) {
 	}
 }
 
-func TestByteCount(t *testing.T) {
-	count := byteCount([]byte("世界"), 1)
-	if count != 3 {
-		t.Errorf("got %d, wanted %d", count, 3)
-	}
-	count = byteCount([]byte("a世b界"), 2)
-	if count != 4 {
-		t.Errorf("got %d, wanted %d", count, 4)
-	}
-}
-
 func TestAutoSelect(t *testing.T) {
 	buf := NewBuffer()
 	buf.InsertString(Address{0, 0}, "こんにちは (in there)")
@@ -110,5 +99,38 @@ func TestAutoSelect(t *testing.T) {
 	got = buf.GetSel(buf.AutoSelect(Address{0, 11}))
 	if got != "there" {
 		t.Errorf("got %q, wanted %q", got, "there")
+	}
+}
+
+func BenchmarkInsertString(b *testing.B) {
+	buf := NewBuffer()
+	input := `The quick brown fox jumps over the lazy dog.
+速い茶色のキツネは、のろまなイヌに飛びかかりました。
+The quick brown fox jumps over the lazy dog.`
+	from := Address{}
+	for i := 0; i < b.N; i++ {
+		to := buf.InsertString(from, input)
+		buf.ClearSel(Selection{from, to})
+	}
+}
+
+func BenchmarkInsertStringOne(b *testing.B) {
+	buf := NewBuffer()
+	from := Address{0, 0}
+	for i := 0; i < b.N; i++ {
+		to := buf.InsertString(from, "世")
+		buf.ClearSel(Selection{from, to})
+	}
+}
+
+func BenchmarkInsertStringMany(b *testing.B) {
+	buf := NewBuffer()
+	for i := 0; i < b.N; i++ {
+		from := Address{0, 0}
+		for j := 0; j < 200; j++ {
+			from = buf.InsertString(from, "世")
+		}
+		buf.InsertString(from, "\n")
+		buf.ClearSel(Selection{Address{0, 0}, Address{1, 0}})
 	}
 }

@@ -11,18 +11,6 @@ type Buffer struct {
 	Lines []*Line
 }
 
-type Line struct {
-	s []byte
-}
-
-func (l *Line) String() string {
-	return string(l.s)
-}
-
-func (l *Line) RuneCount() int {
-	return utf8.RuneCount(l.s)
-}
-
 func NewBuffer() *Buffer {
 	return &Buffer{
 		Lines: []*Line{new(Line)},
@@ -30,7 +18,7 @@ func NewBuffer() *Buffer {
 }
 
 func (b *Buffer) NextAddress(a Address) Address {
-	if a.Col < utf8.RuneCount(b.Lines[a.Row].s) {
+	if a.Col < b.Lines[a.Row].RuneCount() {
 		a.Col++
 	} else if a.Row < len(b.Lines)-1 {
 		a.Col = 0
@@ -44,7 +32,7 @@ func (b *Buffer) PrevAddress(a Address) Address {
 		a.Col--
 	} else if a.Row > 0 {
 		a.Row--
-		a.Col = utf8.RuneCount(b.Lines[a.Row].s)
+		a.Col = b.Lines[a.Row].RuneCount()
 	}
 	return a
 }
@@ -52,7 +40,7 @@ func (b *Buffer) PrevAddress(a Address) Address {
 func (b *Buffer) Contents() []byte {
 	var buf bytes.Buffer
 	for _, l := range b.Lines {
-		buf.Write(l.s)
+		buf.Write(l.Bytes())
 		buf.WriteByte('\n')
 	}
 	// trim the extra newline
@@ -66,17 +54,17 @@ func (b *Buffer) GetSel(sel Selection) string {
 
 	if sel.From.Row == sel.To.Row {
 		row := sel.From.Row
-		from := byteCount(b.Lines[row].s, sel.From.Col)
-		to := byteCount(b.Lines[row].s, sel.To.Col)
+		from := b.Lines[row].elemFromCol(sel.From.Col)
+		to := b.Lines[row].elemFromCol(sel.To.Col)
 		return string(b.Lines[row].s[from:to])
 	}
 
-	from := byteCount(b.Lines[sel.From.Row].s, sel.From.Col)
+	from := b.Lines[sel.From.Row].elemFromCol(sel.From.Col)
 	ret := string(b.Lines[sel.From.Row].s[from:]) + "\n"
 	for i := sel.From.Row + 1; i < sel.To.Row; i++ {
 		ret += string(b.Lines[i].s) + "\n"
 	}
-	to := byteCount(b.Lines[sel.To.Row].s, sel.To.Col)
+	to := b.Lines[sel.To.Row].elemFromCol(sel.To.Col)
 	ret += string(b.Lines[sel.To.Row].s[:to])
 	return ret
 }
@@ -87,12 +75,12 @@ func (b *Buffer) ClearSel(sel Selection) Selection {
 	}
 
 	row1, row2 := sel.From.Row, sel.To.Row
-	colBytes1 := byteCount(b.Lines[row1].s, sel.From.Col)
-	colBytes2 := byteCount(b.Lines[row2].s, sel.To.Col)
+	elem1 := b.Lines[row1].elemFromCol(sel.From.Col)
+	elem2 := b.Lines[row2].elemFromCol(sel.To.Col)
 
 	// make a new line from trimmed row1 and row2
-	line := b.Lines[row1].s[:colBytes1]
-	b.Lines[row1].s = append(line, b.Lines[row2].s[colBytes2:]...)
+	line := b.Lines[row1].s[:elem1]
+	b.Lines[row1].s = append(line, b.Lines[row2].s[elem2:]...)
 
 	if row2 > row1 {
 		// delete remaining Lines
@@ -103,70 +91,42 @@ func (b *Buffer) ClearSel(sel Selection) Selection {
 
 // InsertString inserts s into the buffer at a, adding new Lines if s
 // contains newline characters.
-func (b *Buffer) InsertString(a Address, s string) Address {
+func (b *Buffer) InsertString(addr Address, s string) Address {
 	inputLines := strings.Split(s, "\n")
 	if len(inputLines) == 1 {
 		// fast path for inserts with no newline
-		return b.insertStringSingle(a, s)
+		addr.Col = b.Lines[addr.Row].insertString(addr.Col, s)
+		return addr
 	}
 
 	// grow b.Lines as necessary
 	for i := 0; i < len(inputLines)-1; i++ {
 		b.Lines = append(b.Lines, &Line{})
 	}
-	copy(b.Lines[a.Row+len(inputLines)-1:], b.Lines[a.Row:])
+	copy(b.Lines[addr.Row+len(inputLines)-1:], b.Lines[addr.Row:])
 
 	// add all completely new lines
 	for i := 1; i < len(inputLines)-1; i++ {
-		b.Lines[a.Row+i] = &Line{
-			s: []byte(inputLines[i]),
-		}
+		b.Lines[addr.Row+i] = newLineFromString(inputLines[i])
 	}
 
 	// last line is new, but is constructed from the last input line
 	// and part of the original row
 	part1 := inputLines[len(inputLines)-1]
 	part2 := ""
-	split := byteCount(b.Lines[a.Row].s, a.Col)
-	if split < len(b.Lines[a.Row].s) {
-		part2 = string(b.Lines[a.Row].s[split:])
+	split := b.Lines[addr.Row].elemFromCol(addr.Col)
+	if split < len(b.Lines[addr.Row].s) {
+		part2 = string(b.Lines[addr.Row].s[split:])
 	}
-	b.Lines[a.Row+len(inputLines)-1] = &Line{
-		s: []byte(part1 + part2),
-	}
+	b.Lines[addr.Row+len(inputLines)-1] = newLineFromString(part1 + part2)
 
 	// finally, append the first line of input to the remainder
 	// of the original line
-	b.Lines[a.Row].s = append(b.Lines[a.Row].s[:split], inputLines[0]...)
+	b.Lines[addr.Row] = newLineFromString(string(b.Lines[addr.Row].s[:split]) + inputLines[0])
 
-	a.Row += len(inputLines) - 1
-	a.Col = utf8.RuneCountInString(inputLines[len(inputLines)-1])
-	return a
-}
-
-func (b *Buffer) insertStringSingle(a Address, s string) Address {
-	l := b.Lines[a.Row].s
-
-	c := byteCount(l, a.Col)  // split the line at c
-	l = append(l, s...)       // grow l by len(s)
-	copy(l[c+len(s):], l[c:]) // shift second part over
-
-	// insert s
-	for i := 0; i < len(s); i++ {
-		l[c+i] = s[i]
-	}
-	b.Lines[a.Row].s = l
-
-	a.Col += utf8.RuneCountInString(s)
-	return a
-}
-
-func byteCount(s []byte, col int) (count int) {
-	for i := 0; i < col; i++ {
-		_, n := utf8.DecodeRune(s[count:])
-		count += n
-	}
-	return
+	addr.Row += len(inputLines) - 1
+	addr.Col = utf8.RuneCountInString(inputLines[len(inputLines)-1])
+	return addr
 }
 
 // AutoSelect selects some text around a. Based on acme's double click selection rules.
@@ -177,7 +137,7 @@ func (b *Buffer) AutoSelect(addr Address) Selection {
 	}
 
 	sel := Selection{addr, addr}
-	line := []rune(string(b.Lines[addr.Row].s)) // TODO: try to avoid this
+	line := b.Lines[addr.Row].Runes()
 
 	// select line
 	if addr.Col == len(line) || addr.Col == 0 {
@@ -219,7 +179,7 @@ func (b *Buffer) selDelimited(addr Address, delims1, delims2 string) (Selection,
 	sel := Selection{addr, addr}
 
 	var delim int
-	var line = []rune(string(b.Lines[addr.Row].s)) // TODO: try to avoid this
+	var line = b.Lines[addr.Row].Runes()
 	var next func(Address) Address
 	var rightwards bool
 	if addr.Col > 0 {
@@ -251,7 +211,7 @@ func (b *Buffer) selDelimited(addr Address, delims1, delims2 string) (Selection,
 	for match != prev {
 		prev = match
 		match = next(match)
-		line := []rune(string(b.Lines[match.Row].s)) // TODO: avoid
+		line := b.Lines[match.Row].Runes()
 		if match.Col > len(line)-1 {
 			continue
 		}
