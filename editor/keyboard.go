@@ -92,11 +92,19 @@ func (ed *Editor) backspace() {
 }
 
 func (ed *Editor) left() {
+	// commit early: the transformation should not be affected
+	// by the new dot after moving performing this action
+	ed.commitTransformation()
+
 	a := ed.buf.PrevAddress(ed.dot.From)
 	ed.dot.From, ed.dot.To = a, a
 }
 
 func (ed *Editor) right() {
+	// commit early: the transformation should not be affected
+	// by the new dot after moving performing this action
+	ed.commitTransformation()
+
 	a := ed.buf.NextAddress(ed.dot.To)
 	ed.dot.From, ed.dot.To = a, a
 }

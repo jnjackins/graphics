@@ -34,6 +34,9 @@ func (ed *Editor) initTransformation() {
 }
 
 func (ed *Editor) commitTransformation() {
+	if ed.uncommitted == nil {
+		return
+	}
 	if ed.uncommitted.Post.Text == "" {
 		ed.uncommitted.Post.Text = ed.buf.GetSel(ed.dot)
 		ed.uncommitted.Post.Sel = ed.dot
