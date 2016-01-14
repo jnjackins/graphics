@@ -42,10 +42,10 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 			// sweep
 			// possibly scroll by sweeping past the edge of the window
 			if pos.Y <= ed.clipr.Min.Y {
-				ed.scroll(image.Pt(0, -ed.lineHeight))
+				ed.scroll(image.Pt(0, ed.lineHeight))
 				pos.Y -= ed.lineHeight
 			} else if pos.Y >= ed.clipr.Max.Y {
-				ed.scroll(image.Pt(0, ed.lineHeight))
+				ed.scroll(image.Pt(0, -ed.lineHeight))
 				pos.Y += ed.lineHeight
 			}
 
@@ -55,10 +55,6 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 				ed.sweep(olda, a)
 			}
 		}
-	case mouse.ButtonWheelDown:
-		ed.scroll(image.Pt(0, -ed.lineHeight))
-	case mouse.ButtonWheelUp:
-		ed.scroll(image.Pt(0, ed.lineHeight))
 	}
 }
 

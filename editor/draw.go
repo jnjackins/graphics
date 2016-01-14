@@ -86,7 +86,7 @@ func (ed *Editor) drawSel(row int) {
 }
 
 func (ed *Editor) scroll(pt image.Point) {
-	ed.clipr = ed.clipr.Add(pt)
+	ed.clipr = ed.clipr.Sub(pt)
 
 	// check boundaries
 	min := ed.img.Bounds().Min

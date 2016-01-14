@@ -139,3 +139,16 @@ func (ed *Editor) SendKeyEvent(e key.Event) {
 func (ed *Editor) SendMouseEvent(e mouse.Event) {
 	ed.handleMouseEvent(e)
 }
+
+// SendScrollEvent sends a scroll event to be interpreted by the Editor.
+func (ed *Editor) SendScrollEvent(e mouse.ScrollEvent) {
+	var pt image.Point
+	if e.Precise {
+		pt.X = int(e.Dx)
+		pt.Y = int(e.Dy)
+	} else {
+		pt.X = int(e.Dx * float32(ed.lineHeight))
+		pt.Y = int(e.Dy * float32(ed.lineHeight))
+	}
+	ed.scroll(pt)
+}
