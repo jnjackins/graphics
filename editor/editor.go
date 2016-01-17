@@ -101,7 +101,7 @@ func (ed *Editor) RGBA() (img *image.RGBA) {
 }
 
 // Dirty reports whether the next call to RGBA will result in a different
-// image than the previous call
+// image than the previous call.
 func (ed *Editor) Dirty() bool {
 	return ed.dirty
 }
