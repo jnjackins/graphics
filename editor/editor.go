@@ -51,7 +51,8 @@ type Editor struct {
 
 // NewEditor returns a new Editor with a clipping rectangle defined by size, a font face
 // defined by face and height, and an OptionSet opt.
-func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Editor {
+func NewEditor(size image.Point, face font.Face, opt OptionSet) *Editor {
+	fontface := mkFontface(face)
 	ed := &Editor{
 		buf: text.NewBuffer(),
 
@@ -60,9 +61,9 @@ func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Edi
 
 		bgcol:      image.NewUniform(opt.BGColor),
 		selcol:     image.NewUniform(opt.SelColor),
-		cursor:     opt.Cursor(height),
-		font:       fontface{face: face, height: height - 3},
-		lineHeight: height,
+		cursor:     opt.Cursor(fontface.height + 3),
+		font:       fontface,
+		lineHeight: fontface.height + 3,
 		margin:     opt.Margin,
 
 		history:   new(hist.History),

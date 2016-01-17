@@ -6,6 +6,7 @@ package editor
 import (
 	"image"
 	"image/draw"
+	"unicode"
 
 	"sigint.ca/graphics/editor/internal/text"
 
@@ -20,6 +21,15 @@ type fontface struct {
 	height int
 }
 
+func mkFontface(face font.Face) fontface {
+	bounds, _, _ := face.GlyphBounds('ƒ')
+	height := int(bounds.Max.Y>>6 - bounds.Min.Y>>6)
+	return fontface{
+		face:   face,
+		height: height,
+	}
+}
+
 // draw draws s onto dst starting at pt. It returns the cumulative advance
 // in pixels of each glyph.
 func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
@@ -30,14 +40,18 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
 	}
 	l.Adv[0] = int16(0)
 	dot := fixed.P(pt.X, pt.Y+f.height)
-	for i, r := range l.String() {
+	var i int
+	for _, r := range l.String() {
 		tab := r == '\t'
 		if tab {
 			r = ' '
 		}
 		dr, mask, maskp, advance, ok := f.face.Glyph(dot, r)
 		if !ok {
-			panic("internal error: draw font: bad glyph")
+			dr, mask, maskp, advance, ok = f.face.Glyph(dot, unicode.ReplacementChar)
+			if !ok {
+				panic("internal error")
+			}
 		}
 		if tab {
 			advance *= tabwidth
@@ -45,6 +59,7 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
 		dot.X += advance
 		draw.DrawMask(dst, dr, image.Black, dr.Min, mask, maskp, draw.Over)
 		l.Adv = append(l.Adv, l.Adv[i]+int16(advance>>6))
+		i++
 	}
 }
 
@@ -57,18 +72,23 @@ func (f fontface) measure(l *text.Line) {
 		l.Adv = l.Adv[0:1]
 	}
 	l.Adv[0] = 0
-	for i, r := range l.String() {
+	var i int
+	for _, r := range l.String() {
 		tab := r == '\t'
 		if tab {
 			r = ' '
 		}
 		advance, ok := f.face.GlyphAdvance(r)
 		if !ok {
-			panic("internal error: measure font: bad glyph")
+			advance, ok = f.face.GlyphAdvance(unicode.ReplacementChar)
+			if !ok {
+				panic("internal error")
+			}
 		}
 		if tab {
 			advance *= tabwidth
 		}
 		l.Adv = append(l.Adv, l.Adv[i]+int16(advance>>6))
+		i++
 	}
 }

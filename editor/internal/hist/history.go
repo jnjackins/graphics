@@ -40,7 +40,7 @@ func (h *History) Commit() {
 		h.current = new(Transformation)
 	}
 	if h.current.Pre.Sel.From != h.current.Post.Sel.From {
-		panic(fmt.Sprintf("internal error: history: bounds must have matching From addresses: %v", h.current))
+		panic("internal error")
 	}
 	h.current.next = &Transformation{prev: h.current}
 	h.current = h.current.next
