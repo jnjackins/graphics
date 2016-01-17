@@ -16,9 +16,8 @@ import (
 
 // An Editor is a graphical, editable text area widget, intended to be
 // compatible with golang.org/x/exp/shiny, or any other graphical
-// window package capable of drawing a widget via an image.RGBA and
-// clipping rectangle. See sigint.ca/cmd/edit for an example program
-// using this type.
+// window package capable of drawing a widget via an image.RGBA.
+// See sigint.ca/cmd/edit for an example program using this type.
 type Editor struct {
 	// textual state
 	buf *text.Buffer
