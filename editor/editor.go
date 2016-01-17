@@ -87,6 +87,7 @@ func (ed *Editor) Size() image.Point {
 func (ed *Editor) Resize(size image.Point) {
 	r := image.Rectangle{Max: size}
 	ed.img = image.NewRGBA(r)
+	ed.dirty = true
 }
 
 // RGBA returns an image representing the current state of the Editor.
@@ -116,6 +117,7 @@ func (ed *Editor) Load(s []byte) {
 	ed.buf.InsertString(text.Address{0, 0}, string(s))
 	ed.history = new(hist.History)
 	ed.dot = text.Selection{}
+	ed.dirty = true
 }
 
 // SetSaved instructs the Editor that the current contents should be
