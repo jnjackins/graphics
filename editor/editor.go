@@ -25,6 +25,7 @@ type Editor struct {
 
 	// images and drawing data
 	img      *image.RGBA
+	dirty    bool
 	scrollPt image.Point // the part of the image in view
 
 	// configurable
@@ -54,7 +55,8 @@ func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Edi
 	ed := &Editor{
 		buf: text.NewBuffer(),
 
-		img: image.NewRGBA(image.Rectangle{Max: size}),
+		img:   image.NewRGBA(image.Rectangle{Max: size}),
+		dirty: true,
 
 		bgcol:      image.NewUniform(opt.BGColor),
 		selcol:     image.NewUniform(opt.SelColor),
@@ -91,8 +93,17 @@ func (ed *Editor) Resize(size image.Point) {
 // may be larger than the rectangle returned by Bounds, which represents
 // the portion of the image currently scrolled into view.
 func (ed *Editor) RGBA() (img *image.RGBA) {
-	ed.redraw()
+	if ed.dirty {
+		ed.redraw()
+		ed.dirty = false
+	}
 	return ed.img
+}
+
+// Dirty reports whether the next call to RGBA will result in a different
+// image than the previous call
+func (ed *Editor) Dirty() bool {
+	return ed.dirty
 }
 
 // Contents returns the contents of the Editor.
@@ -146,5 +157,9 @@ func (ed *Editor) SendScrollEvent(e mouse.ScrollEvent) {
 		pt.X = int(e.Dx * float32(ed.lineHeight))
 		pt.Y = int(e.Dy * float32(ed.lineHeight))
 	}
+	oldPt := ed.scrollPt
 	ed.scroll(pt)
+	if ed.scrollPt != oldPt {
+		ed.dirty = true
+	}
 }

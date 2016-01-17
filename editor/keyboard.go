@@ -14,6 +14,8 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		return
 	}
 
+	ed.dirty = true
+
 	// prepare for a change in the editor's history
 	ed.initTransformation()
 

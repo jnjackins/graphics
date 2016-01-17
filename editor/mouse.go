@@ -17,6 +17,8 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 		return
 	}
 
+	ed.dirty = true
+
 	// a mouse event triggers a history commit, in case there is some
 	// uncommitted input
 	// TODO: this assumes mouse events to not cause any text transformations,
