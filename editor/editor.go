@@ -83,15 +83,13 @@ func (ed *Editor) Size() image.Point {
 }
 
 // Resize resizes the Editor. Subsequent calls to RGBA will return an image of
-// at least size, and a clipping rectangle of size.
+// the given size.
 func (ed *Editor) Resize(size image.Point) {
 	r := image.Rectangle{Max: size}
 	ed.img = image.NewRGBA(r)
 }
 
-// RGBA returns an image representing the current state of the Editor. The image
-// may be larger than the rectangle returned by Bounds, which represents
-// the portion of the image currently scrolled into view.
+// RGBA returns an image representing the current state of the Editor.
 func (ed *Editor) RGBA() (img *image.RGBA) {
 	if ed.dirty {
 		ed.redraw()
