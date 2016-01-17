@@ -24,7 +24,7 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	ed.initTransformation()
 	ed.commitTransformation()
 
-	pos := image.Pt(int(e.X), int(e.Y)).Add(ed.clipr.Min) // adjust for scrolling
+	pos := image.Pt(int(e.X), int(e.Y)).Add(ed.visible().Min) // adjust for scrolling
 	button := e.Button
 
 	oldpos := ed.mPos
@@ -41,10 +41,10 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 		} else if e.Direction == mouse.DirNone {
 			// sweep
 			// possibly scroll by sweeping past the edge of the window
-			if pos.Y <= ed.clipr.Min.Y {
+			if pos.Y <= ed.visible().Min.Y {
 				ed.scroll(image.Pt(0, ed.lineHeight))
 				pos.Y -= ed.lineHeight
-			} else if pos.Y >= ed.clipr.Max.Y {
+			} else if pos.Y >= ed.visible().Max.Y {
 				ed.scroll(image.Pt(0, -ed.lineHeight))
 				pos.Y += ed.lineHeight
 			}
@@ -79,7 +79,7 @@ func (ed *Editor) pt2address(pt image.Point) text.Address {
 	// which is larger than pt.X, and returning the column number before that.
 	// If no px elements are larger than pt.X, then return the last column on
 	// the line.
-	if pt.X <= int(line.Adv[0]) {
+	if len(line.Adv) == 0 || pt.X <= int(line.Adv[0]) {
 		addr.Col = 0
 	} else if pt.X > int(line.Adv[len(line.Adv)-1]) {
 		addr.Col = len(line.Adv) - 1

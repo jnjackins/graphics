@@ -69,7 +69,6 @@ func (b *Buffer) GetSel(sel Selection) string {
 	return ret
 }
 
-// TODO: update Dirty in affected lines
 func (b *Buffer) ClearSel(sel Selection) Selection {
 	if sel.IsEmpty() {
 		return sel
@@ -102,7 +101,7 @@ func (b *Buffer) InsertString(addr Address, s string) Address {
 
 	// grow b.Lines as necessary
 	for i := 0; i < len(inputLines)-1; i++ {
-		b.Lines = append(b.Lines, &Line{Dirty: true})
+		b.Lines = append(b.Lines, &Line{})
 	}
 	copy(b.Lines[addr.Row+len(inputLines)-1:], b.Lines[addr.Row:])
 

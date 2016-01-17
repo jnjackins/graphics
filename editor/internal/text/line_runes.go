@@ -3,13 +3,13 @@ package text
 type Line struct {
 	s []rune
 
-	// for use by the client
-	Adv   []int16
-	Dirty bool
+	// Adv can be used by the client to store pixel advances when
+	// drawing the line.
+	Adv []int16
 }
 
 func newLineFromString(s string) *Line {
-	return &Line{s: []rune(s), Dirty: true}
+	return &Line{s: []rune(s)}
 }
 
 func (l *Line) String() string {
@@ -35,7 +35,6 @@ func (l *Line) elemFromCol(col int) (elem int) {
 // insert inserts s into l at column col, and returns the new
 // column (i.e. col + the number of columns inserted)
 func (l *Line) insertString(col int, s string) int {
-	l.Dirty = true
 	runes := []rune(s)
 	l.s = append(l.s, runes...) // grow l by len(s)
 	copy(l.s[col+len(runes):], l.s[col:])

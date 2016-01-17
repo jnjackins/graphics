@@ -33,13 +33,13 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 	case e.Code == key.CodeReturnEnter:
 		ed.newline()
 	case e.Code == key.CodeUpArrow:
-		ed.scroll(image.Pt(0, -18*ed.lineHeight))
+		ed.scroll(image.Pt(0, 18*ed.lineHeight))
 	case e.Code == key.CodeLeftArrow:
 		ed.left()
 	case e.Code == key.CodeRightArrow:
 		ed.right()
 	case e.Code == key.CodeDownArrow:
-		ed.scroll(image.Pt(0, 18*ed.lineHeight))
+		ed.scroll(image.Pt(0, -18*ed.lineHeight))
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
 		ed.snarf()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeV:

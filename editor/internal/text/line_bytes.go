@@ -10,13 +10,13 @@ import (
 type Line struct {
 	s []byte
 
-	// for use by the client
-	Adv   []int16
-	Dirty bool
+	// Adv can be used by the client to store pixel advances when
+	// drawing the line.
+	Adv []int16
 }
 
 func newLineFromString(s string) *Line {
-	return &Line{s: []byte(s), Dirty: true}
+	return &Line{s: []byte(s)}
 }
 
 func (l *Line) String() string {

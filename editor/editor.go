@@ -25,8 +25,8 @@ type Editor struct {
 	dot text.Selection // the current selection
 
 	// images and drawing data
-	img   *image.RGBA
-	clipr image.Rectangle // the part of the image in view
+	img      *image.RGBA
+	scrollPt image.Point // the part of the image in view
 
 	// configurable
 	bgcol      *image.Uniform
@@ -52,12 +52,10 @@ type Editor struct {
 // NewEditor returns a new Editor with a clipping rectangle defined by size, a font face
 // defined by face and height, and an OptionSet opt.
 func NewEditor(size image.Point, face font.Face, height int, opt OptionSet) *Editor {
-	r := image.Rectangle{Max: size}
 	ed := &Editor{
 		buf: text.NewBuffer(),
 
-		img:   image.NewRGBA(r), // grows as needed
-		clipr: r,
+		img: image.NewRGBA(image.Rectangle{Max: size}),
 
 		bgcol:      image.NewUniform(opt.BGColor),
 		selcol:     image.NewUniform(opt.SelColor),
@@ -76,11 +74,11 @@ func (ed *Editor) Release() {
 }
 
 func (ed *Editor) Bounds() image.Rectangle {
-	return ed.clipr
+	return ed.img.Bounds()
 }
 
 func (ed *Editor) Size() image.Point {
-	return ed.clipr.Size()
+	return ed.Bounds().Size()
 }
 
 // Resize resizes the Editor. Subsequent calls to RGBA will return an image of
@@ -88,7 +86,6 @@ func (ed *Editor) Size() image.Point {
 func (ed *Editor) Resize(size image.Point) {
 	r := image.Rectangle{Max: size}
 	ed.img = image.NewRGBA(r)
-	ed.clipr = r
 }
 
 // RGBA returns an image representing the current state of the Editor. The image
