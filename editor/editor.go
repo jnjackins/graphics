@@ -61,9 +61,9 @@ func NewEditor(size image.Point, face font.Face, opt OptionSet) *Editor {
 
 		bgcol:      image.NewUniform(opt.BGColor),
 		selcol:     image.NewUniform(opt.SelColor),
-		cursor:     opt.Cursor(fontface.height + 3),
+		cursor:     opt.Cursor(fontface.height),
 		font:       fontface,
-		lineHeight: fontface.height + 3,
+		lineHeight: fontface.height,
 		margin:     opt.Margin,
 
 		history:   new(hist.History),

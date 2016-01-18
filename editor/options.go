@@ -38,15 +38,13 @@ var AcmeBlueTheme = OptionSet{
 
 var simpleCursor = func(height int) image.Image {
 	cursor := image.NewRGBA(image.Rect(0, 0, 3, height))
-	draw.Draw(cursor, cursor.Rect, image.Black, image.ZP, draw.Src)
-	draw.Draw(cursor, image.Rect(0, 1, 1, height-1), image.White, image.ZP, draw.Src)
-	draw.Draw(cursor, image.Rect(2, 1, 3, height-1), image.White, image.ZP, draw.Src)
+	draw.Draw(cursor, image.Rect(1, 1, 2, height-1), image.Black, image.ZP, draw.Src)
 	return cursor
 }
 
 var SimpleTheme = OptionSet{
 	BGColor:  color.White,
-	SelColor: color.RGBA{R: 0x88, G: 0x88, B: 0xCC, A: 0xFF},
+	SelColor: color.RGBA{R: 0x90, G: 0xB0, B: 0xD0, A: 0xFF},
 	Margin:   image.Pt(4, 0),
 	Cursor:   simpleCursor,
 }

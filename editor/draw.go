@@ -37,7 +37,7 @@ func (ed *Editor) redraw() {
 	if ed.dot.IsEmpty() {
 		// subtract a pixel from x coordinate to match acme
 		pt := image.Pt(ed.getxpx(ed.dot.From)-1, ed.getypx(ed.dot.From.Row))
-		draw.Draw(ed.img, ed.cursor.Bounds().Add(pt), ed.cursor, image.ZP, draw.Src)
+		draw.Draw(ed.img, ed.cursor.Bounds().Add(pt), ed.cursor, image.ZP, draw.Over)
 	}
 }
 
