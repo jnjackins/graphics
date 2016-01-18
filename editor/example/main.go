@@ -1,3 +1,5 @@
+// +build ignore
+
 package main
 
 import (
@@ -33,7 +35,7 @@ To do:
 - scrollbar
 `
 
-const textRight = `(Widget #2)`
+const textRight = "(Widget #2)\n"
 
 func main() {
 	width, height := 2001, 1000
@@ -86,14 +88,12 @@ func main() {
 				}
 
 			case mouse.ScrollEvent:
-				if e.Direction == mouse.DirPress {
-					if e2Pt(e.Event).In(rLeft) {
-						selected = left
-						rSelected = rLeft
-					} else if e2Pt(e.Event).In(rRight) {
-						selected = right
-						rSelected = rRight
-					}
+				if e2Pt(e.Event).In(rLeft) {
+					selected = left
+					rSelected = rLeft
+				} else if e2Pt(e.Event).In(rRight) {
+					selected = right
+					rSelected = rRight
 				}
 				selected.SendScrollEvent(e)
 				w.Send(paint.Event{})
