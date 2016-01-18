@@ -31,7 +31,7 @@ var AcmeYellowTheme = OptionSet{
 
 var AcmeBlueTheme = OptionSet{
 	BGColor:  color.RGBA{R: 0xEA, G: 0xFF, B: 0xFF, A: 0xFF},
-	SelColor: color.RGBA{R: 0x88, G: 0x88, B: 0xCC, A: 0xFF},
+	SelColor: color.RGBA{R: 0x9F, G: 0xEB, B: 0xEA, A: 0xFF},
 	Margin:   image.Pt(4, 0),
 	Cursor:   acmeCursor,
 }
