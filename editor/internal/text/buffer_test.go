@@ -72,6 +72,13 @@ func TestGetSel(t *testing.T) {
 	if got != "早い\nbrown" {
 		t.Errorf("got %q, wanted %q", got, "早い\nbrown")
 	}
+
+	last := len(buf.Lines) - 1
+	sel := Selection{Address{}, Address{last, buf.Lines[last].RuneCount()}}
+	got = buf.GetSel(sel)
+	if got != "the 早い\nbrown 狐\njumps over the lazy 犬" {
+		t.Errorf("got %q, wanted %q", got, "the 早い\nbrown 狐\njumps over the lazy 犬")
+	}
 }
 
 func TestClearSel(t *testing.T) {
