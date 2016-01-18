@@ -17,8 +17,6 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 		return
 	}
 
-	ed.dirty = true
-
 	// a mouse event triggers a history commit, in case there is some
 	// uncommitted input
 	// TODO: this assumes mouse events to not cause any text transformations,
@@ -36,6 +34,7 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	case mouse.ButtonLeft:
 		if e.Direction == mouse.DirPress {
 			// click
+			ed.dirty = true
 			a := ed.pt2address(pos)
 			olda := ed.pt2address(oldpos)
 			ed.mSweepOrigin = a
@@ -46,15 +45,18 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 			if pos.Y <= ed.visible().Min.Y {
 				ed.scroll(image.Pt(0, ed.lineHeight))
 				pos.Y -= ed.lineHeight
+				ed.dirty = true
 			} else if pos.Y >= ed.visible().Max.Y {
 				ed.scroll(image.Pt(0, -ed.lineHeight))
 				pos.Y += ed.lineHeight
+				ed.dirty = true
 			}
 
 			a := ed.pt2address(pos)
 			olda := ed.pt2address(oldpos)
 			if a != olda {
 				ed.sweep(olda, a)
+				ed.dirty = true
 			}
 		}
 	}
