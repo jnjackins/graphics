@@ -25,16 +25,18 @@ type Editor struct {
 
 	// images and drawing data
 	img      *image.RGBA
+	scrollPt image.Point
 	dirty    bool
-	scrollPt image.Point // the part of the image in view
 
-	// configurable
-	bgcol      *image.Uniform
-	selcol     *image.Uniform
-	cursor     image.Image // the cursor to draw when nothing is selected
+	// font data
 	font       fontface
 	lineHeight int
-	margin     image.Point
+
+	// configurable
+	bgcol  *image.Uniform
+	selcol *image.Uniform
+	cursor image.Image // the cursor to draw when nothing is selected
+	margin image.Point
 
 	// history
 	history     *hist.History        // represents the Editor's history
@@ -51,7 +53,7 @@ type Editor struct {
 
 // NewEditor returns a new Editor with a clipping rectangle defined by size, a font face
 // defined by face and height, and an OptionSet opt.
-func NewEditor(size image.Point, face font.Face, opt OptionSet) *Editor {
+func NewEditor(size image.Point, face font.Face, opts OptionSet) *Editor {
 	fontface := mkFontface(face)
 	ed := &Editor{
 		buf: text.NewBuffer(),
@@ -59,17 +61,26 @@ func NewEditor(size image.Point, face font.Face, opt OptionSet) *Editor {
 		img:   image.NewRGBA(image.Rectangle{Max: size}),
 		dirty: true,
 
-		bgcol:      image.NewUniform(opt.BGColor),
-		selcol:     image.NewUniform(opt.SelColor),
-		cursor:     opt.Cursor(fontface.height),
 		font:       fontface,
 		lineHeight: fontface.height,
-		margin:     opt.Margin,
+
+		bgcol:  image.NewUniform(opts.BGColor),
+		selcol: image.NewUniform(opts.SelColor),
+		cursor: opts.Cursor(fontface.height),
+		margin: opts.Margin,
 
 		history:   new(hist.History),
 		clipboard: new(clip.Clipboard),
 	}
 	return ed
+}
+
+func (ed *Editor) SetOpts(opts OptionSet) {
+	ed.bgcol = image.NewUniform(opts.BGColor)
+	ed.selcol = image.NewUniform(opts.SelColor)
+	ed.cursor = opts.Cursor(ed.lineHeight)
+	ed.margin = opts.Margin
+	ed.dirty = true
 }
 
 func (ed *Editor) Release() {
