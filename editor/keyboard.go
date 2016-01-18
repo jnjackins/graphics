@@ -48,7 +48,7 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		ed.paste()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeX:
 		ed.snarf()
-		ed.buf.ClearSel(ed.dot)
+		ed.dot = ed.buf.ClearSel(ed.dot)
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
 		ed.selAll()
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
