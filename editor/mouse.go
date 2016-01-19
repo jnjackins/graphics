@@ -43,12 +43,12 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 			// sweep
 			// possibly scroll by sweeping past the edge of the window
 			if pos.Y <= ed.visible().Min.Y {
-				ed.scroll(image.Pt(0, ed.lineHeight))
-				pos.Y -= ed.lineHeight
+				ed.scroll(image.Pt(0, ed.font.height))
+				pos.Y -= ed.font.height
 				ed.dirty = true
 			} else if pos.Y >= ed.visible().Max.Y {
-				ed.scroll(image.Pt(0, -ed.lineHeight))
-				pos.Y += ed.lineHeight
+				ed.scroll(image.Pt(0, -ed.font.height))
+				pos.Y += ed.font.height
 				ed.dirty = true
 			}
 
@@ -69,7 +69,7 @@ func (ed *Editor) pt2address(pt image.Point) text.Address {
 	}
 
 	var addr text.Address
-	addr.Row = pt.Y / ed.lineHeight
+	addr.Row = pt.Y / ed.font.height
 
 	// end of the last line if addr is below the last line
 	if addr.Row > len(ed.buf.Lines)-1 {

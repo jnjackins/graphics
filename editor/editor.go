@@ -28,14 +28,11 @@ type Editor struct {
 	scrollPt image.Point
 	dirty    bool
 
-	// font data
-	font       fontface
-	lineHeight int
-
 	// configurable
+	font   fontface
 	bgcol  *image.Uniform
 	selcol *image.Uniform
-	cursor image.Image // the cursor to draw when nothing is selected
+	cursor func(height int) image.Image
 	margin image.Point
 
 	// history
@@ -52,21 +49,23 @@ type Editor struct {
 }
 
 // NewEditor returns a new Editor with a clipping rectangle defined by size, a font face
-// defined by face and height, and an OptionSet opt.
-func NewEditor(size image.Point, face font.Face, opts OptionSet) *Editor {
-	fontface := mkFontface(face)
+// defined by face and height, and an OptionSet opts. If opts is nil, editor.SimpleTheme
+// will be used.
+func NewEditor(size image.Point, face font.Face, opts *OptionSet) *Editor {
+	if opts == nil {
+		opts = SimpleTheme
+	}
 	ed := &Editor{
 		buf: text.NewBuffer(),
 
 		img:   image.NewRGBA(image.Rectangle{Max: size}),
 		dirty: true,
 
-		font:       fontface,
-		lineHeight: fontface.height,
+		font: mkFont(face),
 
 		bgcol:  image.NewUniform(opts.BGColor),
 		selcol: image.NewUniform(opts.SelColor),
-		cursor: opts.Cursor(fontface.height),
+		cursor: opts.Cursor,
 		margin: opts.Margin,
 
 		history:   new(hist.History),
@@ -75,10 +74,28 @@ func NewEditor(size image.Point, face font.Face, opts OptionSet) *Editor {
 	return ed
 }
 
-func (ed *Editor) SetOpts(opts OptionSet) {
+func (ed *Editor) GetFont() font.Face {
+	return ed.font.face
+}
+
+func (ed *Editor) SetFont(face font.Face) {
+	ed.font = mkFont(face)
+	ed.dirty = true
+}
+
+func (ed *Editor) GetOpts() *OptionSet {
+	return &OptionSet{
+		BGColor:  ed.bgcol.C,
+		SelColor: ed.selcol.C,
+		Cursor:   ed.cursor,
+		Margin:   ed.margin,
+	}
+}
+
+func (ed *Editor) SetOpts(opts *OptionSet) {
 	ed.bgcol = image.NewUniform(opts.BGColor)
 	ed.selcol = image.NewUniform(opts.SelColor)
-	ed.cursor = opts.Cursor(ed.lineHeight)
+	ed.cursor = opts.Cursor
 	ed.margin = opts.Margin
 	ed.dirty = true
 }
@@ -166,8 +183,8 @@ func (ed *Editor) SendScrollEvent(e mouse.ScrollEvent) {
 		pt.X = int(e.Dx)
 		pt.Y = int(e.Dy)
 	} else {
-		pt.X = int(e.Dx * float32(ed.lineHeight))
-		pt.Y = int(e.Dy * float32(ed.lineHeight))
+		pt.X = int(e.Dx * float32(ed.font.height))
+		pt.Y = int(e.Dy * float32(ed.font.height))
 	}
 	oldPt := ed.scrollPt
 	ed.scroll(pt)

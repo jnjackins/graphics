@@ -35,9 +35,10 @@ func (ed *Editor) redraw() {
 
 	// draw cursor
 	if ed.dot.IsEmpty() {
+		cursor := ed.cursor(ed.font.height)
 		// subtract a pixel from x coordinate to match acme
 		pt := image.Pt(ed.getxpx(ed.dot.From)-1, ed.getypx(ed.dot.From.Row))
-		draw.Draw(ed.img, ed.cursor.Bounds().Add(pt), ed.cursor, image.ZP, draw.Over)
+		draw.Draw(ed.img, cursor.Bounds().Add(pt), cursor, image.ZP, draw.Over)
 	}
 }
 
@@ -64,8 +65,8 @@ func (ed *Editor) visible() image.Rectangle {
 }
 
 func (ed *Editor) dirtyRows() (from, to int) {
-	from = ed.visible().Min.Y / ed.lineHeight
-	to = ed.visible().Max.Y/ed.lineHeight + 2
+	from = ed.visible().Min.Y / ed.font.height
+	to = ed.visible().Max.Y/ed.font.height + 2
 	if to > len(ed.buf.Lines) {
 		to = len(ed.buf.Lines)
 	}
@@ -79,7 +80,7 @@ func (ed *Editor) scroll(pt image.Point) {
 	if ed.visible().Min.Y < 0 {
 		ed.scrollPt.Y = 0
 	}
-	ymax := (len(ed.buf.Lines) - 1) * ed.lineHeight
+	ymax := (len(ed.buf.Lines) - 1) * ed.font.height
 	if ed.visible().Min.Y > ymax {
 		ed.scrollPt.Y = ymax
 	}
@@ -100,5 +101,5 @@ func (ed *Editor) getxpx(a text.Address) (x int) {
 
 // returns y (pixels) for a given row
 func (ed *Editor) getypx(row int) (y int) {
-	return (row * ed.lineHeight) - ed.visible().Min.Y + ed.margin.Y
+	return (row * ed.font.height) - ed.visible().Min.Y + ed.margin.Y
 }

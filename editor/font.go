@@ -21,7 +21,7 @@ type fontface struct {
 	height int
 }
 
-func mkFontface(face font.Face) fontface {
+func mkFont(face font.Face) fontface {
 	bounds, _, _ := face.GlyphBounds('X')
 	height := int(1.5 * float64(bounds.Max.Y>>6-bounds.Min.Y>>6))
 	return fontface{
