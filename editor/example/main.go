@@ -38,6 +38,7 @@ Planned:
 - scrollbar
 - search
 - configurable middle/right click actions
+- autoindent
 `
 
 const textRight = "(Widget #2)\n"

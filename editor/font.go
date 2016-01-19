@@ -44,7 +44,9 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
 	for _, r := range l.String() {
 		tab := r == '\t'
 		if tab {
-			r = ' '
+			// for the sake of variable-width fonts, try to pick a font with an
+			// average width
+			r = '_'
 		}
 		dr, mask, maskp, advance, ok := f.face.Glyph(dot, r)
 		if !ok {
@@ -55,9 +57,10 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
 		}
 		if tab {
 			advance *= tabwidth
+		} else {
+			draw.DrawMask(dst, dr, image.Black, dr.Min, mask, maskp, draw.Over)
 		}
 		dot.X += advance
-		draw.DrawMask(dst, dr, image.Black, dr.Min, mask, maskp, draw.Over)
 		l.Adv = append(l.Adv, l.Adv[i]+int16(advance>>6))
 		i++
 	}
@@ -76,7 +79,9 @@ func (f fontface) measure(l *text.Line) {
 	for _, r := range l.String() {
 		tab := r == '\t'
 		if tab {
-			r = ' '
+			// for the sake of variable-width fonts, try to pick a font with an
+			// average width
+			r = '_'
 		}
 		advance, ok := f.face.GlyphAdvance(r)
 		if !ok {

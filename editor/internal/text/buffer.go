@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 )
 
+// TODO: rename to Doc?
 type Buffer struct {
 	Lines []*Line
 }
