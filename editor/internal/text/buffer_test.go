@@ -141,3 +141,20 @@ func BenchmarkInsertStringMany(b *testing.B) {
 		buf.ClearSel(Selection{Address{0, 0}, Address{1, 0}})
 	}
 }
+
+func BenchmarkGetSel(b *testing.B) {
+	buf := NewBuffer()
+
+	from := Address{}
+	for i := 0; i < 1000; i++ {
+		from = buf.InsertString(from, "the 早い brown 狐 jumps over the lazy 犬\n")
+	}
+
+	from = Address{}
+	last := len(buf.Lines) - 1
+	to := Address{last, buf.Lines[last].RuneCount()}
+	sel := Selection{from, to}
+	for i := 0; i < b.N; i++ {
+		buf.GetSel(sel)
+	}
+}

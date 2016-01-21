@@ -60,14 +60,15 @@ func (b *Buffer) GetSel(sel Selection) string {
 		return string(b.Lines[row].s[from:to])
 	}
 
-	from := b.Lines[sel.From.Row].elemFromCol(sel.From.Col)
-	ret := string(b.Lines[sel.From.Row].s[from:]) + "\n"
+	ret := make([]rune, 0, 20*(sel.To.Row-sel.From.Row))
+	ret = append(ret, b.Lines[sel.From.Row].runes()[sel.From.Col:]...)
+	ret = append(ret, '\n')
 	for i := sel.From.Row + 1; i < sel.To.Row; i++ {
-		ret += string(b.Lines[i].s) + "\n"
+		ret = append(ret, b.Lines[i].runes()...)
+		ret = append(ret, '\n')
 	}
-	to := b.Lines[sel.To.Row].elemFromCol(sel.To.Col)
-	ret += string(b.Lines[sel.To.Row].s[:to])
-	return ret
+	ret = append(ret, b.Lines[sel.To.Row].runes()[:sel.To.Col]...)
+	return string(ret)
 }
 
 func (b *Buffer) ClearSel(sel Selection) Selection {

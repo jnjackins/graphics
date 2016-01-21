@@ -1,11 +1,11 @@
 package text
 
 type Line struct {
-	s []rune
-
 	// Adv can be used by the client to store pixel advances when
 	// drawing the line.
 	Adv []int16
+
+	s []rune
 }
 
 func newLineFromString(s string) *Line {
