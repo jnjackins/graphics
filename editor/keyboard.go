@@ -28,7 +28,9 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		return
 	}
 
-	// handle all other key events
+	// handle all other key events.
+	// events that modify the selection without replacing it need to
+	// call commitTransformation BEFORE the selection changes.
 	switch {
 	case e.Code == key.CodeDeleteBackspace:
 		ed.backspace()
@@ -36,12 +38,14 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		ed.newline()
 	case e.Code == key.CodeUpArrow:
 		ed.scroll(image.Pt(0, 18*ed.font.height))
-	case e.Code == key.CodeLeftArrow:
-		ed.left()
-	case e.Code == key.CodeRightArrow:
-		ed.right()
 	case e.Code == key.CodeDownArrow:
 		ed.scroll(image.Pt(0, -18*ed.font.height))
+	case e.Code == key.CodeLeftArrow:
+		ed.commitTransformation()
+		ed.left()
+	case e.Code == key.CodeRightArrow:
+		ed.commitTransformation()
+		ed.right()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
 		ed.snarf()
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeV:
@@ -50,6 +54,7 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		ed.snarf()
 		ed.dot = ed.buf.ClearSel(ed.dot)
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
+		ed.commitTransformation()
 		ed.selAll()
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
 		// if there is a new transformation, allow it to be committed before trying to redo
@@ -94,19 +99,11 @@ func (ed *Editor) backspace() {
 }
 
 func (ed *Editor) left() {
-	// commit early: the transformation should not be affected
-	// by the new dot after moving performing this action
-	ed.commitTransformation()
-
 	a := ed.buf.PrevAddress(ed.dot.From)
 	ed.dot.From, ed.dot.To = a, a
 }
 
 func (ed *Editor) right() {
-	// commit early: the transformation should not be affected
-	// by the new dot after moving performing this action
-	ed.commitTransformation()
-
 	a := ed.buf.NextAddress(ed.dot.To)
 	ed.dot.From, ed.dot.To = a, a
 }
