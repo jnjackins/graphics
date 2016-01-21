@@ -42,8 +42,8 @@ type Editor struct {
 
 	// mouse related state
 	lastClickTime time.Time    // used to detect a double-click
-	mPos          image.Point  // the position of the most recent mouse event
-	mSweepOrigin  text.Address // keeps track of the origin of a sweep
+	sweepOrigin   text.Address // the origin of a sweep
+	sweepLast     text.Address // the last column that was swept
 
 	clipboard *clip.Clipboard // the clipboard to be used for copy or paste events
 }

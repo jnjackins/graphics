@@ -25,39 +25,31 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	ed.commitTransformation()
 
 	pos := image.Pt(int(e.X), int(e.Y)).Add(ed.visible().Min) // adjust for scrolling
-	button := e.Button
+	a := ed.pt2address(pos)
 
-	oldpos := ed.mPos
-	ed.mPos = pos
-
-	switch button {
+	switch e.Button {
 	case mouse.ButtonLeft:
 		if e.Direction == mouse.DirPress {
 			// click
 			ed.dirty = true
-			a := ed.pt2address(pos)
-			olda := ed.pt2address(oldpos)
-			ed.mSweepOrigin = a
-			ed.click(a, olda, button)
+			ed.sweepOrigin = a
+			ed.click(a, e.Button)
 		} else if e.Direction == mouse.DirNone {
 			// sweep
-			// possibly scroll by sweeping past the edge of the window
-			if pos.Y <= ed.visible().Min.Y {
+			vis := ed.visible()
+			if a == ed.sweepLast && pos.In(vis) {
+				return
+			}
+			if pos.Y <= vis.Min.Y && vis.Min.Y > 0 {
 				ed.scroll(image.Pt(0, ed.font.height))
-				pos.Y -= ed.font.height
-				ed.dirty = true
-			} else if pos.Y >= ed.visible().Max.Y {
+			} else if pos.Y >= vis.Max.Y && vis.Max.Y < (len(ed.buf.Lines)-1)*ed.font.height {
 				ed.scroll(image.Pt(0, -ed.font.height))
-				pos.Y += ed.font.height
-				ed.dirty = true
 			}
 
-			a := ed.pt2address(pos)
-			olda := ed.pt2address(oldpos)
-			if a != olda {
-				ed.sweep(olda, a)
-				ed.dirty = true
-			}
+			ed.dirty = true
+			ed.sweepLast = a
+
+			ed.sweep(a)
 		}
 	}
 }
@@ -96,12 +88,13 @@ func (ed *Editor) pt2address(pt image.Point) text.Address {
 	return addr
 }
 
-func (ed *Editor) click(a, olda text.Address, button mouse.Button) {
+func (ed *Editor) click(a text.Address, button mouse.Button) {
 	switch button {
 	case mouse.ButtonLeft:
+		prev := ed.dot
 		ed.dot.From, ed.dot.To = a, a
 
-		if time.Since(ed.lastClickTime) < dClickPause && a == olda {
+		if time.Since(ed.lastClickTime) < dClickPause && ed.dot == prev {
 			// double click
 			ed.dot = ed.buf.AutoSelect(a)
 			ed.lastClickTime = time.Time{}
@@ -111,12 +104,12 @@ func (ed *Editor) click(a, olda text.Address, button mouse.Button) {
 	}
 }
 
-func (ed *Editor) sweep(from, to text.Address) {
-	if to.LessThan(ed.mSweepOrigin) {
-		ed.dot = text.Selection{to, ed.mSweepOrigin}
-	} else if to != ed.mSweepOrigin {
-		ed.dot = text.Selection{ed.mSweepOrigin, to}
+func (ed *Editor) sweep(to text.Address) {
+	if to.LessThan(ed.sweepOrigin) {
+		ed.dot = text.Selection{to, ed.sweepOrigin}
+	} else if to != ed.sweepOrigin {
+		ed.dot = text.Selection{ed.sweepOrigin, to}
 	} else {
-		ed.dot = text.Selection{ed.mSweepOrigin, ed.mSweepOrigin}
+		ed.dot = text.Selection{ed.sweepOrigin, ed.sweepOrigin}
 	}
 }
