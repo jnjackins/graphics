@@ -12,7 +12,6 @@ import (
 
 	"golang.org/x/exp/shiny/driver"
 	"golang.org/x/exp/shiny/screen"
-	"golang.org/x/image/font/basicfont"
 	"golang.org/x/mobile/event/key"
 	"golang.org/x/mobile/event/lifecycle"
 	"golang.org/x/mobile/event/mouse"
@@ -20,10 +19,11 @@ import (
 	"golang.org/x/mobile/event/size"
 )
 
-const textLeft = `(Widget #1)
+const text1 = `(Widget #1)
 
-Thanks for trying this example! Please note that sigint.ca/graphics/editor is
-still a work-in-progress; the API may change.
+Thanks for trying this example!
+Please note that sigint.ca/graphics/editor a work-in-progress.
+The API may change.
 
 Features:
 - typing
@@ -40,74 +40,82 @@ Planned:
 - configurable middle/right click actions
 - autoindent
 `
+const text2 = "(Widget #2)\n"
+const text3 = "(Widget #3)\n"
+const text4 = "(Widget #4)\n"
 
-const textRight = "(Widget #2)\n"
-
-var (
-	left, right, selected    *editor.Editor
-	rLeft, rRight, rSelected image.Rectangle
-)
+var width, height = 1001, 1001
 
 func main() {
-	width, height := 2001, 1000
-
-	rLeft = image.Rect(0, 0, width/2, height)
-	rRight = image.Rect(width/2+1, 0, width, height)
-
-	left = editor.NewEditor(rLeft.Size(), basicfont.Face7x13, editor.AcmeBlueTheme)
-	left.Load([]byte(textLeft))
-	right = editor.NewEditor(rRight.Size(), basicfont.Face7x13, editor.AcmeYellowTheme)
-	right.Load([]byte(textRight))
-
-	selected = left
-	rSelected = rLeft
-
 	driver.Main(func(s screen.Screen) {
+
 		opts := screen.NewWindowOptions{Width: width, Height: height}
-		w, err := s.NewWindow(&opts)
+		win, err := s.NewWindow(&opts)
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer w.Release()
+		defer win.Release()
+
+		sz := image.Pt(width/2, height/2)
+		widgets := []*widget{
+			newWidget(s, sz, image.ZP, text1),
+			newWidget(s, sz, image.Pt((width/2)+1, 0), text2),
+			newWidget(s, sz, image.Pt(0, (height/2)+1), text3),
+			newWidget(s, sz, image.Pt((width/2)+1, (height/2)+1), text4),
+		}
+
+		selected := sel(image.ZP, widgets) // select the top left widget to start
+
+		win.Send(paint.Event{})
 
 		for {
-			switch e := w.NextEvent().(type) {
+			switch e := win.NextEvent().(type) {
 			case key.Event:
 				if e.Code == key.CodeEscape {
 					return
 				}
 				if e.Direction == key.DirPress || e.Direction == key.DirNone {
-					selected.SendKeyEvent(e)
-					w.Send(paint.Event{})
+					selected.ed.SendKeyEvent(e)
+					win.Send(paint.Event{})
 				}
 
 			case mouse.Event:
 				if e.Direction == mouse.DirPress {
-					sel(e2Pt(e))
+					selected = sel(e2Pt(e), widgets)
 				}
-				e.X -= float32(rSelected.Min.X)
-				e.Y -= float32(rSelected.Min.Y)
+				e.X -= float32(selected.r.Min.X)
+				e.Y -= float32(selected.r.Min.Y)
 				if e.Direction == mouse.DirPress || e.Direction == mouse.DirNone {
-					selected.SendMouseEvent(e)
-					w.Send(paint.Event{})
+					selected.ed.SendMouseEvent(e)
+					win.Send(paint.Event{})
 				}
 
 			case mouse.ScrollEvent:
-				sel(e2Pt(e.Event))
-				selected.SendScrollEvent(e)
-				w.Send(paint.Event{})
+				selected = sel(e2Pt(e.Event), widgets)
+				selected.ed.SendScrollEvent(e)
+				win.Send(paint.Event{})
 
 			case paint.Event:
-				if left.Dirty() || right.Dirty() {
-					w.Fill(image.Rect(0, 0, width, height), color.Black, draw.Src)
-					w.Upload(rLeft.Min, left, left.Bounds())
-					w.Upload(rRight.Min, right, right.Bounds())
-					w.Publish()
+				dirty := false
+				for _, w := range widgets {
+					if w.ed.Dirty() {
+						dirty = true
+						*w.buf.RGBA() = *w.ed.RGBA()
+						w.tx.Upload(w.r.Min, w.buf, w.buf.Bounds())
+					}
+				}
+				if dirty {
+					r := image.Rect(0, 0, width, height)
+					win.Fill(r, color.Black, draw.Src)
+					for _, w := range widgets {
+						screen.Copy(win, w.r.Min, w.tx, w.tx.Bounds(), draw.Src, nil)
+					}
+					win.Publish()
 				}
 
 			case size.Event:
-				resize(e.Size())
-				w.Send(paint.Event{})
+				resize(s, e.Size(), widgets)
+				win.Send(paint.Event{})
 
 			case lifecycle.Event:
 				if e.To == lifecycle.StageDead {
@@ -122,23 +130,24 @@ func e2Pt(e mouse.Event) image.Point {
 	return image.Pt(int(e.X), int(e.Y))
 }
 
-func sel(pt image.Point) {
-	if pt.In(rLeft) {
-		selected = left
-		rSelected = rLeft
-		left.SetOpts(editor.AcmeBlueTheme)
-		right.SetOpts(editor.AcmeYellowTheme)
-	} else if pt.In(rRight) {
-		selected = right
-		rSelected = rRight
-		right.SetOpts(editor.AcmeBlueTheme)
-		left.SetOpts(editor.AcmeYellowTheme)
+func sel(pt image.Point, widgets []*widget) *widget {
+	var selected *widget
+	for _, w := range widgets {
+		if pt.In(w.r) {
+			selected = w
+			w.ed.SetOpts(editor.AcmeBlueTheme)
+		} else {
+			w.ed.SetOpts(editor.AcmeYellowTheme)
+		}
 	}
+	return selected
 }
 
-func resize(size image.Point) {
-	rLeft = image.Rect(0, 0, size.X/2, size.Y)
-	rRight = image.Rect(size.X/2+1, 0, size.X, size.Y)
-	left.Resize(rLeft.Size())
-	right.Resize(rRight.Size())
+func resize(s screen.Screen, size image.Point, widgets []*widget) {
+	width, height = size.X, size.Y
+	wSize := image.Pt(width/2, height/2)
+	widgets[0].resize(s, wSize, image.ZP)
+	widgets[1].resize(s, wSize, image.Pt(width/2+1, 0))
+	widgets[2].resize(s, wSize, image.Pt(0, height/2+1))
+	widgets[3].resize(s, wSize, image.Pt(width/2+1, height/2+1))
 }
