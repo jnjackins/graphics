@@ -10,7 +10,7 @@ import (
 func (ed *Editor) redraw() {
 	draw.Draw(ed.img, ed.Bounds(), ed.bgcol, image.ZP, draw.Src)
 
-	from, to := ed.dirtyRows()
+	from, to := ed.visibleRows()
 	for row := from; row < to; row++ {
 		line := ed.buf.Lines[row]
 
@@ -64,7 +64,7 @@ func (ed *Editor) visible() image.Rectangle {
 	}
 }
 
-func (ed *Editor) dirtyRows() (from, to int) {
+func (ed *Editor) visibleRows() (from, to int) {
 	from = ed.visible().Min.Y / ed.font.height
 	to = ed.visible().Max.Y/ed.font.height + 2
 	if to > len(ed.buf.Lines) {
