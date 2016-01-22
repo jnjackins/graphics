@@ -64,7 +64,7 @@ func main() {
 			newWidget(s, sz, image.Pt((width/2)+1, (height/2)+1), text4),
 		}
 
-		selected := sel(image.ZP, widgets) // select the top left widget to start
+		selected, _ := sel(image.ZP, widgets) // select the top left widget to start
 
 		win.Send(paint.Event{})
 
@@ -81,7 +81,9 @@ func main() {
 
 			case mouse.Event:
 				if e.Direction == mouse.DirPress {
-					selected = sel(e2Pt(e), widgets)
+					if w, ok := sel(e2Pt(e), widgets); ok {
+						selected = w
+					}
 				}
 				e.X -= float32(selected.r.Min.X)
 				e.Y -= float32(selected.r.Min.Y)
@@ -91,7 +93,9 @@ func main() {
 				}
 
 			case mouse.ScrollEvent:
-				selected = sel(e2Pt(e.Event), widgets)
+				if w, ok := sel(e2Pt(e.Event), widgets); ok {
+					selected = w
+				}
 				selected.ed.SendScrollEvent(e)
 				win.Send(paint.Event{})
 
@@ -130,17 +134,25 @@ func e2Pt(e mouse.Event) image.Point {
 	return image.Pt(int(e.X), int(e.Y))
 }
 
-func sel(pt image.Point, widgets []*widget) *widget {
+func sel(pt image.Point, widgets []*widget) (*widget, bool) {
 	var selected *widget
 	for _, w := range widgets {
 		if pt.In(w.r) {
 			selected = w
 			w.ed.SetOpts(editor.AcmeBlueTheme)
-		} else {
+		}
+	}
+	if selected == nil {
+		return nil, false
+	}
+
+	for _, w := range widgets {
+		if w != selected {
 			w.ed.SetOpts(editor.AcmeYellowTheme)
 		}
 	}
-	return selected
+
+	return selected, true
 }
 
 func resize(s screen.Screen, size image.Point, widgets []*widget) {
