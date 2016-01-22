@@ -10,7 +10,7 @@ import (
 
 	"sigint.ca/graphics/editor"
 
-	"golang.org/x/exp/shiny/driver"
+	"golang.org/x/exp/shiny/driver/gldriver"
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/mobile/event/key"
 	"golang.org/x/mobile/event/lifecycle"
@@ -44,10 +44,10 @@ const text2 = "(Widget #2)\n"
 const text3 = "(Widget #3)\n"
 const text4 = "(Widget #4)\n"
 
-var width, height = 1001, 1001
+var width, height = 801, 801
 
 func main() {
-	driver.Main(func(s screen.Screen) {
+	gldriver.Main(func(s screen.Screen) {
 
 		opts := screen.NewWindowOptions{Width: width, Height: height}
 		win, err := s.NewWindow(&opts)
