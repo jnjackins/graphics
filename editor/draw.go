@@ -86,6 +86,19 @@ func (ed *Editor) scroll(pt image.Point) {
 	}
 }
 
+func (ed *Editor) autoscroll() {
+	visible := ed.visible()
+	y := ed.dot.From.Row * ed.font.height
+	if y > visible.Min.Y && y < visible.Max.Y {
+		return
+	}
+
+	ed.scrollPt.Y = y - int(.2*float64(visible.Dy()))
+
+	// scroll fixes boundary conditions, since we manually set ed.scrollPt
+	ed.scroll(image.ZP)
+}
+
 // returns x (pixels) for a given address
 func (ed *Editor) getxpx(a text.Address) (x int) {
 	l := ed.buf.Lines[a.Row]

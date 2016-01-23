@@ -127,11 +127,6 @@ func (ed *Editor) Dirty() bool {
 	return ed.dirty
 }
 
-// Contents returns the contents of the Editor.
-func (ed *Editor) Contents() []byte {
-	return ed.buf.Contents()
-}
-
 // Load replaces the contents of the Editor with s, and
 // resets the Editor's history.
 func (ed *Editor) Load(s []byte) {
@@ -139,6 +134,21 @@ func (ed *Editor) Load(s []byte) {
 	ed.buf.InsertString(text.Address{0, 0}, string(s))
 	ed.history = new(hist.History)
 	ed.dot = text.Selection{}
+	ed.dirty = true
+}
+
+// Contents returns the contents of the Editor.
+func (ed *Editor) Contents() []byte {
+	return ed.buf.Contents()
+}
+
+func (ed *Editor) GetSel() string {
+	return ed.buf.GetSel(ed.dot)
+}
+
+func (ed *Editor) Search(s string) {
+	ed.dot, _ = ed.buf.Search(ed.dot.To, s)
+	ed.autoscroll()
 	ed.dirty = true
 }
 
