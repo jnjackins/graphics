@@ -100,15 +100,8 @@ func (ed *Editor) SetOpts(opts *OptionSet) {
 	ed.dirty = true
 }
 
-func (ed *Editor) Release() {
-}
-
 func (ed *Editor) Bounds() image.Rectangle {
 	return ed.img.Bounds()
-}
-
-func (ed *Editor) Size() image.Point {
-	return ed.Bounds().Size()
 }
 
 // Resize resizes the Editor. Subsequent calls to RGBA will return an image of
