@@ -47,10 +47,10 @@ const text4 = "(Widget #4)\n"
 var width, height = 1001, 1001
 
 func main() {
-	driver.Main(func(s screen.Screen) {
+	driver.Main(func(scr screen.Screen) {
 
 		opts := screen.NewWindowOptions{Width: width, Height: height}
-		win, err := s.NewWindow(&opts)
+		win, err := scr.NewWindow(&opts)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -58,10 +58,10 @@ func main() {
 
 		sz := image.Pt(width/2, height/2)
 		widgets := []*widget{
-			newWidget(s, sz, image.ZP, text1),
-			newWidget(s, sz, image.Pt((width/2)+1, 0), text2),
-			newWidget(s, sz, image.Pt(0, (height/2)+1), text3),
-			newWidget(s, sz, image.Pt((width/2)+1, (height/2)+1), text4),
+			newWidget(scr, sz, image.ZP, text1),
+			newWidget(scr, sz, image.Pt((width/2)+1, 0), text2),
+			newWidget(scr, sz, image.Pt(0, (height/2)+1), text3),
+			newWidget(scr, sz, image.Pt((width/2)+1, (height/2)+1), text4),
 		}
 
 		selected, _ := sel(image.ZP, widgets) // select the top left widget to start
@@ -87,10 +87,12 @@ func main() {
 				}
 				e.X -= float32(selected.r.Min.X)
 				e.Y -= float32(selected.r.Min.Y)
-				if e.Direction == mouse.DirPress || e.Direction == mouse.DirNone {
-					selected.ed.SendMouseEvent(e)
-					win.Send(paint.Event{})
+
+				selected.ed.SendMouseEvent(e)
+				if e.Direction == mouse.DirRelease && e.Button == mouse.ButtonRight {
+					selected.ed.Search(selected.ed.GetSel())
 				}
+				win.Send(paint.Event{})
 
 			case mouse.ScrollEvent:
 				if w, ok := sel(e2Pt(e.Event), widgets); ok {
@@ -133,7 +135,7 @@ func main() {
 				}
 
 			case size.Event:
-				resize(s, e.Size(), widgets)
+				resize(scr, e.Size(), widgets)
 				win.Send(paint.Event{})
 
 			case lifecycle.Event:
