@@ -5,8 +5,8 @@ package main
 import (
 	"image"
 	"image/color"
-	"image/draw"
 	"log"
+	"sync"
 
 	"sigint.ca/graphics/editor"
 
@@ -101,19 +101,34 @@ func main() {
 
 			case paint.Event:
 				dirty := false
+				var wg sync.WaitGroup
+
+				// redraw any widgets that changed
 				for _, w := range widgets {
 					if w.ed.Dirty() {
 						dirty = true
-						*w.buf.RGBA() = *w.ed.RGBA()
-						w.tx.Upload(w.r.Min, w.buf, w.buf.Bounds())
+						wg.Add(1)
+						go func(w *widget) {
+							*w.buf.RGBA() = *w.ed.RGBA()
+							w.tx.Upload(w.r.Min, w.buf, w.buf.Bounds())
+							wg.Done()
+						}(w)
 					}
 				}
+				wg.Wait()
+
+				// redraw screen if any widgets changed
 				if dirty {
 					r := image.Rect(0, 0, width, height)
-					win.Fill(r, color.Black, draw.Src)
+					win.Fill(r, color.Black, screen.Src)
 					for _, w := range widgets {
-						screen.Copy(win, w.r.Min, w.tx, w.tx.Bounds(), draw.Src, nil)
+						wg.Add(1)
+						go func(w *widget) {
+							screen.Copy(win, w.r.Min, w.tx, w.tx.Bounds(), screen.Src, nil)
+							wg.Done()
+						}(w)
 					}
+					wg.Wait()
 					win.Publish()
 				}
 
