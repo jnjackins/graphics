@@ -22,8 +22,8 @@ type fontface struct {
 }
 
 func mkFont(face font.Face) fontface {
-	bounds, _, _ := face.GlyphBounds('X')
-	height := int(1.5 * float64(bounds.Max.Y>>6-bounds.Min.Y>>6))
+	bounds, _, _ := face.GlyphBounds('|')
+	height := int(1.25 * float64(bounds.Max.Y>>6-bounds.Min.Y>>6))
 	return fontface{
 		face:   face,
 		height: height,
@@ -39,7 +39,7 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
 		l.Adv = l.Adv[0:1]
 	}
 	l.Adv[0] = int16(0)
-	dot := fixed.P(pt.X, pt.Y+f.height-6)
+	dot := fixed.P(pt.X, pt.Y+f.height-(f.height/4))
 	var i int
 	for _, r := range l.String() {
 		tab := r == '\t'
