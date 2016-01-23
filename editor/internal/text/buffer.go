@@ -48,6 +48,19 @@ func (b *Buffer) Contents() []byte {
 	return buf.Bytes()[:buf.Len()-1]
 }
 
+func (b *Buffer) fixSel(sel Selection) Selection {
+	if sel.From.Col > b.Lines[sel.From.Row].RuneCount() {
+		sel.From.Col = b.Lines[sel.From.Row].RuneCount()
+	}
+	if sel.To.Row > len(b.Lines)-1 {
+		sel.To.Row = len(b.Lines) - 1
+	}
+	if sel.To.Col > b.Lines[sel.To.Row].RuneCount() {
+		sel.To.Col = b.Lines[sel.To.Row].RuneCount()
+	}
+	return sel
+}
+
 func (b *Buffer) GetSel(sel Selection) string {
 	if sel.IsEmpty() {
 		return ""
