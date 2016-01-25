@@ -66,14 +66,9 @@ func main() {
 
 		selected, _ := sel(image.ZP, widgets) // select the top left widget to start
 
-		win.Send(paint.Event{})
-
 		for {
 			switch e := win.NextEvent().(type) {
 			case key.Event:
-				if e.Code == key.CodeEscape {
-					return
-				}
 				if e.Direction == key.DirPress || e.Direction == key.DirNone {
 					selected.ed.SendKeyEvent(e)
 					win.Send(paint.Event{})

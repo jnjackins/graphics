@@ -22,6 +22,14 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 	ed.initTransformation()
 
 	switch {
+	case e.Code == key.CodeEscape:
+		if ed.dot.IsEmpty() {
+			ed.dot.From.Col -= utf8.RuneCountInString(ed.uncommitted.Post.Text)
+		} else {
+			ed.dot = ed.buf.ClearSel(ed.dot)
+		}
+		ed.commitTransformation()
+
 	case e.Code == key.CodeDeleteBackspace:
 		if ed.uncommitted.Post.Text != "" {
 			// trim the final uncommitted character
