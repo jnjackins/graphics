@@ -146,41 +146,52 @@ func (b *Buffer) InsertString(addr Address, s string) Address {
 
 // AutoSelect selects some text around a. Based on acme's double click selection rules.
 func (b *Buffer) AutoSelect(addr Address) Selection {
-	// select bracketed text
+	// selections to attempt, in order:
+	//  - bracketed text
+	//  - the entire line
+	//  - quoted text
+	//  - a word
+
 	if sel, ok := b.selDelimited(addr, "{[(<", "}])>"); ok {
 		return sel
 	}
 
-	sel := Selection{addr, addr}
-	line := b.Lines[addr.Row].runes()
-
-	// select line
-	if addr.Col == len(line) || addr.Col == 0 {
-		sel.From.Col = 0
-		if addr.Row+1 < len(b.Lines) {
-			sel.To.Row++
-			sel.To.Col = 0
-		} else {
-			sel.To.Col = len(line)
-		}
-		return sel
+	if addr.Col == b.Lines[addr.Row].RuneCount() || addr.Col == 0 {
+		return b.SelLine(addr)
 	}
 
-	// select quoted text
 	const quotes = "\"'`"
 	if sel, ok := b.selDelimited(addr, quotes, quotes); ok {
 		return sel
 	}
 
-	// Select a word. If we're on a non-alphanumeric, attempt to select a word to
-	// the left of the click; otherwise expand across alphanumerics in both directions.
+	return b.SelWord(addr)
+}
+
+// SelLine selects a line.
+func (b *Buffer) SelLine(addr Address) Selection {
+	sel := Selection{addr, addr}
+	sel.From.Col = 0
+	if addr.Row+1 < len(b.Lines) {
+		sel.To.Row++
+		sel.To.Col = 0
+	} else {
+		sel.To.Col = b.Lines[addr.Row].RuneCount()
+	}
+	return sel
+}
+
+// SelWord selects a word. If we're on a non-alphanumeric, attempt to select a word to
+// the left of the click; otherwise expand across alphanumerics in both directions.
+func (b *Buffer) SelWord(addr Address) Selection {
+	sel := Selection{addr, addr}
+
+	line := b.Lines[addr.Row].runes()
 	for col := addr.Col; col > 0 && isAlnum(line[col-1]); col-- {
 		sel.From.Col--
 	}
-	if isAlnum(line[addr.Col]) {
-		for col := addr.Col; col < len(line) && isAlnum(line[col]); col++ {
-			sel.To.Col++
-		}
+	for col := addr.Col; col < len(line) && isAlnum(line[col]); col++ {
+		sel.To.Col++
 	}
 	return sel
 }
@@ -189,8 +200,8 @@ func isAlnum(c rune) bool {
 	return unicode.IsLetter(c) || unicode.IsNumber(c)
 }
 
-// returns true if a selection was attempted, successfully or not
-func (b *Buffer) selDelimited(addr Address, delims1, delims2 string) (Selection, bool) {
+// SelDelimited returns true if a selection was attempted, successfully or not.
+func (b *Buffer) selDelimited(addr Address, leftDelims, rightDelims string) (Selection, bool) {
 	sel := Selection{addr, addr}
 
 	var delim int
@@ -198,7 +209,7 @@ func (b *Buffer) selDelimited(addr Address, delims1, delims2 string) (Selection,
 	var next func(Address) Address
 	var rightwards bool
 	if addr.Col > 0 {
-		if delim = strings.IndexRune(delims1, line[addr.Col-1]); delim != -1 {
+		if delim = strings.IndexRune(leftDelims, line[addr.Col-1]); delim != -1 {
 			// scan to the right, from a left delimiter
 			next = b.NextAddress
 			rightwards = true
@@ -209,10 +220,10 @@ func (b *Buffer) selDelimited(addr Address, delims1, delims2 string) (Selection,
 		}
 	}
 	if next == nil && addr.Col < len(line) {
-		if delim = strings.IndexRune(delims2, line[addr.Col]); delim != -1 {
+		if delim = strings.IndexRune(rightDelims, line[addr.Col]); delim != -1 {
 			// scan to the left, from a right delimiter
 			// swap delimiters so that delim1 refers to the first one we encountered
-			delims1, delims2 = delims2, delims1
+			leftDelims, rightDelims = rightDelims, leftDelims
 			next = b.PrevAddress
 		}
 	}
@@ -231,7 +242,7 @@ func (b *Buffer) selDelimited(addr Address, delims1, delims2 string) (Selection,
 			continue
 		}
 		c := line[match.Col]
-		if c == rune(delims2[delim]) && stack == 0 {
+		if c == rune(rightDelims[delim]) && stack == 0 {
 			if rightwards {
 				sel.From, sel.To = addr, match
 			} else {
@@ -242,10 +253,10 @@ func (b *Buffer) selDelimited(addr Address, delims1, delims2 string) (Selection,
 		} else if c == 0 {
 			return sel, true
 		}
-		if delims1 != delims2 && c == rune(delims1[delim]) {
+		if leftDelims != rightDelims && c == rune(leftDelims[delim]) {
 			stack++
 		}
-		if delims1 != delims2 && c == rune(delims2[delim]) {
+		if leftDelims != rightDelims && c == rune(rightDelims[delim]) {
 			stack--
 		}
 	}
