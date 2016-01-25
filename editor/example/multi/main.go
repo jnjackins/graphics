@@ -26,19 +26,18 @@ Please note that sigint.ca/graphics/editor a work-in-progress.
 The API may change.
 
 Features:
-- typing
-- scrolling
-- sweeping
-- cut/copy/paste
-- undo/redo
-- acme style double-click selection
-- resizing
+	- typing
+	- scrolling
+	- sweeping
+	- cut/copy/paste
+	- undo/redo
+	- acme style double-click selection
+	- resizing
+	- search (right-click a selection)
 
 Planned:
-- scrollbar
-- search
-- configurable middle/right click actions
-- autoindent
+	- scrollbar
+	- autoindent
 `
 const text2 = "(Widget #2)\n"
 const text3 = "(Widget #3)\n"
