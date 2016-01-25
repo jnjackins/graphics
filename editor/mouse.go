@@ -2,7 +2,6 @@ package editor
 
 import (
 	"image"
-	"sort"
 	"time"
 
 	"sigint.ca/graphics/editor/internal/text"
@@ -18,7 +17,7 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	}
 
 	pos := image.Pt(int(e.X), int(e.Y)).Add(ed.visible().Min) // adjust for scrolling
-	a := ed.pt2address(pos)
+	a := ed.getAddress(pos)
 
 	switch e.Button {
 	case mouse.ButtonLeft:
@@ -47,40 +46,6 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 			ed.sweep(a)
 		}
 	}
-}
-
-func (ed *Editor) pt2address(pt image.Point) text.Address {
-	// (0,0) if pt is above the buffer
-	if pt.Y < 0 {
-		return text.Address{}
-	}
-
-	var addr text.Address
-	addr.Row = pt.Y / ed.font.height
-
-	// end of the last line if addr is below the last line
-	if addr.Row > len(ed.buf.Lines)-1 {
-		addr.Row = len(ed.buf.Lines) - 1
-		addr.Col = ed.buf.Lines[addr.Row].RuneCount()
-		return addr
-	}
-
-	line := ed.buf.Lines[addr.Row]
-	// the column number is found by looking for the smallest px element
-	// which is larger than pt.X, and returning the column number before that.
-	// If no px elements are larger than pt.X, then return the last column on
-	// the line.
-	if len(line.Adv) == 0 || pt.X <= int(line.Adv[0]) {
-		addr.Col = 0
-	} else if pt.X > int(line.Adv[len(line.Adv)-1]) {
-		addr.Col = len(line.Adv) - 1
-	} else {
-		n := sort.Search(len(line.Adv), func(i int) bool {
-			return int(line.Adv[i]) > pt.X
-		})
-		addr.Col = n - 1
-	}
-	return addr
 }
 
 func (ed *Editor) click(a text.Address, button mouse.Button) {
