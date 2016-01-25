@@ -5,6 +5,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"sigint.ca/graphics/editor/internal/text"
+
 	"golang.org/x/mobile/event/key"
 )
 
@@ -16,56 +18,86 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 
 	ed.dirty = true
 
-	// prepare for a change in the editor's history
+	// prepare for a change in the editor's history.
 	ed.initTransformation()
 
-	// handle a single typed rune
-	if isGraphic(e.Rune) && e.Modifiers&key.ModMeta == 0 {
-		ed.uncommitted.Post.Text += string(e.Rune)
-		ed.input(e.Rune)
-
-		// exit early - history isn't updated for each keystroke
-		return
-	}
-
-	// handle all other key events.
-	// events that modify the selection without replacing it need to
-	// call commitTransformation BEFORE the selection changes.
 	switch {
 	case e.Code == key.CodeDeleteBackspace:
-		ed.backspace()
+		if ed.uncommitted.Post.Text != "" {
+			// trim the final uncommitted character
+			_, rSize := utf8.DecodeLastRuneInString(ed.uncommitted.Post.Text)
+			newSize := len(ed.uncommitted.Post.Text) - rSize
+			ed.uncommitted.Post.Text = ed.uncommitted.Post.Text[:newSize]
+		} else {
+			// ed.uncommitted.Pre.Sel.From must also include the rune preceding dot
+			ed.uncommitted.Pre.Sel.From = ed.buf.PrevAddress(ed.uncommitted.Pre.Sel.From)
+			ed.uncommitted.Pre.Text = ed.buf.GetSel(ed.uncommitted.Pre.Sel)
+		}
+		ed.dot.From = ed.buf.PrevAddress(ed.dot.From)
+		ed.dot = ed.buf.ClearSel(ed.dot)
+		ed.commitTransformation()
+
 	case e.Code == key.CodeReturnEnter:
-		ed.newline()
+		ed.putString("\n")
+		ed.dot.From = ed.dot.To
+		ed.uncommitted.Post.Text += "\n"
+		ed.commitTransformation()
+
 	case e.Code == key.CodeUpArrow:
 		ed.scroll(image.Pt(0, 18*ed.font.height))
+		ed.commitTransformation()
+
 	case e.Code == key.CodeDownArrow:
 		ed.scroll(image.Pt(0, -18*ed.font.height))
+		ed.commitTransformation()
+
 	case e.Code == key.CodeLeftArrow:
 		ed.commitTransformation()
-		ed.left()
+		a := ed.buf.PrevAddress(ed.dot.From)
+		ed.dot.From, ed.dot.To = a, a
+
 	case e.Code == key.CodeRightArrow:
 		ed.commitTransformation()
-		ed.right()
+		a := ed.buf.NextAddress(ed.dot.To)
+		ed.dot.From, ed.dot.To = a, a
+
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
+		ed.commitTransformation()
 		ed.snarf()
+
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeV:
 		ed.paste()
+		ed.commitTransformation()
+
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeX:
 		ed.snarf()
 		ed.dot = ed.buf.ClearSel(ed.dot)
+		ed.commitTransformation()
+
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
 		ed.commitTransformation()
-		ed.selAll()
-	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
-		// if there is a new transformation, allow it to be committed before trying to redo
-		defer ed.redo()
-	case e.Modifiers == key.ModMeta && e.Code == key.CodeZ:
-		// if there is a new transformation, allow it to be committed before trying to undo
-		defer ed.undo()
-	}
+		last := len(ed.buf.Lines) - 1
+		ed.dot.From = text.Address{0, 0}
+		ed.dot.To = text.Address{last, ed.buf.Lines[last].RuneCount()}
 
-	// commit any change to the editor's history
-	ed.commitTransformation()
+	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
+		ed.commitTransformation()
+		ed.redo()
+
+	case e.Modifiers == key.ModMeta && e.Code == key.CodeZ:
+		ed.commitTransformation()
+		ed.undo()
+
+	default:
+		if isGraphic(e.Rune) && e.Modifiers&key.ModMeta == 0 {
+			s := string(e.Rune)
+			ed.uncommitted.Post.Text += s
+			ed.putString(s)
+			ed.dot.From = ed.dot.To
+
+			// don't commit - history is not updated for each rune of input
+		}
+	}
 }
 
 func isGraphic(r rune) bool {
@@ -74,44 +106,4 @@ func isGraphic(r rune) bool {
 		return true
 	}
 	return unicode.IsGraphic(r)
-}
-
-func (ed *Editor) input(r rune) {
-	ed.putString(string(r))
-	ed.dot.From = ed.dot.To
-}
-
-func (ed *Editor) backspace() {
-	// special history handling specific to backspace
-	if ed.uncommitted.Post.Text != "" {
-		// trim the final uncommitted character
-		_, rSize := utf8.DecodeLastRuneInString(ed.uncommitted.Post.Text)
-		newSize := len(ed.uncommitted.Post.Text) - rSize
-		ed.uncommitted.Post.Text = ed.uncommitted.Post.Text[:newSize]
-	} else {
-		// ed.uncommitted.Pre.Sel.From must also include the rune preceding dot
-		ed.uncommitted.Pre.Sel.From = ed.buf.PrevAddress(ed.uncommitted.Pre.Sel.From)
-		ed.uncommitted.Pre.Text = ed.buf.GetSel(ed.uncommitted.Pre.Sel)
-	}
-
-	ed.dot.From = ed.buf.PrevAddress(ed.dot.From)
-	ed.dot = ed.buf.ClearSel(ed.dot)
-}
-
-func (ed *Editor) left() {
-	a := ed.buf.PrevAddress(ed.dot.From)
-	ed.dot.From, ed.dot.To = a, a
-}
-
-func (ed *Editor) right() {
-	a := ed.buf.NextAddress(ed.dot.To)
-	ed.dot.From, ed.dot.To = a, a
-}
-
-func (ed *Editor) newline() {
-	// special history handling specific to newline
-	ed.uncommitted.Post.Text += "\n"
-
-	ed.putString("\n")
-	ed.dot.From = ed.dot.To
 }

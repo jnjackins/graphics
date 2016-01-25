@@ -1,53 +1,51 @@
 package editor
 
 import (
-	"bytes"
 	"image"
-	"strings"
 	"testing"
+
+	"sigint.ca/graphics/editor/internal/text"
 
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/mobile/event/key"
 )
 
-func TestHistoryLoad(t *testing.T) {
-	face := basicfont.Face7x13
-	ed := NewEditor(image.Pt(100, 100), face, AcmeYellowTheme)
-
-	caseNum := 1
-	expect := func(expected string) {
-		actual := ed.Contents()
-		if !bytes.Equal([]byte(expected), actual) {
-			t.Errorf("case %d:\nexpected:\t%q\ngot:\t\t%q", caseNum, expected, actual)
-		}
-		caseNum++
-	}
-
-	returnEvent := key.Event{
+var (
+	returnEvent = key.Event{
 		Code:      key.CodeReturnEnter,
 		Direction: key.DirPress,
-		Rune:      '\n',
 	}
-	undoEvent := key.Event{
+	backspaceEvent = key.Event{
+		Code:      key.CodeDeleteBackspace,
+		Direction: key.DirPress,
+	}
+	undoEvent = key.Event{
 		Code:      key.CodeZ,
 		Direction: key.DirPress,
 		Modifiers: key.ModMeta,
 		Rune:      'z',
 	}
-	redoEvent := key.Event{
+	redoEvent = key.Event{
 		Code:      key.CodeZ,
 		Direction: key.DirPress,
 		Modifiers: key.ModMeta | key.ModShift,
 		Rune:      'z',
 	}
+)
+
+func TestHistory(t *testing.T) {
+	face := basicfont.Face7x13
+	ed := NewEditor(image.Pt(100, 100), face, AcmeYellowTheme)
 
 	// start with one line
 	s1 := "The quick brown fox jumps over the lazy dog."
 	ed.Load([]byte(s1 + "\n"))
 
 	// move the cursor to the end of the loaded text
-	ed.selAll()
-	ed.dot.From = ed.dot.To
+	ed.dot = text.Selection{
+		From: text.Address{1, 0},
+		To:   text.Address{1, 0},
+	}
 
 	// simulate typing of 2 more lines
 	s2 := "速い茶色のキツネは、のろまなイヌに飛びかかりました。"
@@ -61,106 +59,33 @@ func TestHistoryLoad(t *testing.T) {
 		ed.SendKeyEvent(key.Event{Rune: r})
 	}
 
-	expect(strings.Join([]string{s1, s2, s3}, "\n"))
+	// throw in some backspaces
+	ed.SendKeyEvent(backspaceEvent)
+	ed.SendKeyEvent(backspaceEvent)
 
-	ed.SendKeyEvent(undoEvent)
-	expect(s1 + "\n" + s2 + "\n")
+	cases := []struct {
+		want  string
+		event *key.Event
+	}{
+		{want: s1 + "\n" + s2 + "\nBonjour tout le mond", event: nil},
+		{want: s1 + "\n" + s2 + "\nBonjour tout le monde", event: &undoEvent},
+		{want: s1 + "\n" + s2 + "\n", event: &undoEvent},
+		{want: s1 + "\n", event: &undoEvent},
+		{want: s1 + "\n", event: &undoEvent},
+		{want: s1 + "\n" + s2 + "\n", event: &redoEvent},
+		{want: s1 + "\n" + s2 + "\nBonjour tout le monde", event: &redoEvent},
+		{want: s1 + "\n" + s2 + "\nBonjour tout le mond", event: &redoEvent},
+		{want: s1 + "\n" + s2 + "\nBonjour tout le mond", event: &redoEvent},
+		{want: s1 + "\n" + s2 + "\nBonjour tout le monde", event: &undoEvent},
+	}
 
-	ed.SendKeyEvent(undoEvent)
-	expect(s1 + "\n")
-
-	ed.SendKeyEvent(undoEvent)
-	expect(s1 + "\n")
-
-	ed.SendKeyEvent(redoEvent)
-	expect(s1 + "\n" + s2 + "\n")
-
-	ed.SendKeyEvent(redoEvent)
-	expect(strings.Join([]string{s1, s2, s3}, "\n"))
-
-	ed.SendKeyEvent(redoEvent)
-	expect(strings.Join([]string{s1, s2, s3}, "\n"))
-
-	ed.SendKeyEvent(undoEvent)
-	expect(s1 + "\n" + s2 + "\n")
-}
-
-func TestHistoryNoLoad(t *testing.T) {
-	face := basicfont.Face7x13
-	ed := NewEditor(image.Pt(100, 100), face, AcmeYellowTheme)
-
-	caseNum := 1
-	expect := func(expected string) {
-		actual := ed.Contents()
-		if !bytes.Equal([]byte(expected), actual) {
-			t.Errorf("case %d:\nexpected:\t%q\ngot:\t\t%q", caseNum, expected, actual)
+	for i, c := range cases {
+		if c.event != nil {
+			ed.SendKeyEvent(*c.event)
 		}
-		caseNum++
+		got := string(ed.Contents())
+		if got != c.want {
+			t.Errorf("case %d\ngot:    %q\nwanted: %q\n", i, got, c.want)
+		}
 	}
-
-	returnEvent := key.Event{
-		Code:      key.CodeReturnEnter,
-		Direction: key.DirPress,
-		Rune:      '\n',
-	}
-	undoEvent := key.Event{
-		Code:      key.CodeZ,
-		Direction: key.DirPress,
-		Modifiers: key.ModMeta,
-		Rune:      'z',
-	}
-	redoEvent := key.Event{
-		Code:      key.CodeZ,
-		Direction: key.DirPress,
-		Modifiers: key.ModMeta | key.ModShift,
-		Rune:      'z',
-	}
-
-	// start with one line
-	s1 := "The quick brown fox jumps over the lazy dog."
-	for _, r := range s1 {
-		ed.SendKeyEvent(key.Event{Rune: r})
-	}
-	ed.SendKeyEvent(returnEvent)
-
-	// simulate typing of 2 more lines
-	s2 := "速い茶色のキツネは、のろまなイヌに飛びかかりました。"
-	for _, r := range s2 {
-		ed.SendKeyEvent(key.Event{Rune: r})
-	}
-	ed.SendKeyEvent(returnEvent)
-
-	s3 := "Bonjour tout le monde!"
-	for _, r := range s3 {
-		ed.SendKeyEvent(key.Event{Rune: r})
-	}
-
-	expect(strings.Join([]string{s1, s2, s3}, "\n"))
-
-	ed.SendKeyEvent(undoEvent)
-	expect(s1 + "\n" + s2 + "\n")
-
-	ed.SendKeyEvent(undoEvent)
-	expect(s1 + "\n")
-
-	ed.SendKeyEvent(undoEvent)
-	expect("")
-
-	ed.SendKeyEvent(undoEvent)
-	expect("")
-
-	ed.SendKeyEvent(redoEvent)
-	expect(s1 + "\n")
-
-	ed.SendKeyEvent(redoEvent)
-	expect(s1 + "\n" + s2 + "\n")
-
-	ed.SendKeyEvent(redoEvent)
-	expect(strings.Join([]string{s1, s2, s3}, "\n"))
-
-	ed.SendKeyEvent(redoEvent)
-	expect(strings.Join([]string{s1, s2, s3}, "\n"))
-
-	ed.SendKeyEvent(undoEvent)
-	expect(s1 + "\n" + s2 + "\n")
 }

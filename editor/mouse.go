@@ -17,18 +17,13 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 		return
 	}
 
-	// a mouse event triggers a history commit, in case there is some
-	// uncommitted input
-	// TODO: this assumes mouse events to not cause any text transformations,
-	// and will need to change when cut/paste via mouse chords is added.
-	ed.initTransformation()
-	ed.commitTransformation()
-
 	pos := image.Pt(int(e.X), int(e.Y)).Add(ed.visible().Min) // adjust for scrolling
 	a := ed.pt2address(pos)
 
 	switch e.Button {
 	case mouse.ButtonLeft:
+		ed.commitTransformation()
+
 		if e.Direction == mouse.DirPress {
 			// click
 			ed.dirty = true

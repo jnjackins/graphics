@@ -40,7 +40,8 @@ func (h *History) Commit() {
 		h.current = new(Transformation)
 	}
 	if h.current.Pre.Sel.From != h.current.Post.Sel.From {
-		panic("internal error")
+		panic(fmt.Sprintf("internal error: mismatched Sel.From values in history transformation: %v != %v",
+			h.current.Pre.Sel.From, h.current.Post.Sel.From))
 	}
 	h.current.next = &Transformation{prev: h.current}
 	h.current = h.current.next

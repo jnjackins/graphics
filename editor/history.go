@@ -1,6 +1,9 @@
 package editor
 
-import "sigint.ca/graphics/editor/internal/hist"
+import (
+	"sigint.ca/graphics/editor/internal/hist"
+	"sigint.ca/graphics/editor/internal/text"
+)
 
 func (ed *Editor) undo() {
 	ch, ok := ed.history.Undo()
@@ -20,6 +23,7 @@ func (ed *Editor) redo() {
 	ed.putString(ch.Text)
 }
 
+// initTransformation sets uncommitted.Pre to the current selection.
 func (ed *Editor) initTransformation() {
 	if ed.uncommitted == nil {
 		ed.uncommitted = new(hist.Transformation)
@@ -27,22 +31,30 @@ func (ed *Editor) initTransformation() {
 			Sel:  ed.dot,
 			Text: ed.buf.GetSel(ed.dot),
 		}
-		// this sets up Post to match Pre in the case that Pre is empty,
-		// so that no-op transformations are caught and discarded
-		ed.uncommitted.Post.Sel = ed.dot
 	}
 }
 
+// commitTransformation updates uncommitted.Post by either:
+//
+// a) setting it to the current selection, if uncommitted.Post.Text is empty
+// b) updating uncommitted.Post.Sel to match uncommitted.Post.Text if it has been populated
+//
+// The transformation, if not a no-op, is then committed to history.
 func (ed *Editor) commitTransformation() {
 	if ed.uncommitted == nil {
 		return
 	}
+
 	if ed.uncommitted.Post.Text == "" {
 		ed.uncommitted.Post.Text = ed.buf.GetSel(ed.dot)
 		ed.uncommitted.Post.Sel = ed.dot
 	} else {
-		ed.uncommitted.Post.Sel = ed.uncommitted.Pre.Sel
+		ed.uncommitted.Post.Sel = text.Selection{
+			ed.uncommitted.Pre.Sel.From,
+			ed.uncommitted.Pre.Sel.From,
+		}
 		for range ed.uncommitted.Post.Text {
+			// TODO: use measure and add?
 			ed.uncommitted.Post.Sel.To = ed.buf.NextAddress(ed.uncommitted.Post.Sel.To)
 		}
 	}
