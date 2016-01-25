@@ -142,18 +142,40 @@ func BenchmarkInsertStringMany(b *testing.B) {
 	}
 }
 
-func BenchmarkGetSel(b *testing.B) {
+func BenchmarkGetSelSmall(b *testing.B) {
 	buf := NewBuffer()
 
-	from := Address{}
+	buf.InsertString(Address{}, "the 早い brown 狐 jumps over the lazy 犬\n")
+
+	sel := Selection{Address{}, Address{1, 0}}
+	for i := 0; i < b.N; i++ {
+		buf.GetSel(sel)
+	}
+}
+
+func BenchmarkGetSelLarge(b *testing.B) {
+	buf := NewBuffer()
+
 	for i := 0; i < 1000; i++ {
-		from = buf.InsertString(from, "the 早い brown 狐 jumps over the lazy 犬\n")
+		buf.InsertString(Address{}, "the 早い brown 狐 jumps over the lazy 犬\n")
 	}
 
-	from = Address{}
 	last := len(buf.Lines) - 1
-	to := Address{last, buf.Lines[last].RuneCount()}
-	sel := Selection{from, to}
+	sel := Selection{Address{}, Address{last, 0}}
+	for i := 0; i < b.N; i++ {
+		buf.GetSel(sel)
+	}
+}
+
+func BenchmarkGetSelHuge(b *testing.B) {
+	buf := NewBuffer()
+
+	for i := 0; i < 10000; i++ {
+		buf.InsertString(Address{}, "the 早い brown 狐 jumps over the lazy 犬\n")
+	}
+
+	last := len(buf.Lines) - 1
+	sel := Selection{Address{}, Address{last, 0}}
 	for i := 0; i < b.N; i++ {
 		buf.GetSel(sel)
 	}
