@@ -34,10 +34,10 @@ Features:
 	- acme style double-click selection
 	- resizing
 	- search (right-click a selection)
+	- autoindent
 
 Planned:
 	- scrollbar
-	- autoindent
 `
 const text2 = "(Widget #2)\n"
 const text3 = "(Widget #3)\n"

@@ -29,11 +29,12 @@ type Editor struct {
 	dirty    bool
 
 	// configurable
-	font   fontface
-	bgcol  *image.Uniform
-	selcol *image.Uniform
-	cursor func(height int) image.Image
-	margin image.Point
+	font       fontface
+	bgcol      *image.Uniform
+	selcol     *image.Uniform
+	cursor     func(height int) image.Image
+	margin     image.Point
+	autoindent bool
 
 	// history
 	history     *hist.History        // represents the Editor's history
@@ -85,10 +86,11 @@ func (ed *Editor) SetFont(face font.Face) {
 
 func (ed *Editor) GetOpts() *OptionSet {
 	return &OptionSet{
-		BGColor:  ed.bgcol.C,
-		SelColor: ed.selcol.C,
-		Cursor:   ed.cursor,
-		Margin:   ed.margin,
+		BGColor:    ed.bgcol.C,
+		SelColor:   ed.selcol.C,
+		Cursor:     ed.cursor,
+		Margin:     ed.margin,
+		AutoIndent: ed.autoindent,
 	}
 }
 
@@ -97,6 +99,7 @@ func (ed *Editor) SetOpts(opts *OptionSet) {
 	ed.selcol = image.NewUniform(opts.SelColor)
 	ed.cursor = opts.Cursor
 	ed.margin = opts.Margin
+	ed.autoindent = opts.AutoIndent
 	ed.dirty = true
 }
 

@@ -46,7 +46,11 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		ed.commitTransformation()
 
 	case e.Code == key.CodeReturnEnter:
-		ed.putString("\n")
+		prefix := ""
+		if ed.autoindent {
+			prefix = ed.getIndentation()
+		}
+		ed.putString("\n" + prefix)
 		ed.dot.From = ed.dot.To
 		ed.uncommitted.Post.Text += "\n"
 		ed.commitTransformation()
@@ -106,6 +110,19 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 			// don't commit - history is not updated for each rune of input
 		}
 	}
+}
+
+func (ed *Editor) getIndentation() string {
+	prefix := make([]rune, 0)
+	line := ed.buf.Lines[ed.dot.From.Row].String()
+	for _, r := range line {
+		if unicode.IsSpace(r) {
+			prefix = append(prefix, r)
+		} else {
+			break
+		}
+	}
+	return string(prefix)
 }
 
 func isGraphic(r rune) bool {
