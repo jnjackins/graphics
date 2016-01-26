@@ -5,6 +5,7 @@ import (
 
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/image/font"
+
 	"sigint.ca/graphics/editor"
 )
 

@@ -8,8 +8,6 @@ import (
 	"log"
 	"os"
 
-	"sigint.ca/graphics/editor"
-
 	"golang.org/x/exp/shiny/driver"
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/mobile/event/key"
@@ -17,6 +15,8 @@ import (
 	"golang.org/x/mobile/event/mouse"
 	"golang.org/x/mobile/event/paint"
 	"golang.org/x/mobile/event/size"
+
+	"sigint.ca/graphics/editor"
 )
 
 const tagHeight = 20

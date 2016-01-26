@@ -22,12 +22,14 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	ed.commitTransformation()
 
 	if e.Direction == mouse.DirPress {
-		// click
 		ed.dirty = true
-		ed.sweepOrigin = a
-		ed.click(a, e.Button)
+		if e.Button == mouse.ButtonLeft {
+			ed.sweepOrigin = a
+			ed.click(a, e.Button)
+		} else if e.Button != mouse.ButtonNone {
+			ed.dot = ed.buf.SelWord(a)
+		}
 	} else if e.Direction == mouse.DirNone {
-		// sweep
 		vis := ed.visible()
 		if a == ed.sweepLast && pos.In(vis) {
 			return
