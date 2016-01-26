@@ -108,13 +108,13 @@ func (ed *Editor) Dirty() bool {
 	return ed.dirty
 }
 
-// Load replaces the contents of the Editor with s, and
-// resets the Editor's history.
+// Load replaces the contents of the Editor with s, and resets the Editor's history.
 func (ed *Editor) Load(s []byte) {
-	ed.buf.ClearSel(ed.dot)
+	last := len(ed.buf.Lines) - 1
+	all := text.Selection{To: text.Address{last, ed.buf.Lines[last].RuneCount()}}
+	ed.dot = ed.buf.ClearSel(all)
 	ed.buf.InsertString(text.Address{0, 0}, string(s))
 	ed.history = new(hist.History)
-	ed.dot = text.Selection{}
 	ed.dirty = true
 }
 
