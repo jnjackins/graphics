@@ -108,7 +108,7 @@ func main() {
 					}
 				case mouse.ButtonRight:
 					if e.Direction == mouse.DirRelease {
-						selected.ed.Search(selected.ed.GetSel())
+						mainWidget.ed.Search(selected.ed.GetSel())
 					}
 				}
 
