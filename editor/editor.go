@@ -115,6 +115,7 @@ func (ed *Editor) Load(s []byte) {
 	ed.dot = ed.buf.ClearSel(all)
 	ed.buf.InsertString(text.Address{0, 0}, string(s))
 	ed.history = new(hist.History)
+	ed.uncommitted = nil
 	ed.dirty = true
 }
 
@@ -137,9 +138,8 @@ func (ed *Editor) Search(s string) {
 // considered saved. After calling SetSaved, the client can call
 // Saved to see if the Editor has unsaved content.
 func (ed *Editor) SetSaved() {
-	// TODO: ensure ed.uncommitted is empty?
 	if ed.uncommitted != nil {
-		panic("TODO")
+		ed.commitTransformation()
 	}
 	ed.savePoint = ed.history.Current()
 }

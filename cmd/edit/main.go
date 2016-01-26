@@ -7,7 +7,6 @@ import (
 	"image/color"
 	"log"
 	"os"
-	"sync"
 
 	"sigint.ca/graphics/editor"
 
@@ -59,6 +58,7 @@ func main() {
 
 		pt, sz := image.Pt(winSize.X, tagHeight), image.ZP
 		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, font)
+		tagWidget.action = editorCommand
 
 		sz, pt = image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1)
 		mainWidget = newWidget(scr, sz, pt, editor.AcmeYellowTheme, font)
@@ -73,12 +73,22 @@ func main() {
 		for {
 			switch e := win.NextEvent().(type) {
 			case key.Event:
+				if e.Direction == key.DirPress && e.Modifiers == key.ModMeta && e.Code == key.CodeS {
+					save()
+				}
+
 				if e.Direction == key.DirPress || e.Direction == key.DirNone {
 					selected.ed.SendKeyEvent(e)
 					win.Send(paint.Event{})
 				}
 
 			case mouse.Event:
+				if e.Modifiers == key.ModAlt {
+					e.Button = mouse.ButtonMiddle
+				} else if e.Modifiers == key.ModMeta {
+					e.Button = mouse.ButtonRight
+				}
+
 				if e.Direction == mouse.DirPress {
 					if w, ok := sel(e2Pt(e), widgets); ok {
 						selected = w
@@ -88,9 +98,20 @@ func main() {
 				e.Y -= float32(selected.r.Min.Y)
 
 				selected.ed.SendMouseEvent(e)
-				if e.Direction == mouse.DirRelease && e.Button == mouse.ButtonRight {
-					selected.ed.Search(selected.ed.GetSel())
+
+				switch e.Button {
+				case mouse.ButtonMiddle:
+					if e.Direction == mouse.DirRelease {
+						if selected.action != nil {
+							selected.action(selected.ed.GetSel())
+						}
+					}
+				case mouse.ButtonRight:
+					if e.Direction == mouse.DirRelease {
+						selected.ed.Search(selected.ed.GetSel())
+					}
 				}
+
 				win.Send(paint.Event{})
 
 			case mouse.ScrollEvent:
@@ -102,34 +123,24 @@ func main() {
 
 			case paint.Event:
 				dirty := false
-				var wg sync.WaitGroup
+				updateTag()
 
-				// redraw any widgets that changed
-				for _, w := range widgets {
-					if w.ed.Dirty() {
-						dirty = true
-						wg.Add(1)
-						go func(w *widget) {
-							*w.buf.RGBA() = *w.ed.RGBA()
-							w.tx.Upload(w.r.Min, w.buf, w.buf.Bounds())
-							wg.Done()
-						}(w)
-					}
+				if mainWidget.ed.Dirty() {
+					dirty = true
+					mainWidget.redraw()
 				}
-				wg.Wait()
+
+				if tagWidget.ed.Dirty() {
+					dirty = true
+					tagWidget.redraw()
+				}
 
 				// redraw screen if any widgets changed
 				if dirty {
-					loadTag()
 					win.Fill(image.Rectangle{Max: winSize}, borderCol, screen.Src)
 					for _, w := range widgets {
-						wg.Add(1)
-						go func(w *widget) {
-							screen.Copy(win, w.r.Min, w.tx, w.tx.Bounds(), screen.Src, nil)
-							wg.Done()
-						}(w)
+						screen.Copy(win, w.r.Min, w.tx, w.tx.Bounds(), screen.Src, nil)
 					}
-					wg.Wait()
 					win.Publish()
 				}
 

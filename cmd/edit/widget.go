@@ -9,10 +9,11 @@ import (
 )
 
 type widget struct {
-	ed  *editor.Editor
-	r   image.Rectangle
-	buf screen.Buffer
-	tx  screen.Texture
+	ed     *editor.Editor
+	r      image.Rectangle
+	buf    screen.Buffer
+	tx     screen.Texture
+	action func(string)
 }
 
 func newWidget(s screen.Screen, size, loc image.Point, opts *editor.OptionSet, face font.Face) *widget {
@@ -31,6 +32,20 @@ func newWidget(s screen.Screen, size, loc image.Point, opts *editor.OptionSet, f
 		tx:  tx,
 	}
 	return w
+}
+
+func sel(pt image.Point, widgets []*widget) (*widget, bool) {
+	var selected *widget
+	for _, w := range widgets {
+		if pt.In(w.r) {
+			selected = w
+		}
+	}
+	if selected == nil {
+		return nil, false
+	}
+
+	return selected, true
 }
 
 func (w *widget) resize(s screen.Screen, size, loc image.Point) {
@@ -52,16 +67,7 @@ func (w *widget) resize(s screen.Screen, size, loc image.Point) {
 	w.tx = tx
 }
 
-func sel(pt image.Point, widgets []*widget) (*widget, bool) {
-	var selected *widget
-	for _, w := range widgets {
-		if pt.In(w.r) {
-			selected = w
-		}
-	}
-	if selected == nil {
-		return nil, false
-	}
-
-	return selected, true
+func (w *widget) redraw() {
+	*w.buf.RGBA() = *w.ed.RGBA()
+	w.tx.Upload(w.r.Min, w.buf, w.buf.Bounds())
 }

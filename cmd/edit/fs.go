@@ -24,10 +24,15 @@ func loadMain(s string) {
 	}
 	buf, err := ioutil.ReadFile(filename)
 	mainWidget.ed.Load(buf)
+	mainWidget.ed.SetSaved()
 	f.Close()
 }
 
 func save() {
+	if mainWidget.ed.Saved() {
+		return
+	}
+
 	if filename == "" {
 		log.Println("saving untitled file not yet supported")
 		return
@@ -36,11 +41,14 @@ func save() {
 	if err != nil {
 		log.Printf("error opening %q for writing: %v", filename, err)
 	}
+	defer f.Close()
+
 	r := bytes.NewBuffer(mainWidget.ed.Contents())
 	if _, err := io.Copy(f, r); err != nil {
 		log.Printf("error writing to %q: %v", filename, err)
 	}
-	f.Close()
+
+	mainWidget.ed.SetSaved()
 }
 
 func getfont() font.Face {

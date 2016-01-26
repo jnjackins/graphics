@@ -19,32 +19,29 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	pos := image.Pt(int(e.X), int(e.Y)).Add(ed.visible().Min) // adjust for scrolling
 	a := ed.getAddress(pos)
 
-	switch e.Button {
-	case mouse.ButtonLeft:
-		ed.commitTransformation()
+	ed.commitTransformation()
 
-		if e.Direction == mouse.DirPress {
-			// click
-			ed.dirty = true
-			ed.sweepOrigin = a
-			ed.click(a, e.Button)
-		} else if e.Direction == mouse.DirNone {
-			// sweep
-			vis := ed.visible()
-			if a == ed.sweepLast && pos.In(vis) {
-				return
-			}
-			if pos.Y <= vis.Min.Y && vis.Min.Y > 0 {
-				ed.scroll(image.Pt(0, ed.font.height))
-			} else if pos.Y >= vis.Max.Y && vis.Max.Y < (len(ed.buf.Lines)-1)*ed.font.height {
-				ed.scroll(image.Pt(0, -ed.font.height))
-			}
-
-			ed.dirty = true
-			ed.sweepLast = a
-
-			ed.sweep(a)
+	if e.Direction == mouse.DirPress {
+		// click
+		ed.dirty = true
+		ed.sweepOrigin = a
+		ed.click(a, e.Button)
+	} else if e.Direction == mouse.DirNone {
+		// sweep
+		vis := ed.visible()
+		if a == ed.sweepLast && pos.In(vis) {
+			return
 		}
+		if pos.Y <= vis.Min.Y && vis.Min.Y > 0 {
+			ed.scroll(image.Pt(0, ed.font.height))
+		} else if pos.Y >= vis.Max.Y && vis.Max.Y < (len(ed.buf.Lines)-1)*ed.font.height {
+			ed.scroll(image.Pt(0, -ed.font.height))
+		}
+
+		ed.dirty = true
+		ed.sweepLast = a
+
+		ed.sweep(a)
 	}
 }
 

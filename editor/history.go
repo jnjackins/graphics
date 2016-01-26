@@ -5,22 +5,33 @@ import (
 	"sigint.ca/graphics/editor/internal/text"
 )
 
-func (ed *Editor) undo() {
+func (ed *Editor) Undo() {
 	ch, ok := ed.history.Undo()
 	if !ok {
 		return
 	}
 	ed.dot = ch.Sel
 	ed.putString(ch.Text)
+	ed.dirty = true
 }
 
-func (ed *Editor) redo() {
+func (ed *Editor) Redo() {
 	ch, ok := ed.history.Redo()
 	if !ok {
 		return
 	}
 	ed.dot = ch.Sel
 	ed.putString(ch.Text)
+	ed.dirty = true
+}
+
+func (ed *Editor) CanUndo() bool {
+	return ed.history.CanUndo() ||
+		ed.uncommitted != nil && len(ed.uncommitted.Post.Text) > 0
+}
+
+func (ed *Editor) CanRedo() bool {
+	return ed.history.CanRedo()
 }
 
 // initTransformation sets uncommitted.Pre to the current selection.

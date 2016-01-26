@@ -69,3 +69,11 @@ func (h *History) Redo() (Chunk, bool) {
 		Sel:  tr.Pre.Sel,
 	}, true
 }
+
+func (h *History) CanUndo() bool {
+	return h.current != nil && h.current.prev != nil
+}
+
+func (h *History) CanRedo() bool {
+	return h.current != nil && h.current.next != nil
+}
