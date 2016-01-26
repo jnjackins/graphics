@@ -7,8 +7,8 @@ import (
 )
 
 type OptionSet struct {
-	BGColor    color.Color
-	SelColor   color.Color
+	BGColor    *image.Uniform
+	SelColor   *image.Uniform
 	Margin     image.Point
 	Cursor     func(height int) image.Image
 	AutoIndent bool
@@ -24,16 +24,16 @@ var acmeCursor = func(height int) image.Image {
 }
 
 var AcmeYellowTheme = &OptionSet{
-	BGColor:    color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF},
-	SelColor:   color.RGBA{R: 0xEE, G: 0xEE, B: 0x9E, A: 0xFF},
+	BGColor:    image.NewUniform(color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF}),
+	SelColor:   image.NewUniform(color.RGBA{R: 0xEE, G: 0xEE, B: 0x9E, A: 0xFF}),
 	Margin:     image.Pt(4, 2),
 	Cursor:     acmeCursor,
 	AutoIndent: true,
 }
 
 var AcmeBlueTheme = &OptionSet{
-	BGColor:    color.RGBA{R: 0xEA, G: 0xFF, B: 0xFF, A: 0xFF},
-	SelColor:   color.RGBA{R: 0x9F, G: 0xEB, B: 0xEA, A: 0xFF},
+	BGColor:    image.NewUniform(color.RGBA{R: 0xEA, G: 0xFF, B: 0xFF, A: 0xFF}),
+	SelColor:   image.NewUniform(color.RGBA{R: 0x9F, G: 0xEB, B: 0xEA, A: 0xFF}),
 	Margin:     image.Pt(4, 2),
 	Cursor:     acmeCursor,
 	AutoIndent: true,
@@ -46,8 +46,8 @@ var simpleCursor = func(height int) image.Image {
 }
 
 var SimpleTheme = &OptionSet{
-	BGColor:    color.White,
-	SelColor:   color.RGBA{R: 0x90, G: 0xB0, B: 0xD0, A: 0xFF},
+	BGColor:    image.White,
+	SelColor:   image.NewUniform(color.RGBA{R: 0x90, G: 0xB0, B: 0xD0, A: 0xFF}),
 	Margin:     image.Pt(4, 2),
 	Cursor:     simpleCursor,
 	AutoIndent: false,

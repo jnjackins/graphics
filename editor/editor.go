@@ -19,22 +19,17 @@ import (
 // window package capable of drawing a widget via an image.RGBA.
 // See sigint.ca/cmd/edit for an example program using this type.
 type Editor struct {
+	opts *OptionSet
+
 	// textual state
 	buf *text.Buffer
 	dot text.Selection // the current selection
 
 	// images and drawing data
 	img      *image.RGBA
+	font     fontface
 	scrollPt image.Point
 	dirty    bool
-
-	// configurable
-	font       fontface
-	bgcol      *image.Uniform
-	selcol     *image.Uniform
-	cursor     func(height int) image.Image
-	margin     image.Point
-	autoindent bool
 
 	// history
 	history     *hist.History        // represents the Editor's history
@@ -57,18 +52,11 @@ func NewEditor(size image.Point, face font.Face, opts *OptionSet) *Editor {
 		opts = SimpleTheme
 	}
 	ed := &Editor{
-		buf: text.NewBuffer(),
-
-		img:   image.NewRGBA(image.Rectangle{Max: size}),
-		dirty: true,
-
-		font: mkFont(face),
-
-		bgcol:  image.NewUniform(opts.BGColor),
-		selcol: image.NewUniform(opts.SelColor),
-		cursor: opts.Cursor,
-		margin: opts.Margin,
-
+		buf:       text.NewBuffer(),
+		img:       image.NewRGBA(image.Rectangle{Max: size}),
+		font:      mkFont(face),
+		dirty:     true,
+		opts:      opts,
 		history:   new(hist.History),
 		clipboard: new(clip.Clipboard),
 	}
@@ -85,21 +73,11 @@ func (ed *Editor) SetFont(face font.Face) {
 }
 
 func (ed *Editor) GetOpts() *OptionSet {
-	return &OptionSet{
-		BGColor:    ed.bgcol.C,
-		SelColor:   ed.selcol.C,
-		Cursor:     ed.cursor,
-		Margin:     ed.margin,
-		AutoIndent: ed.autoindent,
-	}
+	return ed.opts
 }
 
 func (ed *Editor) SetOpts(opts *OptionSet) {
-	ed.bgcol = image.NewUniform(opts.BGColor)
-	ed.selcol = image.NewUniform(opts.SelColor)
-	ed.cursor = opts.Cursor
-	ed.margin = opts.Margin
-	ed.autoindent = opts.AutoIndent
+	ed.opts = opts
 	ed.dirty = true
 }
 

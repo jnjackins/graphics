@@ -47,7 +47,7 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 
 	case e.Code == key.CodeReturnEnter:
 		prefix := ""
-		if ed.autoindent {
+		if ed.opts.AutoIndent {
 			prefix = ed.getIndentation()
 		}
 		ed.putString("\n" + prefix)

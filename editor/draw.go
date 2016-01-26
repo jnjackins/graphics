@@ -9,7 +9,7 @@ import (
 )
 
 func (ed *Editor) redraw() {
-	draw.Draw(ed.img, ed.Bounds(), ed.bgcol, image.ZP, draw.Src)
+	draw.Draw(ed.img, ed.Bounds(), ed.opts.BGColor, image.ZP, draw.Src)
 
 	from, to := ed.visibleRows()
 	for row := from; row < to; row++ {
@@ -36,7 +36,7 @@ func (ed *Editor) redraw() {
 
 	// draw cursor
 	if ed.dot.IsEmpty() {
-		cursor := ed.cursor(ed.font.height)
+		cursor := ed.opts.Cursor(ed.font.height)
 		pt := ed.getPixelsRel(ed.dot.From)
 		pt.X-- // match acme
 		draw.Draw(ed.img, cursor.Bounds().Add(pt), cursor, image.ZP, draw.Over)
@@ -59,7 +59,7 @@ func (ed *Editor) drawSelRect(row int) {
 	}
 	r.Max.Y += ed.font.height
 
-	draw.Draw(ed.img, r, ed.selcol, image.ZP, draw.Src)
+	draw.Draw(ed.img, r, ed.opts.SelColor, image.ZP, draw.Src)
 }
 
 func (ed *Editor) visible() image.Rectangle {
@@ -118,7 +118,7 @@ func (ed *Editor) getPixelsAbs(a text.Address) image.Point {
 
 	y = a.Row * ed.font.height
 
-	return image.Pt(x, y).Add(ed.margin)
+	return image.Pt(x, y).Add(ed.opts.Margin)
 }
 
 func (ed *Editor) getPixelsRel(a text.Address) image.Point {
@@ -126,7 +126,7 @@ func (ed *Editor) getPixelsRel(a text.Address) image.Point {
 }
 
 func (ed *Editor) getAddress(pt image.Point) text.Address {
-	pt = pt.Sub(ed.margin)
+	pt = pt.Sub(ed.opts.Margin)
 
 	// (0,0) if pt is above the buffer
 	if pt.Y < 0 {
