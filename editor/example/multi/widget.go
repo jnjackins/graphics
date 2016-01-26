@@ -54,3 +54,24 @@ func (w *widget) resize(s screen.Screen, size, loc image.Point) {
 	}
 	w.tx = tx
 }
+
+func sel(pt image.Point, widgets []*widget) (*widget, bool) {
+	var selected *widget
+	for _, w := range widgets {
+		if pt.In(w.r) {
+			selected = w
+			w.ed.SetOpts(editor.AcmeBlueTheme)
+		}
+	}
+	if selected == nil {
+		return nil, false
+	}
+
+	for _, w := range widgets {
+		if w != selected {
+			w.ed.SetOpts(editor.AcmeYellowTheme)
+		}
+	}
+
+	return selected, true
+}

@@ -8,8 +8,6 @@ import (
 	"log"
 	"sync"
 
-	"sigint.ca/graphics/editor"
-
 	"golang.org/x/exp/shiny/driver"
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/mobile/event/key"
@@ -143,27 +141,6 @@ func main() {
 
 func e2Pt(e mouse.Event) image.Point {
 	return image.Pt(int(e.X), int(e.Y))
-}
-
-func sel(pt image.Point, widgets []*widget) (*widget, bool) {
-	var selected *widget
-	for _, w := range widgets {
-		if pt.In(w.r) {
-			selected = w
-			w.ed.SetOpts(editor.AcmeBlueTheme)
-		}
-	}
-	if selected == nil {
-		return nil, false
-	}
-
-	for _, w := range widgets {
-		if w != selected {
-			w.ed.SetOpts(editor.AcmeYellowTheme)
-		}
-	}
-
-	return selected, true
 }
 
 func resize(s screen.Screen, size image.Point, widgets []*widget) {
