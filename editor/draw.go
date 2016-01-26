@@ -51,10 +51,11 @@ func (ed *Editor) drawSelRect(row int) {
 	} else {
 		r.Min = ed.getPixelsRel(text.Address{Row: row, Col: 0})
 	}
+
 	if row == ed.dot.To.Row {
 		r.Max = ed.getPixelsRel(ed.dot.To)
 	} else {
-		r.Max = ed.getPixelsRel(ed.dot.To)
+		r.Max = ed.getPixelsRel(text.Address{Row: row, Col: 0})
 		r.Max.X = ed.Bounds().Dx()
 	}
 	r.Max.Y += ed.font.height
