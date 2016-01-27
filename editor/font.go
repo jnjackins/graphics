@@ -23,7 +23,7 @@ type fontface struct {
 
 func mkFont(face font.Face) fontface {
 	bounds, _, _ := face.GlyphBounds('|')
-	height := int(1.25 * float64(bounds.Max.Y>>6-bounds.Min.Y>>6))
+	height := int(1.33*float64(bounds.Max.Y>>6-bounds.Min.Y>>6)) + 1
 	return fontface{
 		face:   face,
 		height: height,

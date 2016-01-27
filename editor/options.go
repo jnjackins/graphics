@@ -34,7 +34,7 @@ var AcmeYellowTheme = &OptionSet{
 var AcmeBlueTheme = &OptionSet{
 	BGColor:    image.NewUniform(color.RGBA{R: 0xEA, G: 0xFF, B: 0xFF, A: 0xFF}),
 	SelColor:   image.NewUniform(color.RGBA{R: 0x9F, G: 0xEB, B: 0xEA, A: 0xFF}),
-	Margin:     image.Pt(4, 2),
+	Margin:     image.Pt(4, 0),
 	Cursor:     acmeCursor,
 	AutoIndent: true,
 }
