@@ -44,9 +44,8 @@ type Editor struct {
 	clipboard *clip.Clipboard // the clipboard to be used for copy or paste events
 }
 
-// NewEditor returns a new Editor with a clipping rectangle defined by size, a font face
-// defined by face and height, and an OptionSet opts. If opts is nil, editor.SimpleTheme
-// will be used.
+// NewEditor returns a new Editor with a clipping rectangle defined by size, a font face,
+// and an OptionSet opts. If opts is nil, editor.SimpleTheme will be used.
 func NewEditor(size image.Point, face font.Face, opts *OptionSet) *Editor {
 	if opts == nil {
 		opts = SimpleTheme
