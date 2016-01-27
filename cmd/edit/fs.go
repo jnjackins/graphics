@@ -51,7 +51,8 @@ func save() {
 	mainWidget.ed.SetSaved()
 }
 
-func getfont() font.Face {
+func getfont() (font.Face, int) {
+	var face font.Face
 	if font := os.Getenv("PLAN9FONT"); font != "" {
 		readFile := func(path string) ([]byte, error) {
 			return ioutil.ReadFile(filepath.Join(filepath.Dir(font), path))
@@ -60,11 +61,15 @@ func getfont() font.Face {
 		if err != nil {
 			log.Fatalf("error loading font: %v", err)
 		}
-		face, err := plan9font.ParseFont(fontData, readFile)
+		face, err = plan9font.ParseFont(fontData, readFile)
 		if err != nil {
 			log.Fatalf("error parsing font: %v", err)
 		}
-		return face
+
+	} else {
+		face = basicfont.Face7x13
 	}
-	return basicfont.Face7x13
+	bounds, _, _ := face.GlyphBounds('|')
+	height := int(1.33*float64(bounds.Max.Y>>6-bounds.Min.Y>>6)) + 1
+	return face, height
 }

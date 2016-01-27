@@ -19,14 +19,13 @@ import (
 	"sigint.ca/graphics/editor"
 )
 
-const tagHeight = 20
-
 var (
 	filename   string
 	tagWidget  *widget
 	mainWidget *widget
 	winSize    = image.Pt(512, 512)
 	borderCol  = color.RGBA{R: 115, G: 115, B: 190, A: 255}
+	tagHeight  int
 )
 
 func init() {
@@ -47,7 +46,8 @@ func init() {
 }
 
 func main() {
-	font := getfont()
+	font, h := getfont()
+	tagHeight = h
 
 	driver.Main(func(scr screen.Screen) {
 		win, err := scr.NewWindow(nil)
