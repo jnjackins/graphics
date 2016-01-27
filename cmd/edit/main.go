@@ -73,8 +73,13 @@ func main() {
 		for {
 			switch e := win.NextEvent().(type) {
 			case key.Event:
-				if e.Direction == key.DirPress && e.Modifiers == key.ModMeta && e.Code == key.CodeS {
-					save()
+				if e.Direction == key.DirPress && e.Modifiers == key.ModMeta {
+					switch e.Code {
+					case key.CodeS:
+						save()
+					case key.CodeQ:
+						return
+					}
 				}
 
 				if e.Direction == key.DirPress || e.Direction == key.DirNone {
