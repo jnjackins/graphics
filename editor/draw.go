@@ -95,7 +95,7 @@ func (ed *Editor) scroll(pt image.Point) {
 func (ed *Editor) autoscroll() {
 	visible := ed.visible()
 	pt := ed.getPixelsAbs(text.Address{Row: ed.dot.From.Row})
-	if pt.Y > visible.Min.Y && pt.Y < visible.Max.Y {
+	if pt.Y > visible.Min.Y && pt.Y+ed.font.height < visible.Max.Y {
 		return
 	}
 
