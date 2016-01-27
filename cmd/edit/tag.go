@@ -2,30 +2,39 @@ package main
 
 import "strings"
 
-var tagline string
-
 func updateTag() {
-	var newTags []string
+	old := string(tagWidget.ed.Contents())
+	var user string
+	if i := strings.Index(old, "|"); i > 0 {
+		user = old[i+1:]
+		old = old[:i+1]
+	}
+
+	var newParts []string
 	if filename != "" {
-		newTags = append(newTags, filename)
+		newParts = append(newParts, filename)
 	}
 	if mainWidget.ed.CanUndo() {
-		newTags = append(newTags, "Undo")
+		newParts = append(newParts, "Undo")
 	}
 	if mainWidget.ed.CanRedo() {
-		newTags = append(newTags, "Redo")
+		newParts = append(newParts, "Redo")
 	}
 	if filename != "" && !mainWidget.ed.Saved() {
-		newTags = append(newTags, "Put")
+		newParts = append(newParts, "Put")
 	}
+	newParts = append(newParts, "|")
 
-	newTagline := strings.Join(newTags, " ")
-	if newTagline == tagline {
+	new := strings.Join(newParts, " ")
+	if old == new {
 		return
 	}
-	tagline = newTagline
 
-	tagWidget.ed.Load([]byte(tagline))
+	if user == "" {
+		user = " "
+	}
+
+	tagWidget.ed.Load([]byte(new + user))
 }
 
 func editorCommand(cmd string) {
