@@ -94,11 +94,11 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
 		ed.commitTransformation()
-		ed.Redo()
+		ed.redo()
 
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeZ:
 		ed.commitTransformation()
-		ed.Undo()
+		ed.undo()
 
 	default:
 		if isGraphic(e.Rune) && e.Modifiers&key.ModMeta == 0 {

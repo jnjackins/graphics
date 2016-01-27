@@ -62,37 +62,32 @@ func NewEditor(size image.Point, face font.Face, opts *OptionSet) *Editor {
 	return ed
 }
 
-func (ed *Editor) GetFont() font.Face {
-	return ed.font.face
-}
-
+// SetFont sets the Editor's font face to face.
 func (ed *Editor) SetFont(face font.Face) {
 	ed.font = mkFont(face)
 	ed.dirty = true
 }
 
-func (ed *Editor) GetOpts() *OptionSet {
-	return ed.opts
-}
-
+// SetOpts reconfigures the Editor according to opts.
 func (ed *Editor) SetOpts(opts *OptionSet) {
 	ed.opts = opts
 	ed.dirty = true
 }
 
+// Bounds returns the bounding rectangle of the Editor's image.
 func (ed *Editor) Bounds() image.Rectangle {
 	return ed.img.Bounds()
 }
 
-// Resize resizes the Editor. Subsequent calls to RGBA will return an image of
-// the given size.
+// Resize resizes the Editor. Subsequent calls to RGBA will return an image of the given size.
 func (ed *Editor) Resize(size image.Point) {
 	r := image.Rectangle{Max: size}
 	ed.img = image.NewRGBA(r)
 	ed.dirty = true
 }
 
-// RGBA returns an image representing the current state of the Editor.
+// RGBA returns an image representing the current state of the Editor, suitable for drawing to
+// a screen or window.
 func (ed *Editor) RGBA() (img *image.RGBA) {
 	if ed.dirty {
 		ed.redraw()
@@ -101,13 +96,12 @@ func (ed *Editor) RGBA() (img *image.RGBA) {
 	return ed.img
 }
 
-// Dirty reports whether the next call to RGBA will result in a different
-// image than the previous call.
+// Dirty reports whether the next call to RGBA will result in a different image than the previous call.
 func (ed *Editor) Dirty() bool {
 	return ed.dirty
 }
 
-// Load replaces the contents of the Editor with s, and resets the Editor's history.
+// Load replaces the contents of the Editor's text buffer with s, and resets the Editor's history.
 func (ed *Editor) Load(s []byte) {
 	last := len(ed.buf.Lines) - 1
 	all := text.Selection{To: text.Address{last, ed.buf.Lines[last].RuneCount()}}
@@ -118,17 +112,21 @@ func (ed *Editor) Load(s []byte) {
 	ed.dirty = true
 }
 
-// Contents returns the contents of the Editor.
+// Contents returns the contents of the Editor's text buffer.
 func (ed *Editor) Contents() []byte {
 	return ed.buf.Contents()
 }
 
+// GetSel returns the contents of the Editor's current selection.
 func (ed *Editor) GetSel() string {
 	return ed.buf.GetSel(ed.dot)
 }
 
-func (ed *Editor) Search(s string) {
-	ed.dot, _ = ed.buf.Search(ed.dot.To, s)
+// Search searches for pattern in the Editor's text buffer, and selects the first match
+// starting from the Editor's current selection, possibly wrapping around to the beginning
+// of the buffer. If there are no matches, the selection is unchanged.
+func (ed *Editor) Search(pattern string) {
+	ed.dot, _ = ed.buf.Search(ed.dot.To, pattern)
 	ed.autoscroll()
 	ed.dirty = true
 }
@@ -175,4 +173,25 @@ func (ed *Editor) SendScrollEvent(e mouse.ScrollEvent) {
 	if ed.scrollPt != oldPt {
 		ed.dirty = true
 	}
+}
+
+// SendUndo attempts to apply the Editor's previous history state, if it exists.
+func (ed *Editor) SendUndo() {
+	ed.undo()
+}
+
+// SendRedo attempts to apply the Editor's next history state, if it exists.
+func (ed *Editor) SendRedo() {
+	ed.redo()
+}
+
+// CanUndo reports whether the Editor has a previous history state which can be applied.
+func (ed *Editor) CanUndo() bool {
+	return ed.history.CanUndo() ||
+		ed.uncommitted != nil && len(ed.uncommitted.Post.Text) > 0
+}
+
+// CanRedo reports whether the Editor has a following history state which can be applied.
+func (ed *Editor) CanRedo() bool {
+	return ed.history.CanRedo()
 }

@@ -43,8 +43,8 @@ func editorCommand(cmd string) {
 	case "Put":
 		save()
 	case "Undo":
-		mainWidget.ed.Undo()
+		mainWidget.ed.SendUndo()
 	case "Redo":
-		mainWidget.ed.Redo()
+		mainWidget.ed.SendRedo()
 	}
 }
