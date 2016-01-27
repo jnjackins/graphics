@@ -26,7 +26,7 @@ var acmeCursor = func(height int) image.Image {
 var AcmeYellowTheme = &OptionSet{
 	BGColor:    image.NewUniform(color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF}),
 	SelColor:   image.NewUniform(color.RGBA{R: 0xEE, G: 0xEE, B: 0x9E, A: 0xFF}),
-	Margin:     image.Pt(4, 2),
+	Margin:     image.Pt(4, 0),
 	Cursor:     acmeCursor,
 	AutoIndent: true,
 }
