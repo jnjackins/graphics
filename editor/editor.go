@@ -146,7 +146,8 @@ func (ed *Editor) SetSaved() {
 // Saved reports whether the Editor has been modified since the last
 // time SetSaved was called.
 func (ed *Editor) Saved() bool {
-	return ed.history.Current() == ed.savePoint && ed.uncommitted == nil
+	return ed.history.Current() == ed.savePoint &&
+		(ed.uncommitted == nil || ed.uncommitted.Post.Text == "")
 }
 
 // SendKeyEvent sends a key event to be interpreted by the Editor.
