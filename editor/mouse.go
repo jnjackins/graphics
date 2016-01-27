@@ -23,12 +23,8 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 
 	if e.Direction == mouse.DirPress {
 		ed.dirty = true
-		if e.Button == mouse.ButtonLeft {
-			ed.sweepOrigin = a
-			ed.click(a, e.Button)
-		} else if e.Button != mouse.ButtonNone {
-			ed.dot = ed.buf.SelWord(a)
-		}
+		ed.sweepOrigin = a
+		ed.click(a, e.Button)
 	} else if e.Direction == mouse.DirNone {
 		vis := ed.visible()
 		if a == ed.sweepLast && pos.In(vis) {
@@ -60,6 +56,8 @@ func (ed *Editor) click(a text.Address, button mouse.Button) {
 		} else {
 			ed.lastClickTime = time.Now()
 		}
+	case mouse.ButtonMiddle, mouse.ButtonRight:
+		ed.dot = ed.buf.SelWord(a)
 	}
 }
 
