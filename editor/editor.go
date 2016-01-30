@@ -3,7 +3,6 @@ package editor // import "sigint.ca/graphics/editor"
 
 import (
 	"image"
-	"time"
 
 	"sigint.ca/clip"
 	"sigint.ca/graphics/editor/internal/hist"
@@ -19,6 +18,9 @@ import (
 // window package capable of drawing a widget via an image.RGBA.
 // See sigint.ca/cmd/edit for an example program using this type.
 type Editor struct {
+	B2Action func(string) // define an action for the middle mouse button
+	B3Action func(string) // define an action for the right mouse button
+
 	opts *OptionSet
 
 	// textual state
@@ -31,17 +33,14 @@ type Editor struct {
 	scrollPt image.Point
 	dirty    bool
 
+	m mouseState
+
 	// history
 	history     *hist.History        // represents the Editor's history
 	savePoint   *hist.Transformation // records the last time the Editor was saved, for use by Saved and SetSaved
 	uncommitted *hist.Transformation // recent input which hasn't yet been committed to history
 
-	// mouse related state
-	lastClickTime time.Time    // used to detect a double-click
-	sweepOrigin   text.Address // the origin of a sweep
-	sweepLast     text.Address // the last column that was swept
-
-	clipboard *clip.Clipboard // the clipboard to be used for copy or paste events
+	clipboard *clip.Clipboard // used for copy or paste events
 }
 
 // NewEditor returns a new Editor with a clipping rectangle defined by size, a font face,
@@ -115,11 +114,6 @@ func (ed *Editor) Load(s []byte) {
 // Contents returns the contents of the Editor's text buffer.
 func (ed *Editor) Contents() []byte {
 	return ed.buf.Contents()
-}
-
-// GetSel returns the contents of the Editor's current selection.
-func (ed *Editor) GetSel() string {
-	return ed.buf.GetSel(ed.dot)
 }
 
 // Search searches for pattern in the Editor's text buffer, and selects the first match
