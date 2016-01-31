@@ -56,13 +56,21 @@ func main() {
 		}
 		defer win.Release()
 
+		// set up the editor widgets
 		pt, sz := image.Pt(winSize.X, tagHeight), image.ZP
 		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, font)
-		tagWidget.action = editorCommand
 
 		sz, pt = image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1)
 		mainWidget = newWidget(scr, sz, pt, editor.AcmeYellowTheme, font)
+
+		// load file into main editor widget
 		loadMain(filename)
+
+		// set up B2 and B3 actions
+		tagWidget.ed.B2Action = doEditorCommand
+		mainWidget.ed.B2Action = doEditorCommand
+		tagWidget.ed.B3Action = mainWidget.ed.Search
+		mainWidget.ed.B3Action = mainWidget.ed.Search
 
 		widgets := []*widget{
 			tagWidget,
@@ -103,20 +111,6 @@ func main() {
 				e.Y -= float32(selected.r.Min.Y)
 
 				selected.ed.SendMouseEvent(e)
-
-				switch e.Button {
-				case mouse.ButtonMiddle:
-					if e.Direction == mouse.DirRelease {
-						if selected.action != nil {
-							selected.action(selected.ed.GetSel())
-						}
-					}
-				case mouse.ButtonRight:
-					if e.Direction == mouse.DirRelease {
-						mainWidget.ed.Search(selected.ed.GetSel())
-					}
-				}
-
 				win.Send(paint.Event{})
 
 			case mouse.ScrollEvent:
