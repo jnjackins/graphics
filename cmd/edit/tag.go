@@ -1,6 +1,9 @@
 package main
 
-import "strings"
+import (
+	"os"
+	"strings"
+)
 
 func updateTag() {
 	old := string(tagWidget.ed.Contents())
@@ -23,6 +26,7 @@ func updateTag() {
 	if filename != "" && !mainWidget.ed.Saved() {
 		newParts = append(newParts, "Put")
 	}
+	newParts = append(newParts, "Exit")
 	newParts = append(newParts, "|")
 
 	new := strings.Join(newParts, " ")
@@ -37,7 +41,7 @@ func updateTag() {
 	tagWidget.ed.Load([]byte(new + user))
 }
 
-func editorCommand(cmd string) {
+func doEditorCommand(cmd string) {
 	cmd = strings.TrimSpace(cmd)
 	switch cmd {
 	case "Put":
@@ -46,5 +50,11 @@ func editorCommand(cmd string) {
 		mainWidget.ed.SendUndo()
 	case "Redo":
 		mainWidget.ed.SendRedo()
+	case "Exit":
+		if mainWidget.ed.Saved() {
+			os.Exit(0)
+		} else {
+			tagWidget.ed.Search("Put")
+		}
 	}
 }
