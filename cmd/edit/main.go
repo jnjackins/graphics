@@ -57,7 +57,7 @@ func main() {
 		defer win.Release()
 
 		// set up the editor widgets
-		pt, sz := image.Pt(winSize.X, tagHeight), image.ZP
+		sz, pt := image.Pt(winSize.X, tagHeight), image.ZP
 		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, font)
 
 		sz, pt = image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1)
