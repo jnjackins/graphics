@@ -61,6 +61,10 @@ func main() {
 			newWidget(scr, sz, image.Pt((width/2)+1, (height/2)+1), text4),
 		}
 
+		for _, w := range widgets {
+			defer w.release()
+		}
+
 		selected, _ := sel(image.ZP, widgets) // select the top left widget to start
 
 		for {
@@ -100,8 +104,7 @@ func main() {
 						dirty = true
 						wg.Add(1)
 						go func(w *widget) {
-							*w.buf.RGBA() = *w.ed.RGBA()
-							w.tx.Upload(w.r.Min, w.buf, w.buf.Bounds())
+							w.redraw()
 							wg.Done()
 						}(w)
 					}

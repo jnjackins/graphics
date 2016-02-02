@@ -59,9 +59,11 @@ func main() {
 		// set up the editor widgets
 		sz, pt := image.Pt(winSize.X, tagHeight), image.ZP
 		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, font)
+		defer tagWidget.release()
 
 		sz, pt = image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1)
 		mainWidget = newWidget(scr, sz, pt, editor.AcmeYellowTheme, font)
+		defer mainWidget.release()
 
 		// load file into main editor widget
 		loadMain(filename)

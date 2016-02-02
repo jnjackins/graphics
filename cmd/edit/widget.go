@@ -2,6 +2,7 @@ package main
 
 import (
 	"image"
+	"image/draw"
 
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/image/font"
@@ -69,6 +70,15 @@ func (w *widget) resize(s screen.Screen, size, loc image.Point) {
 }
 
 func (w *widget) redraw() {
-	*w.buf.RGBA() = *w.ed.RGBA()
-	w.tx.Upload(w.r.Min, w.buf, w.buf.Bounds())
+	draw.Draw(w.buf.RGBA(), w.ed.Bounds(), w.ed.RGBA(), image.ZP, draw.Src)
+
+	// This works on gldriver, but not x11driver.
+	//*w.buf.RGBA() = *w.ed.RGBA()
+
+	w.tx.Upload(image.ZP, w.buf, w.buf.Bounds())
+}
+
+func (w *widget) release() {
+	w.tx.Release()
+	w.buf.Release()
 }
