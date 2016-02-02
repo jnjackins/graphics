@@ -240,7 +240,7 @@ func (s *screenImpl) NewBuffer(size image.Point) (retBuf screen.Buffer, retErr e
 	// and fall back to regular pixmaps.
 
 	w, h := int64(size.X), int64(size.Y)
-	if w < 0 || maxShmSide < w || h < 0 || maxShmSide < h || maxShmSize < 4*w*h {
+	if w <= 0 || maxShmSide < w || h <= 0 || maxShmSide < h || maxShmSize < 4*w*h {
 		return nil, fmt.Errorf("x11driver: invalid buffer size %v", size)
 	}
 	xs, err := shm.NewSegId(s.xc)

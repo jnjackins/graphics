@@ -117,9 +117,6 @@ uint64 threadID() {
 	mouseEvent((GoUintptr)self, x, y, theEvent.type, theEvent.buttonNumber, theEvent.modifierFlags);
 }
 
-- (void)scrollEventNS:(NSEvent *)theEvent {
-}
-
 - (void)mouseDown:(NSEvent *)theEvent         { [self mouseEventNS:theEvent]; }
 - (void)mouseUp:(NSEvent *)theEvent           { [self mouseEventNS:theEvent]; }
 - (void)mouseDragged:(NSEvent *)theEvent      { [self mouseEventNS:theEvent]; }
