@@ -81,9 +81,6 @@ func main() {
 				e.Y -= float32(selected.r.Min.Y)
 
 				selected.ed.SendMouseEvent(e)
-				if e.Direction == mouse.DirRelease && e.Button == mouse.ButtonRight {
-					selected.ed.Search(selected.ed.GetSel())
-				}
 				win.Send(paint.Event{})
 
 			case mouse.ScrollEvent:
@@ -118,7 +115,7 @@ func main() {
 					for _, w := range widgets {
 						wg.Add(1)
 						go func(w *widget) {
-							screen.Copy(win, w.r.Min, w.tx, w.tx.Bounds(), screen.Src, nil)
+							win.Copy(w.r.Min, w.tx, w.tx.Bounds(), screen.Src, nil)
 							wg.Done()
 						}(w)
 					}

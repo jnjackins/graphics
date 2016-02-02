@@ -54,7 +54,8 @@ func doEditorCommand(cmd string) {
 		if mainWidget.ed.Saved() {
 			os.Exit(0)
 		} else {
-			tagWidget.ed.Search("Put")
+			// indicate that mainEditor is unsaved by selecting "Put"
+			tagWidget.ed.FindNext("Put")
 		}
 	}
 }

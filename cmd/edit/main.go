@@ -69,8 +69,8 @@ func main() {
 		// set up B2 and B3 actions
 		tagWidget.ed.B2Action = doEditorCommand
 		mainWidget.ed.B2Action = doEditorCommand
-		tagWidget.ed.B3Action = mainWidget.ed.Search
-		mainWidget.ed.B3Action = mainWidget.ed.Search
+		tagWidget.ed.B3Action = mainWidget.ed.FindNext
+		mainWidget.ed.B3Action = mainWidget.ed.FindNext
 
 		widgets := []*widget{
 			tagWidget,
@@ -138,7 +138,7 @@ func main() {
 				if dirty {
 					win.Fill(image.Rectangle{Max: winSize}, borderCol, screen.Src)
 					for _, w := range widgets {
-						screen.Copy(win, w.r.Min, w.tx, w.tx.Bounds(), screen.Src, nil)
+						win.Copy(w.r.Min, w.tx, w.tx.Bounds(), screen.Src, nil)
 					}
 					win.Publish()
 				}
