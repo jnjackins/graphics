@@ -16,7 +16,7 @@ const (
 )
 
 const dClickPause = 500 * time.Millisecond
-const twitch = 10 // pixels
+const twitch = 3 // pixels
 
 type mouseState struct {
 	buttons       uint32 // a bit field of mouse buttons currently pressed
@@ -54,11 +54,7 @@ func (ed *Editor) click(e mouse.Event) {
 	a, pt := ed.m.a, ed.m.pt
 
 	ed.m.buttons |= 1 << uint(e.Button)
-	if ed.m.buttons > b3 {
-		ed.m.chording = true
-	} else {
-		ed.m.sweepOrigin = pt
-	}
+	ed.m.sweepOrigin = pt
 
 	switch ed.m.buttons {
 	case b1:
@@ -78,6 +74,7 @@ func (ed *Editor) click(e mouse.Event) {
 
 	case b1 | b2:
 		// cut
+		ed.m.chording = true
 		ed.initTransformation()
 		ed.snarf()
 		ed.dot = ed.buf.ClearSel(ed.dot)
@@ -85,6 +82,7 @@ func (ed *Editor) click(e mouse.Event) {
 
 	case b1 | b3:
 		// paste
+		ed.m.chording = true
 		ed.initTransformation()
 		ed.paste()
 		ed.commitTransformation()
@@ -104,8 +102,7 @@ func (ed *Editor) sweep(e mouse.Event) {
 	if ed.m.chording == true {
 		return
 	}
-	if ed.m.buttons != b1 && isTwitch(pt, ed.m.sweepOrigin) {
-		// ignore twitches when handling non-B1 events
+	if isTwitch(pt, ed.m.sweepOrigin) {
 		return
 	}
 
@@ -141,10 +138,12 @@ func (ed *Editor) release(e mouse.Event) {
 	case b2:
 		if !ed.m.chording && ed.B2Action != nil {
 			ed.B2Action(ed.buf.GetSel(ed.dot))
+			ed.dirty = true
 		}
 	case b3:
 		if !ed.m.chording && ed.B3Action != nil {
 			ed.B3Action(ed.buf.GetSel(ed.dot))
+			ed.dirty = true
 		}
 	}
 
@@ -152,6 +151,4 @@ func (ed *Editor) release(e mouse.Event) {
 	if ed.m.buttons&(b1|b2|b3) == 0 {
 		ed.m.chording = false
 	}
-
-	ed.dirty = true
 }
