@@ -1,6 +1,3 @@
-// this file was adapted from the freetype package at
-// https://githued.com/jnjackins/freetype-go.
-
 package editor
 
 import (
@@ -38,10 +35,8 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
 	} else {
 		l.Adv = l.Adv[0:1]
 	}
-	l.Adv[0] = int16(0)
 	dot := fixed.P(pt.X, pt.Y+f.height-(f.height/4))
-	var i int
-	for _, r := range l.String() {
+	for i, r := range l.String() {
 		tab := r == '\t'
 		if tab {
 			// for the sake of variable-width fonts, try to pick a font with an
@@ -62,7 +57,6 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
 		}
 		dot.X += advance
 		l.Adv = append(l.Adv, l.Adv[i]+int16(advance>>6))
-		i++
 	}
 }
 
@@ -74,9 +68,7 @@ func (f fontface) measure(l *text.Line) {
 	} else {
 		l.Adv = l.Adv[0:1]
 	}
-	l.Adv[0] = 0
-	var i int
-	for _, r := range l.String() {
+	for i, r := range l.Runes() {
 		tab := r == '\t'
 		if tab {
 			// for the sake of variable-width fonts, try to pick a font with an
@@ -94,6 +86,5 @@ func (f fontface) measure(l *text.Line) {
 			advance *= tabwidth
 		}
 		l.Adv = append(l.Adv, l.Adv[i]+int16(advance>>6))
-		i++
 	}
 }

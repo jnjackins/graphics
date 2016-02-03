@@ -27,7 +27,7 @@ func (l *Line) bytes() []byte {
 	return l.s
 }
 
-func (l *Line) runes() []rune {
+func (l *Line) Runes() []rune {
 	return bytes.Runes(l.s)
 }
 

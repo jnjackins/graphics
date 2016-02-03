@@ -76,13 +76,13 @@ func (b *Buffer) GetSel(sel address.Selection) string {
 	}
 
 	ret := make([]rune, 0, 20*(sel.To.Row-sel.From.Row))
-	ret = append(ret, b.Lines[sel.From.Row].runes()[sel.From.Col:]...)
+	ret = append(ret, b.Lines[sel.From.Row].Runes()[sel.From.Col:]...)
 	ret = append(ret, '\n')
 	for i := sel.From.Row + 1; i < sel.To.Row; i++ {
-		ret = append(ret, b.Lines[i].runes()...)
+		ret = append(ret, b.Lines[i].Runes()...)
 		ret = append(ret, '\n')
 	}
-	ret = append(ret, b.Lines[sel.To.Row].runes()[:sel.To.Col]...)
+	ret = append(ret, b.Lines[sel.To.Row].Runes()[:sel.To.Col]...)
 	return string(ret)
 }
 
@@ -188,7 +188,7 @@ func (b *Buffer) SelLine(addr address.Simple) address.Selection {
 func (b *Buffer) SelWord(addr address.Simple) address.Selection {
 	sel := address.Selection{addr, addr}
 
-	line := b.Lines[addr.Row].runes()
+	line := b.Lines[addr.Row].Runes()
 	for col := addr.Col; col > 0 && isAlnum(line[col-1]); col-- {
 		sel.From.Col--
 	}
@@ -207,7 +207,7 @@ func (b *Buffer) selDelimited(addr address.Simple, leftDelims, rightDelims strin
 	sel := address.Selection{addr, addr}
 
 	var delim int
-	var line = b.Lines[addr.Row].runes()
+	var line = b.Lines[addr.Row].Runes()
 	var next func(address.Simple) address.Simple
 	var rightwards bool
 	if addr.Col > 0 {
@@ -239,7 +239,7 @@ func (b *Buffer) selDelimited(addr address.Simple, leftDelims, rightDelims strin
 	for match != prev {
 		prev = match
 		match = next(match)
-		line := b.Lines[match.Row].runes()
+		line := b.Lines[match.Row].Runes()
 		if match.Col > len(line)-1 {
 			continue
 		}
