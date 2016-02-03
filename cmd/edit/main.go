@@ -23,6 +23,7 @@ var (
 	filename   string
 	tagWidget  *widget
 	mainWidget *widget
+	win        screen.Window
 	winSize    = image.Pt(512, 512)
 	borderCol  = color.RGBA{R: 115, G: 115, B: 190, A: 255}
 	tagHeight  int
@@ -50,7 +51,8 @@ func main() {
 	tagHeight = h
 
 	driver.Main(func(scr screen.Screen) {
-		win, err := scr.NewWindow(nil)
+		var err error
+		win, err = scr.NewWindow(nil)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -69,10 +71,10 @@ func main() {
 		loadMain(filename)
 
 		// set up B2 and B3 actions
-		tagWidget.ed.B2Action = doEditorCommand
-		mainWidget.ed.B2Action = doEditorCommand
-		tagWidget.ed.B3Action = mainWidget.ed.FindNext
-		mainWidget.ed.B3Action = mainWidget.ed.FindNext
+		tagWidget.ed.B2Action = executeCmd
+		mainWidget.ed.B2Action = executeCmd
+		tagWidget.ed.B3Action = findInEditor
+		mainWidget.ed.B3Action = findInEditor
 
 		widgets := []*widget{
 			tagWidget,

@@ -1,8 +1,11 @@
 package main
 
 import (
-	"os"
 	"strings"
+	"time"
+	"unicode/utf8"
+
+	"golang.org/x/mobile/event/lifecycle"
 )
 
 func updateTag() {
@@ -41,7 +44,9 @@ func updateTag() {
 	tagWidget.ed.Load([]byte(new + user))
 }
 
-func doEditorCommand(cmd string) {
+var reallyQuit time.Time
+
+func executeCmd(cmd string) {
 	cmd = strings.TrimSpace(cmd)
 	switch cmd {
 	case "Put":
@@ -51,11 +56,24 @@ func doEditorCommand(cmd string) {
 	case "Redo":
 		mainWidget.ed.SendRedo()
 	case "Exit":
-		if mainWidget.ed.Saved() {
-			os.Exit(0)
+		if mainWidget.ed.Saved() || time.Since(reallyQuit) < 3*time.Second {
+			win.Send(lifecycle.Event{To: lifecycle.StageDead})
 		} else {
-			// indicate that mainEditor is unsaved by selecting "Put"
 			tagWidget.ed.FindNext("Put")
+			reallyQuit = time.Now()
 		}
+	}
+}
+
+func findInEditor(s string) {
+	if s == "" {
+		return
+	}
+	first, sz := utf8.DecodeRuneInString(s)
+	switch first {
+	case ':':
+		mainWidget.ed.JumpTo(s[sz:])
+	default:
+		mainWidget.ed.FindNext(s)
 	}
 }
