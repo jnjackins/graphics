@@ -1,8 +1,8 @@
 package editor
 
 import (
+	"sigint.ca/graphics/editor/internal/address"
 	"sigint.ca/graphics/editor/internal/hist"
-	"sigint.ca/graphics/editor/internal/text"
 )
 
 func (ed *Editor) undo() {
@@ -51,13 +51,13 @@ func (ed *Editor) commitTransformation() {
 		ed.uncommitted.Post.Text = ed.buf.GetSel(ed.dot)
 		ed.uncommitted.Post.Sel = ed.dot
 	} else {
-		ed.uncommitted.Post.Sel = text.Selection{
+		ed.uncommitted.Post.Sel = address.Selection{
 			ed.uncommitted.Pre.Sel.From,
 			ed.uncommitted.Pre.Sel.From,
 		}
 		for range ed.uncommitted.Post.Text {
 			// TODO: use measure and add?
-			ed.uncommitted.Post.Sel.To = ed.buf.NextAddress(ed.uncommitted.Post.Sel.To)
+			ed.uncommitted.Post.Sel.To = ed.buf.NextSimple(ed.uncommitted.Post.Sel.To)
 		}
 	}
 

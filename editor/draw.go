@@ -5,7 +5,7 @@ import (
 	"image/draw"
 	"sort"
 
-	"sigint.ca/graphics/editor/internal/text"
+	"sigint.ca/graphics/editor/internal/address"
 )
 
 func (ed *Editor) redraw() {
@@ -30,7 +30,7 @@ func (ed *Editor) redraw() {
 		}
 
 		// draw font overtop
-		pt := ed.getPixelsRel(text.Address{Row: row, Col: 0})
+		pt := ed.getPixelsRel(address.Simple{Row: row, Col: 0})
 		ed.font.draw(ed.img, pt, line)
 	}
 
@@ -49,13 +49,13 @@ func (ed *Editor) drawSelRect(row int) {
 	if row == ed.dot.From.Row {
 		r.Min = ed.getPixelsRel(ed.dot.From)
 	} else {
-		r.Min = ed.getPixelsRel(text.Address{Row: row, Col: 0})
+		r.Min = ed.getPixelsRel(address.Simple{Row: row, Col: 0})
 	}
 
 	if row == ed.dot.To.Row {
 		r.Max = ed.getPixelsRel(ed.dot.To)
 	} else {
-		r.Max = ed.getPixelsRel(text.Address{Row: row, Col: 0})
+		r.Max = ed.getPixelsRel(address.Simple{Row: row, Col: 0})
 		r.Max.X = ed.Bounds().Dx()
 	}
 	r.Max.Y += ed.font.height
@@ -86,7 +86,7 @@ func (ed *Editor) scroll(pt image.Point) {
 	if ed.visible().Min.Y < 0 {
 		ed.scrollPt.Y = 0
 	}
-	max := ed.getPixelsAbs(text.Address{Row: len(ed.buf.Lines) - 1})
+	max := ed.getPixelsAbs(address.Simple{Row: len(ed.buf.Lines) - 1})
 	if ed.visible().Min.Y > max.Y {
 		ed.scrollPt.Y = max.Y
 	}
@@ -94,7 +94,7 @@ func (ed *Editor) scroll(pt image.Point) {
 
 func (ed *Editor) autoscroll() {
 	visible := ed.visible()
-	pt := ed.getPixelsAbs(text.Address{Row: ed.dot.From.Row})
+	pt := ed.getPixelsAbs(address.Simple{Row: ed.dot.From.Row})
 	if pt.Y > visible.Min.Y && pt.Y+ed.font.height < visible.Max.Y {
 		return
 	}
@@ -105,7 +105,7 @@ func (ed *Editor) autoscroll() {
 	ed.scroll(image.ZP)
 }
 
-func (ed *Editor) getPixelsAbs(a text.Address) image.Point {
+func (ed *Editor) getPixelsAbs(a address.Simple) image.Point {
 	var x, y int
 	l := ed.buf.Lines[a.Row]
 
@@ -122,19 +122,19 @@ func (ed *Editor) getPixelsAbs(a text.Address) image.Point {
 	return image.Pt(x, y).Add(ed.opts.Margin)
 }
 
-func (ed *Editor) getPixelsRel(a text.Address) image.Point {
+func (ed *Editor) getPixelsRel(a address.Simple) image.Point {
 	return ed.getPixelsAbs(a).Sub(ed.visible().Min)
 }
 
-func (ed *Editor) getAddress(pt image.Point) text.Address {
+func (ed *Editor) getAddress(pt image.Point) address.Simple {
 	pt = pt.Sub(ed.opts.Margin)
 
 	// (0,0) if pt is above the buffer
 	if pt.Y < 0 {
-		return text.Address{}
+		return address.Simple{}
 	}
 
-	var addr text.Address
+	var addr address.Simple
 	addr.Row = pt.Y / ed.font.height
 
 	// end of the last line if addr is below the last line

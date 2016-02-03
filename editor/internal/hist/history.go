@@ -3,7 +3,7 @@ package hist
 import (
 	"fmt"
 
-	"sigint.ca/graphics/editor/internal/text"
+	"sigint.ca/graphics/editor/internal/address"
 )
 
 type History struct {
@@ -21,7 +21,7 @@ func (t *Transformation) String() string {
 
 type Chunk struct {
 	Text string
-	Sel  text.Selection
+	Sel  address.Selection
 }
 
 func (c Chunk) String() string {

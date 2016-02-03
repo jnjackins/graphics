@@ -5,6 +5,7 @@ import (
 	"image"
 
 	"sigint.ca/clip"
+	"sigint.ca/graphics/editor/internal/address"
 	"sigint.ca/graphics/editor/internal/hist"
 	"sigint.ca/graphics/editor/internal/text"
 
@@ -25,7 +26,7 @@ type Editor struct {
 
 	// textual state
 	buf *text.Buffer
-	dot text.Selection // the current selection
+	dot address.Selection // the current selection
 
 	// images and drawing data
 	img      *image.RGBA
@@ -103,9 +104,9 @@ func (ed *Editor) Dirty() bool {
 // Load replaces the contents of the Editor's text buffer with s, and resets the Editor's history.
 func (ed *Editor) Load(s []byte) {
 	last := len(ed.buf.Lines) - 1
-	all := text.Selection{To: text.Address{last, ed.buf.Lines[last].RuneCount()}}
+	all := address.Selection{To: address.Simple{last, ed.buf.Lines[last].RuneCount()}}
 	ed.dot = ed.buf.ClearSel(all)
-	ed.buf.InsertString(text.Address{0, 0}, string(s))
+	ed.buf.InsertString(address.Simple{0, 0}, string(s))
 	ed.history = new(hist.History)
 	ed.uncommitted = nil
 	ed.dirty = true
@@ -116,13 +117,25 @@ func (ed *Editor) Contents() []byte {
 	return ed.buf.Contents()
 }
 
-// Search searches for pattern in the Editor's text buffer, and selects the first match
-// starting from the Editor's current selection, possibly wrapping around to the beginning
+// FindNext searches for s in the Editor's text buffer, and selects the first match
+// starting from the current selection, possibly wrapping around to the beginning
 // of the buffer. If there are no matches, the selection is unchanged.
-func (ed *Editor) Search(pattern string) {
-	ed.dot, _ = ed.buf.Search(ed.dot.To, pattern)
-	ed.autoscroll()
-	ed.dirty = true
+// TODO: go back to dedicated implementation
+func (ed *Editor) FindNext(s string) {
+	if sel, ok := ed.buf.Find(ed.dot.To, s); ok {
+		ed.dot = sel
+		ed.autoscroll()
+		ed.dirty = true
+	}
+}
+
+// JumpTo sets the selection to the specified address, as define in sam(1).
+func (ed *Editor) JumpTo(addr string) {
+	if sel, ok := ed.buf.JumpTo(ed.dot.To, addr); ok {
+		ed.dot = sel
+		ed.autoscroll()
+		ed.dirty = true
+	}
 }
 
 // SetSaved instructs the Editor that the current contents should be

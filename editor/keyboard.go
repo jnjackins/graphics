@@ -5,7 +5,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"sigint.ca/graphics/editor/internal/text"
+	"sigint.ca/graphics/editor/internal/address"
 
 	"golang.org/x/mobile/event/key"
 )
@@ -38,10 +38,10 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 			ed.uncommitted.Post.Text = ed.uncommitted.Post.Text[:newSize]
 		} else {
 			// ed.uncommitted.Pre.Sel.From must also include the rune preceding dot
-			ed.uncommitted.Pre.Sel.From = ed.buf.PrevAddress(ed.uncommitted.Pre.Sel.From)
+			ed.uncommitted.Pre.Sel.From = ed.buf.PrevSimple(ed.uncommitted.Pre.Sel.From)
 			ed.uncommitted.Pre.Text = ed.buf.GetSel(ed.uncommitted.Pre.Sel)
 		}
-		ed.dot.From = ed.buf.PrevAddress(ed.dot.From)
+		ed.dot.From = ed.buf.PrevSimple(ed.dot.From)
 		ed.dot = ed.buf.ClearSel(ed.dot)
 		ed.commitTransformation()
 
@@ -65,12 +65,12 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 
 	case e.Code == key.CodeLeftArrow:
 		ed.commitTransformation()
-		a := ed.buf.PrevAddress(ed.dot.From)
+		a := ed.buf.PrevSimple(ed.dot.From)
 		ed.dot.From, ed.dot.To = a, a
 
 	case e.Code == key.CodeRightArrow:
 		ed.commitTransformation()
-		a := ed.buf.NextAddress(ed.dot.To)
+		a := ed.buf.NextSimple(ed.dot.To)
 		ed.dot.From, ed.dot.To = a, a
 
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
@@ -89,8 +89,8 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
 		ed.commitTransformation()
 		last := len(ed.buf.Lines) - 1
-		ed.dot.From = text.Address{0, 0}
-		ed.dot.To = text.Address{last, ed.buf.Lines[last].RuneCount()}
+		ed.dot.From = address.Simple{0, 0}
+		ed.dot.To = address.Simple{last, ed.buf.Lines[last].RuneCount()}
 
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
 		ed.commitTransformation()

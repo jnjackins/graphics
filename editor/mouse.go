@@ -4,7 +4,7 @@ import (
 	"image"
 	"time"
 
-	"sigint.ca/graphics/editor/internal/text"
+	"sigint.ca/graphics/editor/internal/address"
 
 	"golang.org/x/mobile/event/mouse"
 )
@@ -24,10 +24,10 @@ type mouseState struct {
 	lastClickTime time.Time // used to detect a double-click
 
 	pt image.Point
-	a  text.Address
+	a  address.Simple
 
-	sweepOrigin image.Point  // the origin of a sweep
-	sweepLast   text.Address // the last column that was swept
+	sweepOrigin image.Point    // the origin of a sweep
+	sweepLast   address.Simple // the last column that was swept
 }
 
 func (ed *Editor) handleMouseEvent(e mouse.Event) {
@@ -116,11 +116,11 @@ func (ed *Editor) sweep(e mouse.Event) {
 
 	origin := ed.getAddress(ed.m.sweepOrigin)
 	if a.LessThan(origin) {
-		ed.dot = text.Selection{a, origin}
+		ed.dot = address.Selection{a, origin}
 	} else if a != origin {
-		ed.dot = text.Selection{origin, a}
+		ed.dot = address.Selection{origin, a}
 	} else {
-		ed.dot = text.Selection{origin, origin}
+		ed.dot = address.Selection{origin, origin}
 	}
 
 	ed.dirty = true

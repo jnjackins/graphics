@@ -5,6 +5,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	"sigint.ca/graphics/editor/internal/address"
 )
 
 // TODO: rename to Doc?
@@ -18,7 +20,7 @@ func NewBuffer() *Buffer {
 	}
 }
 
-func (b *Buffer) NextAddress(a Address) Address {
+func (b *Buffer) NextSimple(a address.Simple) address.Simple {
 	if a.Col < b.Lines[a.Row].RuneCount() {
 		a.Col++
 	} else if a.Row < len(b.Lines)-1 {
@@ -28,7 +30,7 @@ func (b *Buffer) NextAddress(a Address) Address {
 	return a
 }
 
-func (b *Buffer) PrevAddress(a Address) Address {
+func (b *Buffer) PrevSimple(a address.Simple) address.Simple {
 	if a.Col > 0 {
 		a.Col--
 	} else if a.Row > 0 {
@@ -48,7 +50,7 @@ func (b *Buffer) Contents() []byte {
 	return buf.Bytes()[:buf.Len()-1]
 }
 
-func (b *Buffer) fixSel(sel Selection) Selection {
+func (b *Buffer) fixSel(sel address.Selection) address.Selection {
 	if sel.From.Col > b.Lines[sel.From.Row].RuneCount() {
 		sel.From.Col = b.Lines[sel.From.Row].RuneCount()
 	}
@@ -61,7 +63,7 @@ func (b *Buffer) fixSel(sel Selection) Selection {
 	return sel
 }
 
-func (b *Buffer) GetSel(sel Selection) string {
+func (b *Buffer) GetSel(sel address.Selection) string {
 	if sel.IsEmpty() {
 		return ""
 	}
@@ -84,7 +86,7 @@ func (b *Buffer) GetSel(sel Selection) string {
 	return string(ret)
 }
 
-func (b *Buffer) ClearSel(sel Selection) Selection {
+func (b *Buffer) ClearSel(sel address.Selection) address.Selection {
 	if sel.IsEmpty() {
 		return sel
 	}
@@ -101,12 +103,12 @@ func (b *Buffer) ClearSel(sel Selection) Selection {
 		// delete remaining Lines
 		b.Lines = append(b.Lines[:row1+1], b.Lines[row2+1:]...)
 	}
-	return Selection{sel.From, sel.From}
+	return address.Selection{sel.From, sel.From}
 }
 
 // InsertString inserts s into the buffer at a, adding new Lines if s
 // contains newline characters.
-func (b *Buffer) InsertString(addr Address, s string) Address {
+func (b *Buffer) InsertString(addr address.Simple, s string) address.Simple {
 	inputLines := strings.Split(s, "\n")
 	if len(inputLines) == 1 {
 		// fast path for inserts with no newline
@@ -145,7 +147,7 @@ func (b *Buffer) InsertString(addr Address, s string) Address {
 }
 
 // AutoSelect selects some text around a. Based on acme's double click selection rules.
-func (b *Buffer) AutoSelect(addr Address) Selection {
+func (b *Buffer) AutoSelect(addr address.Simple) address.Selection {
 	// selections to attempt, in order:
 	//  - bracketed text
 	//  - the entire line
@@ -169,8 +171,8 @@ func (b *Buffer) AutoSelect(addr Address) Selection {
 }
 
 // SelLine selects a line.
-func (b *Buffer) SelLine(addr Address) Selection {
-	sel := Selection{addr, addr}
+func (b *Buffer) SelLine(addr address.Simple) address.Selection {
+	sel := address.Selection{addr, addr}
 	sel.From.Col = 0
 	if addr.Row+1 < len(b.Lines) {
 		sel.To.Row++
@@ -183,8 +185,8 @@ func (b *Buffer) SelLine(addr Address) Selection {
 
 // SelWord selects a word. If we're on a non-alphanumeric, attempt to select a word to
 // the left of the click; otherwise expand across alphanumerics in both directions.
-func (b *Buffer) SelWord(addr Address) Selection {
-	sel := Selection{addr, addr}
+func (b *Buffer) SelWord(addr address.Simple) address.Selection {
+	sel := address.Selection{addr, addr}
 
 	line := b.Lines[addr.Row].runes()
 	for col := addr.Col; col > 0 && isAlnum(line[col-1]); col-- {
@@ -201,17 +203,17 @@ func isAlnum(c rune) bool {
 }
 
 // SelDelimited returns true if a selection was attempted, successfully or not.
-func (b *Buffer) selDelimited(addr Address, leftDelims, rightDelims string) (Selection, bool) {
-	sel := Selection{addr, addr}
+func (b *Buffer) selDelimited(addr address.Simple, leftDelims, rightDelims string) (address.Selection, bool) {
+	sel := address.Selection{addr, addr}
 
 	var delim int
 	var line = b.Lines[addr.Row].runes()
-	var next func(Address) Address
+	var next func(address.Simple) address.Simple
 	var rightwards bool
 	if addr.Col > 0 {
 		if delim = strings.IndexRune(leftDelims, line[addr.Col-1]); delim != -1 {
 			// scan to the right, from a left delimiter
-			next = b.NextAddress
+			next = b.NextSimple
 			rightwards = true
 
 			// the user double-clicked to the right of a left delimiter; move addr
@@ -224,7 +226,7 @@ func (b *Buffer) selDelimited(addr Address, leftDelims, rightDelims string) (Sel
 			// scan to the left, from a right delimiter
 			// swap delimiters so that delim1 refers to the first one we encountered
 			leftDelims, rightDelims = rightDelims, leftDelims
-			next = b.PrevAddress
+			next = b.PrevSimple
 		}
 	}
 	if next == nil {
@@ -233,7 +235,7 @@ func (b *Buffer) selDelimited(addr Address, leftDelims, rightDelims string) (Sel
 
 	stack := 0
 	match := addr
-	prev := Address{-1, -1}
+	prev := address.Simple{-1, -1}
 	for match != prev {
 		prev = match
 		match = next(match)

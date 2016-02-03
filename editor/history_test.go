@@ -4,7 +4,7 @@ import (
 	"image"
 	"testing"
 
-	"sigint.ca/graphics/editor/internal/text"
+	"sigint.ca/graphics/editor/internal/address"
 
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/mobile/event/key"
@@ -42,9 +42,9 @@ func TestHistory(t *testing.T) {
 	ed.Load([]byte(s1 + "\n"))
 
 	// move the cursor to the end of the loaded text
-	ed.dot = text.Selection{
-		From: text.Address{1, 0},
-		To:   text.Address{1, 0},
+	ed.dot = address.Selection{
+		From: address.Simple{1, 0},
+		To:   address.Simple{1, 0},
 	}
 
 	// simulate typing of 2 more lines
