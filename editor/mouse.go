@@ -70,7 +70,9 @@ func (ed *Editor) click(e mouse.Event) {
 		}
 
 	case b2, b3:
-		ed.dot = ed.buf.SelWord(a)
+		if ed.dot.IsEmpty() {
+			ed.dot = ed.buf.SelWord(a)
+		}
 
 	case b1 | b2:
 		// cut
