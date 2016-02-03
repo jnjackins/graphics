@@ -3,20 +3,24 @@ package hist
 import (
 	"testing"
 
-	"sigint.ca/graphics/editor/internal/text"
+	"sigint.ca/graphics/editor/internal/address"
 )
+
+func sel(r1, c1, r2, c2 int) address.Selection {
+	return address.Selection{From: address.Simple{Row: r1, Col: c1}, To: address.Simple{Row: r2, Col: c2}}
+}
 
 func TestUndoRedo(t *testing.T) {
 	h := new(History)
-	h.Current().Pre = Chunk{Text: "foo", Sel: text.Sel(1, 0, 1, 2)}
-	h.Current().Post = Chunk{Text: "foobar", Sel: text.Sel(1, 0, 1, 5)}
+	h.Current().Pre = Chunk{Text: "foo", Sel: sel(1, 0, 1, 2)}
+	h.Current().Post = Chunk{Text: "foobar", Sel: sel(1, 0, 1, 5)}
 	h.Commit()
 
 	ch, ok := h.Undo()
 	if !ok {
 		t.Errorf("got ok=%v, expected %v", ok, true)
 	}
-	expected := Chunk{Text: "foo", Sel: text.Sel(1, 0, 1, 5)}
+	expected := Chunk{Text: "foo", Sel: sel(1, 0, 1, 5)}
 	if ch.Sel != expected.Sel {
 		t.Errorf("got ch.Sel=%v, expected %v", ch.Sel, expected.Sel)
 	}
@@ -28,7 +32,7 @@ func TestUndoRedo(t *testing.T) {
 	if !ok {
 		t.Errorf("got ok=%v, expected %v", ok, true)
 	}
-	expected = Chunk{Text: "foobar", Sel: text.Sel(1, 0, 1, 2)}
+	expected = Chunk{Text: "foobar", Sel: sel(1, 0, 1, 2)}
 	if ch.Sel != expected.Sel {
 		t.Errorf("got ch.Sel=%v, expected %v", ch.Sel, expected.Sel)
 	}

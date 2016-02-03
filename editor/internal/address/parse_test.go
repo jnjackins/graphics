@@ -21,12 +21,12 @@ func TestParseAddress(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		addr, ok := parseAddress(c.addr)
+		addr, ok := ParseAddress(c.addr)
 		if !ok {
 			t.Errorf("test case #%d: parseAddress: got ok=false, wanted ok=true", i)
 			continue
 		}
-		got, ok := addr.Execute([]byte(c.text))
+		got, ok := addr.Execute(c.text)
 		if !ok {
 			t.Errorf("test case #%d: Execute: got ok=false, wanted ok=true", i)
 			continue
