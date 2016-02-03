@@ -36,6 +36,10 @@ func (a1 Simple) LessThan(a2 Simple) bool {
 	return a1.Row < a2.Row || (a1.Row == a2.Row && a1.Col < a2.Col)
 }
 
+func (a Simple) In(sel Selection) bool {
+	return sel.From.LessThan(a) && a.LessThan(sel.To)
+}
+
 func (a Simple) Execute(s string) (Selection, bool) {
 	return Selection{From: a, To: a}, true
 }

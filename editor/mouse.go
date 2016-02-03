@@ -70,7 +70,7 @@ func (ed *Editor) click(e mouse.Event) {
 		}
 
 	case b2, b3:
-		if ed.dot.IsEmpty() {
+		if ed.dot.IsEmpty() || !a.In(ed.dot) {
 			ed.dot = ed.buf.SelWord(a)
 		}
 
