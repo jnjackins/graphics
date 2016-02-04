@@ -36,7 +36,7 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line, src *image.
 		l.Adv = l.Adv[0:1]
 	}
 	dot := fixed.P(pt.X, pt.Y+f.height-(f.height/4))
-	for i, r := range l.String() {
+	for i, r := range l.Runes() {
 		tab := r == '\t'
 		if tab {
 			// for the sake of variable-width fonts, try to pick a font with an
@@ -60,8 +60,7 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line, src *image.
 	}
 }
 
-// measure returns the cumulative advance in pixel for each glyph in s,
-// beginning from the pixel value start.
+// measure returns the cumulative advance in pixels for each glyph in s.
 func (f fontface) measure(l *text.Line) {
 	if l.Adv == nil {
 		l.Adv = make([]int16, 1, l.RuneCount()+1)
