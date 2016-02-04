@@ -38,16 +38,35 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	// a mouse event commits any pending transformation
 	ed.commitTransformation()
 
-	ed.m.pt = image.Pt(int(e.X), int(e.Y)).Add(ed.visible().Min) // adjust for scrolling
+	pt := image.Pt(int(e.X), int(e.Y))
+	ed.m.pt = pt.Add(ed.visible().Min) // adjust for scrolling
 	ed.m.a = ed.getAddress(ed.m.pt)
 
-	if e.Direction == mouse.DirPress {
+	if pt.In(ed.SBRect()) && e.Direction != mouse.DirRelease {
+		ed.clickSB(e)
+	} else if e.Direction == mouse.DirPress {
 		ed.click(e)
 	} else if e.Direction == mouse.DirNone {
 		ed.sweep(e)
 	} else if e.Direction == mouse.DirRelease {
 		ed.release(e)
 	}
+}
+
+// scrollbar click
+func (ed *Editor) clickSB(e mouse.Event) {
+	height := float64(ed.visible().Dy())
+	percent := (float64(e.Y) + float64(ed.r.Min.Y)) / height
+	// disregard any chording; act on individual mouse.DirPress events
+	switch e.Button {
+	case mouse.ButtonLeft:
+		ed.scroll(image.Pt(0, int(height*percent)))
+	case mouse.ButtonMiddle:
+		ed.scrollPt.Y = int(float64(ed.docHeight()) * percent)
+	case mouse.ButtonRight:
+		ed.scroll(image.Pt(0, int(-height*percent)))
+	}
+	ed.dirty = true
 }
 
 func (ed *Editor) click(e mouse.Event) {
