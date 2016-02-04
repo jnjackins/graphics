@@ -53,8 +53,10 @@ func executeCmd(cmd string) {
 		save()
 	case "Undo":
 		mainWidget.ed.SendUndo()
+		tagWidget.ed.Load([]byte{}) // force tag regeneration
 	case "Redo":
 		mainWidget.ed.SendRedo()
+		tagWidget.ed.Load([]byte{})
 	case "Exit":
 		if mainWidget.ed.Saved() || time.Since(reallyQuit) < 3*time.Second {
 			win.Send(lifecycle.Event{To: lifecycle.StageDead})
