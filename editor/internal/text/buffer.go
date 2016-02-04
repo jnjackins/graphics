@@ -189,17 +189,17 @@ func (b *Buffer) SelWord(addr address.Simple) address.Selection {
 	sel := address.Selection{addr, addr}
 
 	line := b.Lines[addr.Row].Runes()
-	for col := addr.Col; col > 0 && isAlnum(line[col-1]); col-- {
+	for col := addr.Col; col > 0 && isWordChar(line[col-1]); col-- {
 		sel.From.Col--
 	}
-	for col := addr.Col; col < len(line) && isAlnum(line[col]); col++ {
+	for col := addr.Col; col < len(line) && isWordChar(line[col]); col++ {
 		sel.To.Col++
 	}
 	return sel
 }
 
-func isAlnum(c rune) bool {
-	return unicode.IsLetter(c) || unicode.IsNumber(c)
+func isWordChar(c rune) bool {
+	return unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_'
 }
 
 // SelDelimited returns true if a selection was attempted, successfully or not.

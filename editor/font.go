@@ -29,7 +29,7 @@ func mkFont(face font.Face) fontface {
 
 // draw draws s onto dst starting at pt. It returns the cumulative advance
 // in pixels of each glyph.
-func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
+func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line, src *image.Uniform) {
 	if l.Adv == nil {
 		l.Adv = make([]int16, 1, l.RuneCount()+1)
 	} else {
@@ -53,7 +53,7 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line) {
 		if tab {
 			advance *= tabwidth
 		} else {
-			draw.DrawMask(dst, dr, image.Black, dr.Min, mask, maskp, draw.Over)
+			draw.DrawMask(dst, dr, src, dr.Min, mask, maskp, draw.Over)
 		}
 		dot.X += advance
 		l.Adv = append(l.Adv, l.Adv[i]+int16(advance>>6))

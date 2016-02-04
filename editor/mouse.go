@@ -110,7 +110,7 @@ func (ed *Editor) sweep(e mouse.Event) {
 
 	if pt.Y <= vis.Min.Y && vis.Min.Y > 0 {
 		ed.scroll(image.Pt(0, ed.font.height))
-	} else if pt.Y >= vis.Max.Y && vis.Max.Y < (len(ed.buf.Lines)-1)*ed.font.height {
+	} else if pt.Y >= vis.Max.Y && vis.Max.Y < ed.docHeight() {
 		ed.scroll(image.Pt(0, -ed.font.height))
 	}
 

@@ -8,8 +8,11 @@ import (
 	"sigint.ca/graphics/editor/internal/address"
 )
 
+const sbwidth = 20
+
 func (ed *Editor) redraw() {
-	draw.Draw(ed.img, ed.Bounds(), ed.opts.BGColor, image.ZP, draw.Src)
+	draw.Draw(ed.img, ed.Bounds(), ed.opts.BG1, image.ZP, draw.Src)
+	ed.drawSB()
 
 	from, to := ed.visibleRows()
 	for row := from; row < to; row++ {
@@ -31,7 +34,7 @@ func (ed *Editor) redraw() {
 
 		// draw font overtop
 		pt := ed.getPixelsRel(address.Simple{Row: row, Col: 0})
-		ed.font.draw(ed.img, pt, line)
+		ed.font.draw(ed.img, pt, line, ed.opts.Text)
 	}
 
 	// draw cursor
@@ -60,7 +63,11 @@ func (ed *Editor) drawSelRect(row int) {
 	}
 	r.Max.Y += ed.font.height
 
-	draw.Draw(ed.img, r, ed.opts.SelColor, image.ZP, draw.Src)
+	draw.Draw(ed.img, r, ed.opts.Sel, image.ZP, draw.Src)
+}
+
+func (ed *Editor) docHeight() int {
+	return (len(ed.buf.Lines) - 1) * ed.font.height
 }
 
 func (ed *Editor) visible() image.Rectangle {
@@ -119,7 +126,11 @@ func (ed *Editor) getPixelsAbs(a address.Simple) image.Point {
 
 	y = a.Row * ed.font.height
 
-	return image.Pt(x, y).Add(ed.opts.Margin)
+	pt := image.Pt(x, y).Add(ed.opts.Margin)
+	if ed.opts.ScrollBar {
+		pt.X += sbwidth
+	}
+	return pt
 }
 
 func (ed *Editor) getPixelsRel(a address.Simple) image.Point {
@@ -128,6 +139,9 @@ func (ed *Editor) getPixelsRel(a address.Simple) image.Point {
 
 func (ed *Editor) getAddress(pt image.Point) address.Simple {
 	pt = pt.Sub(ed.opts.Margin)
+	if ed.opts.ScrollBar {
+		pt.X -= sbwidth
+	}
 
 	// (0,0) if pt is above the buffer
 	if pt.Y < 0 {
@@ -160,4 +174,29 @@ func (ed *Editor) getAddress(pt image.Point) address.Simple {
 		addr.Col = n - 1
 	}
 	return addr
+}
+
+func (ed *Editor) SBRect() image.Rectangle {
+	if !ed.opts.ScrollBar {
+		return image.ZR
+	}
+	return image.Rect(0, 0, sbwidth, ed.visible().Dy())
+}
+
+func (ed *Editor) drawSB() {
+	if !ed.opts.ScrollBar {
+		return
+	}
+	draw.Draw(ed.img, ed.SBRect(), ed.opts.BG2, image.ZP, draw.Src)
+	slider := sliderRect(ed.visible(), ed.docHeight(), sbwidth)
+	draw.Draw(ed.img, slider, ed.opts.BG1, image.ZP, draw.Src)
+}
+
+func sliderRect(visible image.Rectangle, docHeight, width int) image.Rectangle {
+	barHeight := float64(visible.Dy())
+	sliderHeight := int(barHeight * float64(visible.Dy()) / float64(docHeight))
+	sliderPos := int(barHeight * float64(visible.Min.Y) / float64(docHeight))
+	sliderPos -= 3 // show a wee bit of slider when we're scrolled to the bottom, like acme
+
+	return image.Rect(0, sliderPos, width-1, sliderPos+sliderHeight)
 }
