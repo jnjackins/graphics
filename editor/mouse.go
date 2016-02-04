@@ -42,8 +42,8 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	ed.m.pt = pt.Add(ed.visible().Min) // adjust for scrolling
 	ed.m.a = ed.getAddress(ed.m.pt)
 
-	if pt.In(ed.sbrect()) && e.Direction != mouse.DirRelease {
-		ed.clicksb(e)
+	if pt.In(ed.sbRect()) && e.Direction != mouse.DirRelease {
+		ed.clickSb(e)
 	} else if e.Direction == mouse.DirPress {
 		ed.click(e)
 	} else if e.Direction == mouse.DirNone {
@@ -54,7 +54,7 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 }
 
 // scrollbar click
-func (ed *Editor) clicksb(e mouse.Event) {
+func (ed *Editor) clickSb(e mouse.Event) {
 	height := float64(ed.visible().Dy())
 	percent := (float64(e.Y) + float64(ed.r.Min.Y)) / height
 	// disregard any chording; act on individual mouse.DirPress events

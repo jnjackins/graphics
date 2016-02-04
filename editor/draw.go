@@ -3,6 +3,7 @@ package editor
 import (
 	"image"
 	"image/draw"
+	"math"
 	"sort"
 
 	"sigint.ca/graphics/editor/internal/address"
@@ -13,7 +14,7 @@ const sbwidth = 20
 func (ed *Editor) draw(dst *image.RGBA) {
 	ed.r = dst.Bounds()
 	draw.Draw(dst, ed.r, ed.opts.BG1, image.ZP, draw.Src)
-	ed.drawsb(dst)
+	ed.drawSb(dst)
 
 	from, to := ed.visibleRows()
 	for row := from; row < to; row++ {
@@ -177,27 +178,27 @@ func (ed *Editor) getAddress(pt image.Point) address.Simple {
 	return addr
 }
 
-func (ed *Editor) sbrect() image.Rectangle {
+func (ed *Editor) sbRect() image.Rectangle {
 	if !ed.opts.ScrollBar {
 		return image.ZR
 	}
 	return image.Rect(0, 0, sbwidth, ed.visible().Dy())
 }
 
-func (ed *Editor) drawsb(dst *image.RGBA) {
+func (ed *Editor) drawSb(dst *image.RGBA) {
 	if !ed.opts.ScrollBar {
 		return
 	}
-	draw.Draw(dst, ed.sbrect(), ed.opts.BG2, image.ZP, draw.Src)
+	draw.Draw(dst, ed.sbRect(), ed.opts.BG2, image.ZP, draw.Src)
 	slider := sliderRect(ed.visible(), ed.docHeight(), sbwidth)
 	draw.Draw(dst, slider, ed.opts.BG1, image.ZP, draw.Src)
 }
 
 func sliderRect(visible image.Rectangle, docHeight, width int) image.Rectangle {
 	barHeight := float64(visible.Dy())
-	sliderHeight := int(barHeight * float64(visible.Dy()) / float64(docHeight))
-	sliderPos := int(barHeight * float64(visible.Min.Y) / float64(docHeight))
-	sliderPos -= 3 // show a wee bit of slider when we're scrolled to the bottom, like acme
-
-	return image.Rect(0, sliderPos, width-1, sliderPos+sliderHeight)
+	h := barHeight * float64(visible.Dy()) / float64(docHeight)
+	sliderHeight := int(math.Max(h, 10))
+	pos := int(barHeight * float64(visible.Min.Y) / float64(docHeight))
+	pos -= 3 // show a wee bit of slider when we're scrolled to the bottom, like acme
+	return image.Rect(0, pos, width-1, pos+sliderHeight)
 }
