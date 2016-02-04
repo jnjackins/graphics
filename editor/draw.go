@@ -13,7 +13,7 @@ const sbwidth = 20
 func (ed *Editor) draw(dst *image.RGBA) {
 	ed.r = dst.Bounds()
 	draw.Draw(dst, ed.r, ed.opts.BG1, image.ZP, draw.Src)
-	ed.drawSB(dst)
+	ed.drawsb(dst)
 
 	from, to := ed.visibleRows()
 	for row := from; row < to; row++ {
@@ -177,18 +177,18 @@ func (ed *Editor) getAddress(pt image.Point) address.Simple {
 	return addr
 }
 
-func (ed *Editor) SBRect() image.Rectangle {
+func (ed *Editor) sbrect() image.Rectangle {
 	if !ed.opts.ScrollBar {
 		return image.ZR
 	}
 	return image.Rect(0, 0, sbwidth, ed.visible().Dy())
 }
 
-func (ed *Editor) drawSB(dst *image.RGBA) {
+func (ed *Editor) drawsb(dst *image.RGBA) {
 	if !ed.opts.ScrollBar {
 		return
 	}
-	draw.Draw(dst, ed.SBRect(), ed.opts.BG2, image.ZP, draw.Src)
+	draw.Draw(dst, ed.sbrect(), ed.opts.BG2, image.ZP, draw.Src)
 	slider := sliderRect(ed.visible(), ed.docHeight(), sbwidth)
 	draw.Draw(dst, slider, ed.opts.BG1, image.ZP, draw.Src)
 }
