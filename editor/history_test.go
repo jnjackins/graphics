@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"image"
 	"testing"
 
 	"sigint.ca/graphics/editor/internal/address"
@@ -35,7 +34,7 @@ var (
 
 func TestHistory(t *testing.T) {
 	face := basicfont.Face7x13
-	ed := NewEditor(image.Pt(100, 100), face, AcmeYellowTheme)
+	ed := NewEditor(face, AcmeYellowTheme)
 
 	// start with one line
 	s1 := "The quick brown fox jumps over the lazy dog."

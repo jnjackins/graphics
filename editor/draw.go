@@ -10,9 +10,10 @@ import (
 
 const sbwidth = 20
 
-func (ed *Editor) redraw() {
-	draw.Draw(ed.img, ed.Bounds(), ed.opts.BG1, image.ZP, draw.Src)
-	ed.drawSB()
+func (ed *Editor) draw(dst *image.RGBA) {
+	ed.r = dst.Bounds()
+	draw.Draw(dst, ed.r, ed.opts.BG1, image.ZP, draw.Src)
+	ed.drawSB(dst)
 
 	from, to := ed.visibleRows()
 	for row := from; row < to; row++ {
@@ -29,12 +30,12 @@ func (ed *Editor) redraw() {
 			if row == ed.dot.From.Row || row == ed.dot.To.Row {
 				ed.font.measure(line)
 			}
-			ed.drawSelRect(row)
+			ed.drawSelRect(dst, row)
 		}
 
 		// draw font overtop
 		pt := ed.getPixelsRel(address.Simple{Row: row, Col: 0})
-		ed.font.draw(ed.img, pt, line, ed.opts.Text)
+		ed.font.draw(dst, pt, line, ed.opts.Text)
 	}
 
 	// draw cursor
@@ -42,11 +43,11 @@ func (ed *Editor) redraw() {
 		cursor := ed.opts.Cursor(ed.font.height)
 		pt := ed.getPixelsRel(ed.dot.From)
 		pt.X-- // match acme
-		draw.Draw(ed.img, cursor.Bounds().Add(pt), cursor, image.ZP, draw.Over)
+		draw.Draw(dst, cursor.Bounds().Add(pt), cursor, image.ZP, draw.Over)
 	}
 }
 
-func (ed *Editor) drawSelRect(row int) {
+func (ed *Editor) drawSelRect(dst *image.RGBA, row int) {
 	var r image.Rectangle
 
 	if row == ed.dot.From.Row {
@@ -59,11 +60,11 @@ func (ed *Editor) drawSelRect(row int) {
 		r.Max = ed.getPixelsRel(ed.dot.To)
 	} else {
 		r.Max = ed.getPixelsRel(address.Simple{Row: row, Col: 0})
-		r.Max.X = ed.Bounds().Dx()
+		r.Max.X = ed.r.Dx()
 	}
 	r.Max.Y += ed.font.height
 
-	draw.Draw(ed.img, r, ed.opts.Sel, image.ZP, draw.Src)
+	draw.Draw(dst, r, ed.opts.Sel, image.ZP, draw.Src)
 }
 
 func (ed *Editor) docHeight() int {
@@ -73,7 +74,7 @@ func (ed *Editor) docHeight() int {
 func (ed *Editor) visible() image.Rectangle {
 	return image.Rectangle{
 		Min: ed.scrollPt,
-		Max: ed.scrollPt.Add(ed.Bounds().Size()),
+		Max: ed.scrollPt.Add(ed.r.Size()),
 	}
 }
 
@@ -183,13 +184,13 @@ func (ed *Editor) SBRect() image.Rectangle {
 	return image.Rect(0, 0, sbwidth, ed.visible().Dy())
 }
 
-func (ed *Editor) drawSB() {
+func (ed *Editor) drawSB(dst *image.RGBA) {
 	if !ed.opts.ScrollBar {
 		return
 	}
-	draw.Draw(ed.img, ed.SBRect(), ed.opts.BG2, image.ZP, draw.Src)
+	draw.Draw(dst, ed.SBRect(), ed.opts.BG2, image.ZP, draw.Src)
 	slider := sliderRect(ed.visible(), ed.docHeight(), sbwidth)
-	draw.Draw(ed.img, slider, ed.opts.BG1, image.ZP, draw.Src)
+	draw.Draw(dst, slider, ed.opts.BG1, image.ZP, draw.Src)
 }
 
 func sliderRect(visible image.Rectangle, docHeight, width int) image.Rectangle {

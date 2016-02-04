@@ -28,8 +28,8 @@ type Editor struct {
 	buf *text.Buffer
 	dot address.Selection // the current selection
 
-	// images and drawing data
-	img      *image.RGBA
+	// drawing data
+	r        image.Rectangle
 	font     fontface
 	scrollPt image.Point
 	dirty    bool
@@ -46,13 +46,12 @@ type Editor struct {
 
 // NewEditor returns a new Editor with a clipping rectangle defined by size, a font face,
 // and an OptionSet opts. If opts is nil, editor.SimpleTheme will be used.
-func NewEditor(size image.Point, face font.Face, opts *OptionSet) *Editor {
+func NewEditor(face font.Face, opts *OptionSet) *Editor {
 	if opts == nil {
 		opts = SimpleTheme
 	}
 	ed := &Editor{
 		buf:       text.NewBuffer(),
-		img:       image.NewRGBA(image.Rectangle{Max: size}),
 		font:      mkFont(face),
 		dirty:     true,
 		opts:      opts,
@@ -74,29 +73,13 @@ func (ed *Editor) SetOpts(opts *OptionSet) {
 	ed.dirty = true
 }
 
-// Bounds returns the bounding rectangle of the Editor's image.
-func (ed *Editor) Bounds() image.Rectangle {
-	return ed.img.Bounds()
+// Redraw draws the editor onto dst.
+func (ed *Editor) Draw(dst *image.RGBA) {
+	ed.draw(dst)
+	ed.dirty = false
 }
 
-// Resize resizes the Editor. Subsequent calls to RGBA will return an image of the given size.
-func (ed *Editor) Resize(size image.Point) {
-	r := image.Rectangle{Max: size}
-	ed.img = image.NewRGBA(r)
-	ed.dirty = true
-}
-
-// RGBA returns an image representing the current state of the Editor, suitable for drawing to
-// a screen or window.
-func (ed *Editor) RGBA() (img *image.RGBA) {
-	if ed.dirty {
-		ed.redraw()
-		ed.dirty = false
-	}
-	return ed.img
-}
-
-// Dirty reports whether the next call to RGBA will result in a different image than the previous call.
+// Dirty reports whether the next call to Draw will result in a different image than the previous call.
 func (ed *Editor) Dirty() bool {
 	return ed.dirty
 }

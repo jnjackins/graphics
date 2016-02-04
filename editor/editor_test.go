@@ -1,7 +1,6 @@
 package editor
 
 import (
-	"image"
 	"testing"
 
 	"golang.org/x/image/font/basicfont"
@@ -10,7 +9,7 @@ import (
 
 func TestContents(t *testing.T) {
 	face := basicfont.Face7x13
-	ed := NewEditor(image.Pt(100, 100), face, AcmeYellowTheme)
+	ed := NewEditor(face, AcmeYellowTheme)
 
 	input := `The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
@@ -25,7 +24,7 @@ The quick brown fox jumps over the lazy dog.`
 
 func BenchmarkContents(b *testing.B) {
 	face := basicfont.Face7x13
-	ed := NewEditor(image.Pt(100, 100), face, AcmeYellowTheme)
+	ed := NewEditor(face, AcmeYellowTheme)
 
 	input := `The quick brown fox jumps over the lazy dog.
 速い茶色のキツネは、のろまなイヌに飛びかかりました。
@@ -39,7 +38,7 @@ The quick brown fox jumps over the lazy dog.`
 
 func TestSetSaved(t *testing.T) {
 	face := basicfont.Face7x13
-	ed := NewEditor(image.Pt(100, 100), face, AcmeYellowTheme)
+	ed := NewEditor(face, AcmeYellowTheme)
 
 	if ed.Saved() {
 		t.Error("expected Saved=false, got Saved=true")

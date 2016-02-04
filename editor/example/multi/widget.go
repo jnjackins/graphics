@@ -4,7 +4,6 @@ package main
 
 import (
 	"image"
-	"image/draw"
 
 	"golang.org/x/exp/shiny/screen"
 	"golang.org/x/image/font/basicfont"
@@ -28,7 +27,7 @@ func newWidget(s screen.Screen, size, loc image.Point, contents string) *widget 
 		panic("error creating texture: " + err.Error())
 	}
 	w := &widget{
-		ed:  editor.NewEditor(size, basicfont.Face7x13, editor.AcmeYellowTheme),
+		ed:  editor.NewEditor(basicfont.Face7x13, editor.AcmeYellowTheme),
 		r:   image.Rectangle{loc, loc.Add(size)},
 		buf: buf,
 		tx:  tx,
@@ -38,7 +37,6 @@ func newWidget(s screen.Screen, size, loc image.Point, contents string) *widget 
 }
 
 func (w *widget) resize(s screen.Screen, size, loc image.Point) {
-	w.ed.Resize(size)
 	w.r = image.Rectangle{loc, loc.Add(size)}
 
 	w.buf.Release()
@@ -57,11 +55,7 @@ func (w *widget) resize(s screen.Screen, size, loc image.Point) {
 }
 
 func (w *widget) redraw() {
-	draw.Draw(w.buf.RGBA(), w.ed.Bounds(), w.ed.RGBA(), image.ZP, draw.Src)
-
-	// This works on gldriver, but not x11driver.
-	//*w.buf.RGBA() = *w.ed.RGBA()
-
+	w.ed.Draw(w.buf.RGBA())
 	w.tx.Upload(image.ZP, w.buf, w.buf.Bounds())
 }
 
