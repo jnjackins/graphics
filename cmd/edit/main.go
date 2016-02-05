@@ -149,7 +149,6 @@ func main() {
 
 			case size.Event:
 				resize(scr, e.Size())
-				win.Send(paint.Event{})
 
 			case lifecycle.Event:
 				if e.To == lifecycle.StageDead {

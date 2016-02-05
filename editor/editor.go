@@ -84,6 +84,12 @@ func (ed *Editor) Dirty() bool {
 	return ed.dirty
 }
 
+// SetDirty ensures that the next call to Dirty will be true. This may be useful in situations
+// where the client needs to force a redraw of the editor.
+func (ed *Editor) SetDirty() {
+	ed.dirty = true
+}
+
 // Load replaces the contents of the Editor's text buffer with s, and resets the Editor's history.
 func (ed *Editor) Load(s []byte) {
 	last := len(ed.buf.Lines) - 1
