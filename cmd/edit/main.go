@@ -24,7 +24,7 @@ var (
 	tagWidget  *widget
 	mainWidget *widget
 	win        screen.Window
-	winSize    = image.Pt(512, 512)
+	winSize    = image.Pt(1200, 1500)
 	borderCol  = color.RGBA{R: 115, G: 115, B: 190, A: 255}
 	tagHeight  int
 )
@@ -51,8 +51,12 @@ func main() {
 	tagHeight = h
 
 	driver.Main(func(scr screen.Screen) {
+		opts := screen.NewWindowOptions{
+			Width:  winSize.X,
+			Height: winSize.Y,
+		}
 		var err error
-		win, err = scr.NewWindow(nil)
+		win, err = scr.NewWindow(&opts)
 		if err != nil {
 			log.Fatal(err)
 		}
