@@ -9,10 +9,28 @@ import (
 	"sigint.ca/graphics/editor/internal/address"
 )
 
+// Draw draws the editor onto dst within the bounding rectangle dr, and returns
+// the height in pixels of the text that was drawn.
+func (ed *Editor) Draw(dst *image.RGBA, dr image.Rectangle) int {
+	ed.dirty = false
+	return ed.draw(dst, dr)
+}
+
+// Dirty reports whether the next call to Draw will result in a different image than the previous call.
+func (ed *Editor) Dirty() bool {
+	return ed.dirty
+}
+
+// SetDirty ensures that the next call to Dirty will be true. This may be useful in situations
+// where the client needs to force a redraw of the editor.
+func (ed *Editor) SetDirty() {
+	ed.dirty = true
+}
+
 const sbwidth = 20
 
-func (ed *Editor) draw(dst *image.RGBA) {
-	ed.r = dst.Bounds()
+func (ed *Editor) draw(dst *image.RGBA, dr image.Rectangle) int {
+	ed.r = dr
 	draw.Draw(dst, ed.r, ed.opts.BG1, image.ZP, draw.Src)
 	ed.drawSb(dst)
 
@@ -46,6 +64,8 @@ func (ed *Editor) draw(dst *image.RGBA) {
 		pt.X-- // match acme
 		draw.Draw(dst, cursor.Bounds().Add(pt), cursor, image.ZP, draw.Over)
 	}
+
+	return (to - from) * ed.font.height
 }
 
 func (ed *Editor) drawSelRect(dst *image.RGBA, row int) {

@@ -5,6 +5,44 @@ import (
 	"sigint.ca/graphics/editor/internal/hist"
 )
 
+// SendUndo attempts to apply the Editor's previous history state, if it exists.
+func (ed *Editor) SendUndo() {
+	ed.undo()
+}
+
+// SendRedo attempts to apply the Editor's next history state, if it exists.
+func (ed *Editor) SendRedo() {
+	ed.redo()
+}
+
+// CanUndo reports whether the Editor has a previous history state which can be applied.
+func (ed *Editor) CanUndo() bool {
+	return ed.history.CanUndo() ||
+		ed.uncommitted != nil && len(ed.uncommitted.Post.Text) > 0
+}
+
+// CanRedo reports whether the Editor has a following history state which can be applied.
+func (ed *Editor) CanRedo() bool {
+	return ed.history.CanRedo()
+}
+
+// SetSaved instructs the Editor that the current contents should be
+// considered saved. After calling SetSaved, the client can call
+// Saved to see if the Editor has unsaved content.
+func (ed *Editor) SetSaved() {
+	if ed.uncommitted != nil {
+		ed.commitTransformation()
+	}
+	ed.savePoint = ed.history.Current()
+}
+
+// Saved reports whether the Editor has been modified since the last
+// time SetSaved was called.
+func (ed *Editor) Saved() bool {
+	return ed.history.Current() == ed.savePoint &&
+		(ed.uncommitted == nil || ed.uncommitted.Post.Text == "")
+}
+
 func (ed *Editor) undo() {
 	ch, ok := ed.history.Undo()
 	if !ok {

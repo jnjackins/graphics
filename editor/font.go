@@ -11,6 +11,12 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
+// SetFont sets the Editor's font face to face.
+func (ed *Editor) SetFont(face font.Face) {
+	ed.font = mkFont(face)
+	ed.dirty = true
+}
+
 const tabwidth = 4
 
 type fontface struct {

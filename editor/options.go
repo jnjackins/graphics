@@ -6,6 +6,12 @@ import (
 	"image/draw"
 )
 
+// SetOpts reconfigures the Editor according to opts.
+func (ed *Editor) SetOpts(opts *OptionSet) {
+	ed.opts = opts
+	ed.dirty = true
+}
+
 type OptionSet struct {
 	Text       *image.Uniform
 	BG1        *image.Uniform

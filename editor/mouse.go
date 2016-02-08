@@ -9,6 +9,28 @@ import (
 	"golang.org/x/mobile/event/mouse"
 )
 
+// SendMouseEvent sends a mouse event to be interpreted by the Editor.
+func (ed *Editor) SendMouseEvent(e mouse.Event) {
+	ed.handleMouseEvent(e)
+}
+
+// SendScrollEvent sends a scroll event to be interpreted by the Editor.
+func (ed *Editor) SendScrollEvent(e mouse.ScrollEvent) {
+	var pt image.Point
+	if e.Precise {
+		pt.X = int(e.Dx)
+		pt.Y = int(e.Dy)
+	} else {
+		pt.X = int(e.Dx * float32(ed.font.height))
+		pt.Y = int(e.Dy * float32(ed.font.height))
+	}
+	oldPt := ed.scrollPt
+	ed.scroll(pt)
+	if ed.scrollPt != oldPt {
+		ed.dirty = true
+	}
+}
+
 const (
 	b1 = 1 << uint(mouse.ButtonLeft)
 	b2 = 1 << uint(mouse.ButtonMiddle)

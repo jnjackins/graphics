@@ -10,6 +10,11 @@ import (
 	"golang.org/x/mobile/event/key"
 )
 
+// SendKeyEvent sends a key event to be interpreted by the Editor.
+func (ed *Editor) SendKeyEvent(e key.Event) {
+	ed.handleKeyEvent(e)
+}
+
 func (ed *Editor) handleKeyEvent(e key.Event) {
 	if e.Direction == key.DirRelease {
 		// ignore key up events
