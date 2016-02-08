@@ -35,22 +35,37 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		}
 		ed.commitTransformation()
 
-	case e.Code == key.CodeDeleteBackspace:
-		if ed.uncommitted.Post.Text != "" {
-			// trim the final uncommitted character
-			_, rSize := utf8.DecodeLastRuneInString(ed.uncommitted.Post.Text)
-			newSize := len(ed.uncommitted.Post.Text) - rSize
-			ed.uncommitted.Post.Text = ed.uncommitted.Post.Text[:newSize]
-		} else {
-			// ed.uncommitted.Pre.Sel.From must also include the rune preceding dot
-			ed.uncommitted.Pre.Sel.From = ed.buf.PrevSimple(ed.uncommitted.Pre.Sel.From)
-			ed.uncommitted.Pre.Text = ed.buf.GetSel(ed.uncommitted.Pre.Sel)
-		}
-		ed.dot.From = ed.buf.PrevSimple(ed.dot.From)
-		ed.dot = ed.buf.ClearSel(ed.dot)
+	case e.Code == key.CodeDeleteBackspace, e.Modifiers == key.ModControl && e.Code == key.CodeH:
+		ed.backspace(1)
 		ed.commitTransformation()
 
-	case e.Code == key.CodeReturnEnter:
+	// word kill
+	case e.Modifiers == key.ModControl && e.Code == key.CodeW:
+		if ed.dot.From.Col == 0 {
+			ed.backspace(1)
+		} else {
+			line := ed.buf.Lines[ed.dot.From.Row].Runes()
+			var n, dot int
+			for dot = ed.dot.From.Col; dot > 0 && !isWordChar(line[dot-1]); dot-- {
+				n++
+			}
+			for ; dot > 0 && isWordChar(line[dot-1]); dot-- {
+				n++
+			}
+			ed.backspace(n)
+		}
+		ed.commitTransformation()
+
+	// line kill
+	case e.Modifiers == key.ModControl && e.Code == key.CodeU:
+		if ed.dot.From.Col == 0 {
+			ed.backspace(1)
+		} else {
+			ed.backspace(ed.dot.From.Col)
+		}
+		ed.commitTransformation()
+
+	case e.Code == key.CodeReturnEnter, e.Modifiers == key.ModControl && e.Code == key.CodeJ:
 		prefix := ""
 		if ed.opts.AutoIndent {
 			prefix = ed.getIndentation()
@@ -77,6 +92,16 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		ed.commitTransformation()
 		a := ed.buf.NextSimple(ed.dot.To)
 		ed.dot.From, ed.dot.To = a, a
+
+	case e.Modifiers == key.ModControl && e.Code == key.CodeA:
+		ed.commitTransformation()
+		ed.dot.From.Col = 0
+		ed.dot.To = ed.dot.From
+
+	case e.Modifiers == key.ModControl && e.Code == key.CodeE:
+		ed.commitTransformation()
+		ed.dot.From.Col = ed.buf.Lines[ed.dot.From.Row].RuneCount()
+		ed.dot.To = ed.dot.From
 
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
 		ed.commitTransformation()
@@ -117,6 +142,25 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 	}
 }
 
+func (ed *Editor) backspace(n int) {
+	// first, trim from uncommitted characters
+	for n > 0 && ed.uncommitted.Post.Text != "" {
+		_, rSize := utf8.DecodeLastRuneInString(ed.uncommitted.Post.Text)
+		newSize := len(ed.uncommitted.Post.Text) - rSize
+		ed.uncommitted.Post.Text = ed.uncommitted.Post.Text[:newSize]
+		ed.dot.From = ed.buf.PrevSimple(ed.dot.From)
+		n--
+	}
+	for n > 0 {
+		// ed.uncommitted.Pre.Sel.From must also include the rune preceding dot
+		ed.uncommitted.Pre.Sel.From = ed.buf.PrevSimple(ed.uncommitted.Pre.Sel.From)
+		ed.uncommitted.Pre.Text = ed.buf.GetSel(ed.uncommitted.Pre.Sel)
+		ed.dot.From = ed.buf.PrevSimple(ed.dot.From)
+		n--
+	}
+	ed.dot = ed.buf.ClearSel(ed.dot)
+}
+
 func (ed *Editor) getIndentation() string {
 	prefix := make([]rune, 0)
 	line := ed.buf.Lines[ed.dot.From.Row].String()
@@ -128,6 +172,10 @@ func (ed *Editor) getIndentation() string {
 		}
 	}
 	return string(prefix)
+}
+
+func isWordChar(c rune) bool {
+	return unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_'
 }
 
 func isGraphic(r rune) bool {
