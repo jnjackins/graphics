@@ -10,38 +10,44 @@ import (
 
 func updateTag() {
 	old := string(tagWidget.ed.Contents())
-	var user string
+
+	// the part before the first " " is the filename
+	i := strings.Index(old, " ")
+	if i >= 0 {
+		filename = old[:i]
+		old = old[i+1:]
+	}
+
+	// the part after the "|" is not refreshed
+	var keep string
 	if i := strings.Index(old, "|"); i > 0 {
-		user = old[i+1:]
+		keep = old[i+1:]
 		old = old[:i+1]
 	}
 
-	var newParts []string
-	if filename != "" {
-		newParts = append(newParts, filename)
-	}
+	var parts []string
 	if mainWidget.ed.CanUndo() {
-		newParts = append(newParts, "Undo")
+		parts = append(parts, "Undo")
 	}
 	if mainWidget.ed.CanRedo() {
-		newParts = append(newParts, "Redo")
+		parts = append(parts, "Redo")
 	}
-	if filename != "" && !mainWidget.ed.Saved() {
-		newParts = append(newParts, "Put")
+	if !mainWidget.ed.Saved() {
+		parts = append(parts, "Put")
 	}
-	newParts = append(newParts, "Exit")
-	newParts = append(newParts, "|")
+	parts = append(parts, "Exit")
+	parts = append(parts, "|")
 
-	new := strings.Join(newParts, " ")
+	new := strings.Join(parts, " ")
 	if old == new {
 		return
 	}
 
-	if user == "" {
-		user = " "
+	if keep == "" {
+		keep = " "
 	}
 
-	tagWidget.ed.Load([]byte(new + user))
+	tagWidget.ed.Load([]byte(filename + " " + new + keep))
 }
 
 var reallyQuit time.Time
@@ -58,12 +64,11 @@ func executeCmd(cmd string) {
 		mainWidget.ed.SendRedo()
 		tagWidget.ed.Load([]byte{})
 	case "Exit":
-		if mainWidget.ed.Saved() || time.Since(reallyQuit) < 3*time.Second {
+		ok := tagWidget.ed.FindNext("Put")
+		if !ok || time.Since(reallyQuit) < 3*time.Second {
 			win.Send(lifecycle.Event{To: lifecycle.StageDead})
-		} else {
-			tagWidget.ed.FindNext("Put")
-			reallyQuit = time.Now()
 		}
+		reallyQuit = time.Now()
 	}
 }
 

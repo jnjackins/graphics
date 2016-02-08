@@ -118,9 +118,6 @@ func main() {
 				win.Send(paint.Event{})
 
 			case mouse.ScrollEvent:
-				if w, ok := sel(e2Pt(e.Event), widgets); ok {
-					selected = w
-				}
 				selected.ed.SendScrollEvent(e)
 				win.Send(paint.Event{})
 
