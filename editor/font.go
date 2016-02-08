@@ -53,7 +53,10 @@ func (f fontface) draw(dst draw.Image, pt image.Point, l *text.Line, src *image.
 		if !ok {
 			dr, mask, maskp, advance, ok = f.face.Glyph(dot, unicode.ReplacementChar)
 			if !ok {
-				panic("internal error")
+				dr, mask, maskp, advance, ok = f.face.Glyph(dot, '?')
+				if !ok {
+					panic("internal error")
+				}
 			}
 		}
 		if tab {
@@ -84,7 +87,10 @@ func (f fontface) measure(l *text.Line) {
 		if !ok {
 			advance, ok = f.face.GlyphAdvance(unicode.ReplacementChar)
 			if !ok {
-				panic("internal error")
+				advance, ok = f.face.GlyphAdvance('?')
+				if !ok {
+					panic("internal error")
+				}
 			}
 		}
 		if tab {
