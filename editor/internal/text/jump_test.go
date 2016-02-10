@@ -42,3 +42,21 @@ lazy 犬。
 		t.Errorf("search succeeded, expected failure")
 	}
 }
+
+func BenchmarkFind5000(b *testing.B) {
+	const line = `The quick brown fox jumps over the lazy dog.`
+	buf := NewBuffer()
+
+	for i := 0; i < 5000; i++ {
+		buf.InsertString(address.Simple{}, line)
+	}
+
+	var dot address.Selection
+	var ok bool
+	for i := 0; i < b.N; i++ {
+		dot, ok = buf.Find(dot.To, "fox")
+		if !ok {
+			b.Error("exptected ok = true, got false")
+		}
+	}
+}

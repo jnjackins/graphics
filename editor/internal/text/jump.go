@@ -16,6 +16,7 @@ func (b *Buffer) Find(dot address.Simple, s string) (address.Selection, bool) {
 	return b.jumpTo(dot, address.Substring(s))
 }
 
+// TODO: slow for large files, probably because of GetSel
 func (b *Buffer) jumpTo(dot address.Simple, parsed address.Address) (address.Selection, bool) {
 	end := address.Simple{Row: len(b.Lines) - 1, Col: b.Lines[len(b.Lines)-1].RuneCount()}
 	contents := b.GetSel(address.Selection{dot, end})
