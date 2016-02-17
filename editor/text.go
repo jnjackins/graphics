@@ -24,7 +24,6 @@ func (ed *Editor) Contents() []byte {
 // FindNext searches for s in the Editor's text buffer, and selects the first match
 // starting from the current selection, possibly wrapping around to the beginning
 // of the buffer. If there are no matches, the selection is unchanged.
-// TODO: go back to dedicated implementation
 func (ed *Editor) FindNext(s string) bool {
 	if sel, ok := ed.buf.Find(ed.dot.To, s); ok {
 		ed.dot = sel
