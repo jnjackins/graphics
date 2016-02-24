@@ -70,7 +70,7 @@ func (w *widget) resize(s screen.Screen, size, loc image.Point) {
 }
 
 func (w *widget) redraw() {
-	w.ed.Draw(w.buf.RGBA(), image.ZP)
+	w.ed.Draw(w.buf.RGBA(), w.buf.Bounds())
 	w.tx.Upload(image.ZP, w.buf, w.buf.Bounds())
 }
 
