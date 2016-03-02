@@ -41,8 +41,9 @@ const dClickPause = 500 * time.Millisecond
 const twitch = 3 // pixels
 
 type mouseState struct {
-	buttons       uint32 // a bit field of mouse buttons currently pressed
-	chording      bool
+	buttons       uint32    // a bit field of mouse buttons currently pressed
+	chording      bool      // a chord has been initiated
+	scrolling     bool      // the scroll bar is being manipulated
 	lastClickTime time.Time // used to detect a double-click
 
 	pt image.Point
@@ -64,7 +65,12 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	ed.m.pt = pt.Add(ed.visible().Min) // adjust for scrolling
 	ed.m.a = ed.getAddress(ed.m.pt)
 
-	if pt.In(ed.sbRect()) && e.Direction != mouse.DirRelease {
+	if ed.m.scrolling || pt.In(ed.sbRect()) {
+		if e.Direction == mouse.DirRelease {
+			ed.m.scrolling = false
+			return
+		}
+		ed.m.scrolling = true
 		ed.clickSb(e)
 	} else if e.Direction == mouse.DirPress {
 		ed.click(e)
@@ -79,14 +85,26 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 func (ed *Editor) clickSb(e mouse.Event) {
 	height := float64(ed.visible().Dy())
 	percent := (float64(e.Y) + float64(ed.r.Min.Y)) / height
-	// disregard any chording; act on individual mouse.DirPress events
+
 	switch e.Button {
 	case mouse.ButtonLeft:
-		ed.scroll(image.Pt(0, int(height*percent)))
+		d := int(height * percent)
+		if d < 0 {
+			d = 0
+		}
+		ed.scroll(image.Pt(0, d))
+
+	case mouse.ButtonRight:
+		d := int(-height * percent)
+		if d > 0 {
+			d = 0
+		}
+		ed.scroll(image.Pt(0, d))
+
 	case mouse.ButtonMiddle:
 		ed.scrollPt.Y = int(float64(ed.docHeight()) * percent)
-	case mouse.ButtonRight:
-		ed.scroll(image.Pt(0, int(-height*percent)))
+		ed.scroll(image.ZP) // fix potential invalid scrollPt
+
 	}
 	ed.dirty = true
 }
