@@ -11,43 +11,41 @@ import (
 func updateTag() {
 	old := string(tagWidget.ed.Contents())
 
-	// the part before the first " " is the filename
+	// the part before the first " " is the filepath
 	i := strings.Index(old, " ")
 	if i >= 0 {
-		filename = old[:i]
+		pathCurrent = old[:i]
 		old = old[i+1:]
 	}
 
-	// the part after the "|" is not refreshed
+	// only the first line is uneditable
 	var keep string
-	if i := strings.Index(old, "|"); i > 0 {
+	if i := strings.Index(old, "\n"); i > 0 {
 		keep = old[i+1:]
-		old = old[:i+1]
+		old = old[:i]
 	}
 
 	var parts []string
+
 	if mainWidget.ed.CanUndo() {
 		parts = append(parts, "Undo")
 	}
 	if mainWidget.ed.CanRedo() {
 		parts = append(parts, "Redo")
 	}
-	if !mainWidget.ed.Saved() {
+
+	if pathCurrent != "" && (!mainWidget.ed.Saved() || pathCurrent != pathSaved) {
 		parts = append(parts, "Put")
 	}
+
 	parts = append(parts, "Exit")
-	parts = append(parts, "|")
 
 	new := strings.Join(parts, " ")
 	if old == new {
 		return
 	}
 
-	if keep == "" {
-		keep = " "
-	}
-
-	tagWidget.ed.Load([]byte(filename + " " + new + keep))
+	tagWidget.ed.Load([]byte(pathCurrent + " " + new + "\n" + keep))
 }
 
 var reallyQuit time.Time

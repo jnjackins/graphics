@@ -20,13 +20,17 @@ import (
 )
 
 var (
-	filename   string
+	pathSaved   string
+	pathCurrent string
+
 	tagWidget  *widget
-	mainWidget *widget
-	win        screen.Window
-	winSize    = image.Pt(1200, 1500)
-	borderCol  = color.RGBA{R: 115, G: 115, B: 190, A: 255}
 	tagHeight  int
+	mainWidget *widget
+
+	win     screen.Window
+	winSize = image.Pt(1200, 1500)
+
+	borderCol = color.RGBA{R: 115, G: 115, B: 190, A: 255}
 )
 
 func init() {
@@ -37,9 +41,9 @@ func init() {
 	}
 	flag.Parse()
 
-	filename = ""
 	if flag.NArg() == 1 {
-		filename = flag.Arg(0)
+		pathSaved = flag.Arg(0)
+		pathCurrent = flag.Arg(0)
 	} else if flag.NArg() > 1 {
 		flag.Usage()
 		os.Exit(1)
@@ -48,7 +52,7 @@ func init() {
 
 func main() {
 	font, h := getfont()
-	tagHeight = h
+	tagHeight = 2 * h
 
 	driver.Main(func(scr screen.Screen) {
 		opts := screen.NewWindowOptions{
@@ -67,12 +71,15 @@ func main() {
 		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, font)
 		defer tagWidget.release()
 
+		// pre-populate the tag with the filename
+		tagWidget.ed.Load([]byte(pathCurrent + " "))
+
 		sz, pt = image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1)
 		mainWidget = newWidget(scr, sz, pt, editor.AcmeYellowTheme, font)
 		defer mainWidget.release()
 
 		// load file into main editor widget
-		loadMain(filename)
+		loadMain(pathSaved)
 
 		// set up B2 and B3 actions
 		tagWidget.ed.B2Action = executeCmd

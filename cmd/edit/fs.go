@@ -13,19 +13,20 @@ import (
 	"golang.org/x/image/font/plan9font"
 )
 
-func loadMain(s string) {
-	filename = s
-	f, err := os.Open(filename)
+func loadMain(path string) {
+	f, err := os.Open(path)
 	if os.IsNotExist(err) {
 		return
 	} else if err != nil {
-		log.Printf("error opening %q for reading: %v", filename, err)
+		log.Printf("error opening %q for reading: %v", path, err)
 		return
 	}
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := ioutil.ReadFile(path)
 	mainWidget.ed.Load(buf)
 	mainWidget.ed.SetSaved()
 	f.Close()
+
+	pathSaved = path
 }
 
 func save() {
@@ -33,22 +34,24 @@ func save() {
 		return
 	}
 
-	if filename == "" {
-		log.Println("saving untitled file not yet supported")
+	if pathCurrent == "" {
 		return
 	}
-	f, err := os.Create(filename)
+	f, err := os.Create(pathCurrent)
 	if err != nil {
-		log.Printf("error opening %q for writing: %v", filename, err)
+		log.Printf("error opening %q for writing: %v", pathCurrent, err)
+		return
 	}
 	defer f.Close()
 
 	r := bytes.NewBuffer(mainWidget.ed.Contents())
 	if _, err := io.Copy(f, r); err != nil {
-		log.Printf("error writing to %q: %v", filename, err)
+		log.Printf("error writing to %q: %v", pathCurrent, err)
+		return
 	}
 
 	mainWidget.ed.SetSaved()
+	pathSaved = pathCurrent
 }
 
 func getfont() (font.Face, int) {

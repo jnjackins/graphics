@@ -9,11 +9,26 @@ import (
 func (ed *Editor) Load(s []byte) {
 	last := len(ed.buf.Lines) - 1
 	all := address.Selection{To: address.Simple{last, ed.buf.Lines[last].RuneCount()}}
-	ed.dot = ed.buf.ClearSel(all)
+	ed.buf.ClearSel(all)
 	ed.buf.InsertString(address.Simple{0, 0}, string(s))
+
+	// hack
+	ed.dot = address.Selection{From: ed.fixAddr(ed.dot.From), To: ed.fixAddr(ed.dot.To)}
+
 	ed.history = new(hist.History)
 	ed.uncommitted = nil
 	ed.dirty = true
+}
+
+func (ed *Editor) fixAddr(a address.Simple) address.Simple {
+	if a.Row >= len(ed.buf.Lines) {
+		a.Row = len(ed.buf.Lines) - 1
+	}
+	rc := ed.buf.Lines[a.Row].RuneCount()
+	if a.Col > rc {
+		a.Col = rc
+	}
+	return a
 }
 
 // Contents returns the contents of the Editor's text buffer.
