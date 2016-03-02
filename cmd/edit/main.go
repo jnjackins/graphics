@@ -28,7 +28,7 @@ var (
 	mainWidget *widget
 
 	win     screen.Window
-	winSize = image.Pt(1200, 1500)
+	winSize = image.Pt(1000, 1000)
 
 	borderCol = color.RGBA{R: 115, G: 115, B: 190, A: 255}
 )
@@ -129,6 +129,9 @@ func main() {
 				win.Send(paint.Event{})
 
 			case mouse.ScrollEvent:
+				if w, ok := sel(e2Pt(e.Event), widgets); ok {
+					selected = w
+				}
 				selected.ed.SendScrollEvent(e)
 				win.Send(paint.Event{})
 
