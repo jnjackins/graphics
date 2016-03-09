@@ -1,17 +1,23 @@
 package editor
 
 import (
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 	"sigint.ca/graphics/editor/internal/hist"
 )
 
 // SendUndo attempts to apply the Editor's previous history state, if it exists.
 func (ed *Editor) SendUndo() {
+	// commit any lingering uncommitted changes
+	ed.initTransformation()
+	ed.commitTransformation()
 	ed.undo()
 }
 
 // SendRedo attempts to apply the Editor's next history state, if it exists.
 func (ed *Editor) SendRedo() {
+	// commit any lingering uncommitted changes
+	ed.initTransformation()
+	ed.commitTransformation()
 	ed.redo()
 }
 
@@ -48,7 +54,7 @@ func (ed *Editor) undo() {
 	if !ok {
 		return
 	}
-	ed.dot = ch.Sel
+	ed.Dot = ch.Sel
 	ed.putString(ch.Text)
 	ed.dirty = true
 }
@@ -58,7 +64,7 @@ func (ed *Editor) redo() {
 	if !ok {
 		return
 	}
-	ed.dot = ch.Sel
+	ed.Dot = ch.Sel
 	ed.putString(ch.Text)
 	ed.dirty = true
 }
@@ -68,8 +74,8 @@ func (ed *Editor) initTransformation() {
 	if ed.uncommitted == nil {
 		ed.uncommitted = new(hist.Transformation)
 		ed.uncommitted.Pre = hist.Chunk{
-			Sel:  ed.dot,
-			Text: ed.buf.GetSel(ed.dot),
+			Sel:  ed.Dot,
+			Text: ed.Buffer.GetSel(ed.Dot),
 		}
 	}
 }
@@ -86,8 +92,8 @@ func (ed *Editor) commitTransformation() {
 	}
 
 	if ed.uncommitted.Post.Text == "" {
-		ed.uncommitted.Post.Text = ed.buf.GetSel(ed.dot)
-		ed.uncommitted.Post.Sel = ed.dot
+		ed.uncommitted.Post.Text = ed.Buffer.GetSel(ed.Dot)
+		ed.uncommitted.Post.Sel = ed.Dot
 	} else {
 		ed.uncommitted.Post.Sel = address.Selection{
 			ed.uncommitted.Pre.Sel.From,
@@ -95,7 +101,7 @@ func (ed *Editor) commitTransformation() {
 		}
 		for range ed.uncommitted.Post.Text {
 			// TODO: use measure and add?
-			ed.uncommitted.Post.Sel.To = ed.buf.NextSimple(ed.uncommitted.Post.Sel.To)
+			ed.uncommitted.Post.Sel.To = ed.Buffer.NextSimple(ed.uncommitted.Post.Sel.To)
 		}
 	}
 
