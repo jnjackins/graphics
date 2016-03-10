@@ -2,12 +2,14 @@
 package editor // import "sigint.ca/graphics/editor"
 
 import (
+	"fmt"
 	"image"
+	"os"
 
 	"sigint.ca/clip"
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 	"sigint.ca/graphics/editor/internal/hist"
-	"sigint.ca/graphics/editor/internal/text"
+	"sigint.ca/graphics/editor/text"
 
 	"golang.org/x/image/font"
 )
@@ -17,13 +19,15 @@ import (
 // window package capable of drawing a widget via an image.RGBA.
 // See sigint.ca/cmd/edit for an example program using this type.
 type Editor struct {
+	Buffer *text.Buffer
+	Dot    address.Selection
+
 	B2Action func(string) // define an action for the middle mouse button
 	B3Action func(string) // define an action for the right mouse button
 
 	opts *OptionSet
 
 	// textual state
-	buf *text.Buffer
 	dot address.Selection // the current selection
 
 	// drawing data
@@ -49,7 +53,8 @@ func NewEditor(face font.Face, opts *OptionSet) *Editor {
 		opts = SimpleTheme
 	}
 	ed := &Editor{
-		buf:       text.NewBuffer(),
+		Buffer: text.NewBuffer(),
+
 		font:      mkFont(face),
 		dirty:     true,
 		opts:      opts,
@@ -57,4 +62,12 @@ func NewEditor(face font.Face, opts *OptionSet) *Editor {
 		clipboard: new(clip.Clipboard),
 	}
 	return ed
+}
+
+const debug = false
+
+func dprintf(format string, args ...interface{}) {
+	if debug {
+		fmt.Fprintf(os.Stderr, format, args...)
+	}
 }

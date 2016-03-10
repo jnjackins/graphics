@@ -4,7 +4,7 @@ import (
 	"image"
 	"time"
 
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 
 	"golang.org/x/mobile/event/mouse"
 )
@@ -65,24 +65,21 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	ed.m.pt = pt.Add(ed.visible().Min) // adjust for scrolling
 	ed.m.a = ed.getAddress(ed.m.pt)
 
-	if ed.m.scrolling || pt.In(ed.sbRect()) {
-		if e.Direction == mouse.DirRelease {
-			ed.m.scrolling = false
-			return
-		}
-		ed.m.scrolling = true
+	if e.Direction == mouse.DirRelease {
+		ed.release(e)
+	} else if e.Direction == mouse.DirPress && pt.In(ed.sbRect()) || ed.m.scrolling {
 		ed.clickSb(e)
 	} else if e.Direction == mouse.DirPress {
 		ed.click(e)
 	} else if e.Direction == mouse.DirNone {
 		ed.sweep(e)
-	} else if e.Direction == mouse.DirRelease {
-		ed.release(e)
 	}
 }
 
 // scrollbar click
 func (ed *Editor) clickSb(e mouse.Event) {
+	ed.m.scrolling = true
+
 	height := float64(ed.visible().Dy())
 	percent := (float64(e.Y) + float64(ed.r.Min.Y)) / height
 
@@ -115,22 +112,23 @@ func (ed *Editor) click(e mouse.Event) {
 	ed.m.buttons |= 1 << uint(e.Button)
 	ed.m.sweepOrigin = pt
 
+	dprintf("click: ed.m.buttons: %v\n", ed.m.buttons)
 	switch ed.m.buttons {
 	case b1:
-		prev := ed.dot
-		ed.dot.From, ed.dot.To = a, a
+		prev := ed.Dot
+		ed.Dot.From, ed.Dot.To = a, a
 
 		// check for double-click
-		if time.Since(ed.m.lastClickTime) < dClickPause && ed.dot == prev {
-			ed.dot = ed.buf.AutoSelect(a)
+		if time.Since(ed.m.lastClickTime) < dClickPause && ed.Dot == prev {
+			ed.Dot = ed.Buffer.AutoSelect(a)
 			ed.m.lastClickTime = time.Time{}
 		} else {
 			ed.m.lastClickTime = time.Now()
 		}
 
 	case b2, b3:
-		if ed.dot.IsEmpty() || !a.In(ed.dot) {
-			ed.dot = ed.buf.SelWord(a)
+		if ed.Dot.IsEmpty() || !a.In(ed.Dot) {
+			ed.Dot = ed.Buffer.SelWord(a)
 		}
 
 	case b1 | b2:
@@ -138,7 +136,7 @@ func (ed *Editor) click(e mouse.Event) {
 		ed.m.chording = true
 		ed.initTransformation()
 		ed.snarf()
-		ed.dot = ed.buf.ClearSel(ed.dot)
+		ed.Dot = ed.Buffer.ClearSel(ed.Dot)
 		ed.commitTransformation()
 
 	case b1 | b3:
@@ -177,11 +175,11 @@ func (ed *Editor) sweep(e mouse.Event) {
 
 	origin := ed.getAddress(ed.m.sweepOrigin)
 	if a.LessThan(origin) {
-		ed.dot = address.Selection{a, origin}
+		ed.Dot = address.Selection{a, origin}
 	} else if a != origin {
-		ed.dot = address.Selection{origin, a}
+		ed.Dot = address.Selection{origin, a}
 	} else {
-		ed.dot = address.Selection{origin, origin}
+		ed.Dot = address.Selection{origin, origin}
 	}
 
 	ed.dirty = true
@@ -195,21 +193,25 @@ func isTwitch(p1, p2 image.Point) bool {
 }
 
 func (ed *Editor) release(e mouse.Event) {
+	ed.m.scrolling = false
+
 	switch ed.m.buttons {
 	case b2:
 		if !ed.m.chording && ed.B2Action != nil {
-			ed.B2Action(ed.buf.GetSel(ed.dot))
+			ed.B2Action(ed.Buffer.GetSel(ed.Dot))
 			ed.dirty = true
 		}
 	case b3:
 		if !ed.m.chording && ed.B3Action != nil {
-			ed.B3Action(ed.buf.GetSel(ed.dot))
+			ed.B3Action(ed.Buffer.GetSel(ed.Dot))
 			ed.dirty = true
 		}
 	}
 
 	ed.m.buttons &^= 1 << uint(e.Button)
 	if ed.m.buttons&(b1|b2|b3) == 0 {
+		dprintf("release: ed.mchording=false (was %v)\n", ed.m.chording)
 		ed.m.chording = false
 	}
+	dprintf("release: ed.m.buttons = %v\n", ed.m.buttons)
 }
