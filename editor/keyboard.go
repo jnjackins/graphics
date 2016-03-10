@@ -5,7 +5,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 
 	"golang.org/x/mobile/event/key"
 )
@@ -28,10 +28,10 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 
 	switch {
 	case e.Code == key.CodeEscape:
-		if ed.dot.IsEmpty() {
-			ed.dot.From.Col -= utf8.RuneCountInString(ed.uncommitted.Post.Text)
+		if ed.Dot.IsEmpty() {
+			ed.Dot.From.Col -= utf8.RuneCountInString(ed.uncommitted.Post.Text)
 		} else {
-			ed.dot = ed.buf.ClearSel(ed.dot)
+			ed.Dot = ed.Buffer.ClearSel(ed.Dot)
 		}
 		ed.commitTransformation()
 
@@ -41,12 +41,12 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 
 	// word kill
 	case e.Modifiers == key.ModControl && e.Code == key.CodeW:
-		if ed.dot.From.Col == 0 {
+		if ed.Dot.From.Col == 0 {
 			ed.backspace(1)
 		} else {
-			line := ed.buf.Lines[ed.dot.From.Row].Runes()
+			line := ed.Buffer.Lines[ed.Dot.From.Row].Runes()
 			var n, dot int
-			for dot = ed.dot.From.Col; dot > 0 && !isWordChar(line[dot-1]); dot-- {
+			for dot = ed.Dot.From.Col; dot > 0 && !isWordChar(line[dot-1]); dot-- {
 				n++
 			}
 			for ; dot > 0 && isWordChar(line[dot-1]); dot-- {
@@ -58,10 +58,10 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 
 	// line kill
 	case e.Modifiers == key.ModControl && e.Code == key.CodeU:
-		if ed.dot.From.Col == 0 {
+		if ed.Dot.From.Col == 0 {
 			ed.backspace(1)
 		} else {
-			ed.backspace(ed.dot.From.Col)
+			ed.backspace(ed.Dot.From.Col)
 		}
 		ed.commitTransformation()
 
@@ -71,7 +71,7 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 			prefix = ed.getIndentation()
 		}
 		ed.putString("\n" + prefix)
-		ed.dot.From = ed.dot.To
+		ed.Dot.From = ed.Dot.To
 		ed.uncommitted.Post.Text += "\n"
 		ed.commitTransformation()
 
@@ -85,23 +85,23 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 
 	case e.Code == key.CodeLeftArrow:
 		ed.commitTransformation()
-		a := ed.buf.PrevSimple(ed.dot.From)
-		ed.dot.From, ed.dot.To = a, a
+		a := ed.Buffer.PrevSimple(ed.Dot.From)
+		ed.Dot.From, ed.Dot.To = a, a
 
 	case e.Code == key.CodeRightArrow:
 		ed.commitTransformation()
-		a := ed.buf.NextSimple(ed.dot.To)
-		ed.dot.From, ed.dot.To = a, a
+		a := ed.Buffer.NextSimple(ed.Dot.To)
+		ed.Dot.From, ed.Dot.To = a, a
 
 	case e.Modifiers == key.ModControl && e.Code == key.CodeA:
 		ed.commitTransformation()
-		ed.dot.From.Col = 0
-		ed.dot.To = ed.dot.From
+		ed.Dot.From.Col = 0
+		ed.Dot.To = ed.Dot.From
 
 	case e.Modifiers == key.ModControl && e.Code == key.CodeE:
 		ed.commitTransformation()
-		ed.dot.From.Col = ed.buf.Lines[ed.dot.From.Row].RuneCount()
-		ed.dot.To = ed.dot.From
+		ed.Dot.From.Col = ed.Buffer.Lines[ed.Dot.From.Row].RuneCount()
+		ed.Dot.To = ed.Dot.From
 
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeC:
 		ed.commitTransformation()
@@ -113,14 +113,14 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeX:
 		ed.snarf()
-		ed.dot = ed.buf.ClearSel(ed.dot)
+		ed.Dot = ed.Buffer.ClearSel(ed.Dot)
 		ed.commitTransformation()
 
 	case e.Modifiers == key.ModMeta && e.Code == key.CodeA:
 		ed.commitTransformation()
-		last := len(ed.buf.Lines) - 1
-		ed.dot.From = address.Simple{0, 0}
-		ed.dot.To = address.Simple{last, ed.buf.Lines[last].RuneCount()}
+		last := len(ed.Buffer.Lines) - 1
+		ed.Dot.From = address.Simple{0, 0}
+		ed.Dot.To = address.Simple{last, ed.Buffer.Lines[last].RuneCount()}
 
 	case e.Modifiers == key.ModMeta|key.ModShift && e.Code == key.CodeZ:
 		ed.commitTransformation()
@@ -135,7 +135,7 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 			s := string(e.Rune)
 			ed.uncommitted.Post.Text += s
 			ed.putString(s)
-			ed.dot.From = ed.dot.To
+			ed.Dot.From = ed.Dot.To
 
 			// don't commit - history is not updated for each rune of input
 		}
@@ -148,22 +148,22 @@ func (ed *Editor) backspace(n int) {
 		_, rSize := utf8.DecodeLastRuneInString(ed.uncommitted.Post.Text)
 		newSize := len(ed.uncommitted.Post.Text) - rSize
 		ed.uncommitted.Post.Text = ed.uncommitted.Post.Text[:newSize]
-		ed.dot.From = ed.buf.PrevSimple(ed.dot.From)
+		ed.Dot.From = ed.Buffer.PrevSimple(ed.Dot.From)
 		n--
 	}
 	for n > 0 {
 		// ed.uncommitted.Pre.Sel.From must also include the rune preceding dot
-		ed.uncommitted.Pre.Sel.From = ed.buf.PrevSimple(ed.uncommitted.Pre.Sel.From)
-		ed.uncommitted.Pre.Text = ed.buf.GetSel(ed.uncommitted.Pre.Sel)
-		ed.dot.From = ed.buf.PrevSimple(ed.dot.From)
+		ed.uncommitted.Pre.Sel.From = ed.Buffer.PrevSimple(ed.uncommitted.Pre.Sel.From)
+		ed.uncommitted.Pre.Text = ed.Buffer.GetSel(ed.uncommitted.Pre.Sel)
+		ed.Dot.From = ed.Buffer.PrevSimple(ed.Dot.From)
 		n--
 	}
-	ed.dot = ed.buf.ClearSel(ed.dot)
+	ed.Dot = ed.Buffer.ClearSel(ed.Dot)
 }
 
 func (ed *Editor) getIndentation() string {
 	prefix := make([]rune, 0)
-	line := ed.buf.Lines[ed.dot.From.Row].String()
+	line := ed.Buffer.Lines[ed.Dot.From.Row].String()
 	for _, r := range line {
 		if unicode.IsSpace(r) {
 			prefix = append(prefix, r)

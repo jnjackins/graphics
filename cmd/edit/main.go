@@ -17,18 +17,19 @@ import (
 	"golang.org/x/mobile/event/size"
 
 	"sigint.ca/graphics/editor"
+	"sigint.ca/graphics/editor/address"
 )
 
 var (
-	pathSaved   string
-	pathCurrent string
+	savedPath   string
+	currentPath string
 
 	tagWidget  *widget
 	tagHeight  int
 	mainWidget *widget
 
 	win     screen.Window
-	winSize = image.Pt(1000, 1000)
+	winSize = image.Pt(1024, 768)
 
 	borderCol = color.RGBA{R: 115, G: 115, B: 190, A: 255}
 )
@@ -42,8 +43,8 @@ func init() {
 	flag.Parse()
 
 	if flag.NArg() == 1 {
-		pathSaved = flag.Arg(0)
-		pathCurrent = flag.Arg(0)
+		savedPath = flag.Arg(0)
+		currentPath = flag.Arg(0)
 	} else if flag.NArg() > 1 {
 		flag.Usage()
 		os.Exit(1)
@@ -66,20 +67,24 @@ func main() {
 		}
 		defer win.Release()
 
-		// set up the editor widgets
-		sz, pt := image.Pt(winSize.X, tagHeight), image.ZP
-		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, font)
-		defer tagWidget.release()
-
-		// pre-populate the tag with the filename
-		tagWidget.ed.Load([]byte(pathCurrent + " "))
-
-		sz, pt = image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1)
+		// set up the main editor widget
+		sz, pt := image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1)
 		mainWidget = newWidget(scr, sz, pt, editor.AcmeYellowTheme, font)
 		defer mainWidget.release()
 
 		// load file into main editor widget
-		loadMain(pathSaved)
+		loadMain(savedPath)
+
+		// set up the tag widget
+		sz, pt = image.Pt(winSize.X, tagHeight), image.ZP
+		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, font)
+		defer tagWidget.release()
+
+		// populate the tag
+		tagWidget.ed.Load([]byte(currentPath + " "))
+		updateTag()
+		end := tagWidget.ed.Buffer.LastAddress()
+		tagWidget.ed.Dot = address.Selection{From: end, To: end}
 
 		// set up B2 and B3 actions
 		tagWidget.ed.B2Action = executeCmd
@@ -139,12 +144,12 @@ func main() {
 				dirty := false
 				updateTag()
 
-				if mainWidget.ed.Dirty() {
+				if mainWidget.ed.Dirty() || mainWidget.dirty {
 					dirty = true
 					mainWidget.redraw()
 				}
 
-				if tagWidget.ed.Dirty() {
+				if tagWidget.ed.Dirty() || tagWidget.dirty {
 					dirty = true
 					tagWidget.redraw()
 				}

@@ -6,7 +6,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 )
 
 // TODO: rename to Doc?
@@ -50,17 +50,19 @@ func (b *Buffer) Contents() []byte {
 	return buf.Bytes()[:buf.Len()-1]
 }
 
-func (b *Buffer) fixSel(sel address.Selection) address.Selection {
-	if sel.From.Col > b.Lines[sel.From.Row].RuneCount() {
-		sel.From.Col = b.Lines[sel.From.Row].RuneCount()
+func (b *Buffer) fixAddr(a address.Simple) address.Simple {
+	if a.Row < 0 {
+		a.Row = 0
+	} else if a.Row > len(b.Lines)-1 {
+		a.Row = len(b.Lines) - 1
 	}
-	if sel.To.Row > len(b.Lines)-1 {
-		sel.To.Row = len(b.Lines) - 1
+
+	if a.Col < 0 {
+		a.Col = 0
+	} else if a.Col > b.Lines[a.Row].RuneCount() {
+		a.Col = b.Lines[a.Row].RuneCount()
 	}
-	if sel.To.Col > b.Lines[sel.To.Row].RuneCount() {
-		sel.To.Col = b.Lines[sel.To.Row].RuneCount()
-	}
-	return sel
+	return a
 }
 
 func (b *Buffer) GetSel(sel address.Selection) string {
@@ -106,9 +108,17 @@ func (b *Buffer) ClearSel(sel address.Selection) address.Selection {
 	return address.Selection{sel.From, sel.From}
 }
 
+func (b *Buffer) LastAddress() address.Simple {
+	lastLine := len(b.Lines) - 1
+	lastChar := b.Lines[lastLine].RuneCount()
+	return address.Simple{Row: lastLine, Col: lastChar}
+}
+
 // InsertString inserts s into the buffer at a, adding new Lines if s
 // contains newline characters.
 func (b *Buffer) InsertString(addr address.Simple, s string) address.Simple {
+	addr = b.fixAddr(addr)
+
 	inputLines := strings.Split(s, "\n")
 	if len(inputLines) == 1 {
 		// fast path for inserts with no newline

@@ -5,16 +5,18 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"sigint.ca/graphics/editor/address"
+
 	"golang.org/x/mobile/event/lifecycle"
 )
 
 func updateTag() {
-	old := string(tagWidget.ed.Contents())
+	old := string(tagWidget.ed.Buffer.Contents())
 
 	// the part before the first " " is the filepath
 	i := strings.Index(old, " ")
 	if i >= 0 {
-		pathCurrent = old[:i]
+		currentPath = old[:i]
 		old = old[i+1:]
 	}
 
@@ -34,7 +36,7 @@ func updateTag() {
 		parts = append(parts, "Redo")
 	}
 
-	if pathCurrent != "" && (!mainWidget.ed.Saved() || pathCurrent != pathSaved) {
+	if currentPath != "" && (!mainWidget.ed.Saved() || currentPath != savedPath) {
 		parts = append(parts, "Put")
 	}
 
@@ -45,7 +47,9 @@ func updateTag() {
 		return
 	}
 
-	tagWidget.ed.Load([]byte(pathCurrent + " " + new + "\n" + keep))
+	dot := tagWidget.ed.Dot
+	tagWidget.ed.Load([]byte(currentPath + " " + new + "\n" + keep))
+	tagWidget.ed.Dot = dot
 }
 
 var reallyQuit time.Time
@@ -62,12 +66,17 @@ func executeCmd(cmd string) {
 		mainWidget.ed.SendRedo()
 		tagWidget.ed.Load([]byte{})
 	case "Exit":
-		ok := tagWidget.ed.FindNext("Put")
+		_, ok := tagWidget.ed.FindNext("Put")
 		if !ok || time.Since(reallyQuit) < 3*time.Second {
 			win.Send(lifecycle.Event{To: lifecycle.StageDead})
 		}
 		reallyQuit = time.Now()
+	default:
+		return
 	}
+
+	end := tagWidget.ed.Buffer.LastAddress()
+	tagWidget.ed.Dot = address.Selection{From: end, To: end}
 }
 
 func findInEditor(s string) {

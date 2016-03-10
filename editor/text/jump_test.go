@@ -3,7 +3,7 @@ package text
 import (
 	"testing"
 
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 )
 
 func TestJumpTo(t *testing.T) {

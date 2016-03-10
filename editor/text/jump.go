@@ -2,7 +2,7 @@
 
 package text
 
-import "sigint.ca/graphics/editor/internal/address"
+import "sigint.ca/graphics/editor/address"
 
 func (b *Buffer) JumpTo(dot address.Simple, addr string) (address.Selection, bool) {
 	parsed, ok := address.ParseAddress(addr)

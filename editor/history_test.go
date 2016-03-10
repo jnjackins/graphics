@@ -3,7 +3,7 @@ package editor
 import (
 	"testing"
 
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 
 	"golang.org/x/image/font/basicfont"
 	"golang.org/x/mobile/event/key"
@@ -38,10 +38,10 @@ func TestHistory(t *testing.T) {
 
 	// start with one line
 	s1 := "The quick brown fox jumps over the lazy dog."
-	ed.Load([]byte(s1 + "\n"))
+	ed.Load([]byte(s1+"\n"), -1)
 
 	// move the cursor to the end of the loaded text
-	ed.dot = address.Selection{
+	ed.Dot = address.Selection{
 		From: address.Simple{1, 0},
 		To:   address.Simple{1, 0},
 	}

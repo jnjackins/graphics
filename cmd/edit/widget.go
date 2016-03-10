@@ -11,10 +11,11 @@ import (
 )
 
 type widget struct {
-	ed  *editor.Editor
-	r   image.Rectangle
-	buf screen.Buffer
-	tx  screen.Texture
+	ed    *editor.Editor
+	r     image.Rectangle
+	buf   screen.Buffer
+	tx    screen.Texture
+	dirty bool
 }
 
 func newWidget(s screen.Screen, size, loc image.Point, opts *editor.OptionSet, face font.Face) *widget {
@@ -66,12 +67,13 @@ func (w *widget) resize(s screen.Screen, size, loc image.Point) {
 	}
 	w.buf = buf
 
-	w.ed.SetDirty()
+	w.dirty = true
 }
 
 func (w *widget) redraw() {
 	w.ed.Draw(w.buf.RGBA(), w.buf.Bounds())
 	w.tx.Upload(image.ZP, w.buf, w.buf.Bounds())
+	w.dirty = false
 }
 
 func (w *widget) release() {

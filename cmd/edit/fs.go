@@ -23,35 +23,36 @@ func loadMain(path string) {
 	}
 	buf, err := ioutil.ReadFile(path)
 	mainWidget.ed.Load(buf)
+	mainWidget.ed.Dot.To = mainWidget.ed.Dot.From
 	mainWidget.ed.SetSaved()
 	f.Close()
 
-	pathSaved = path
+	savedPath = path
 }
 
 func save() {
-	if mainWidget.ed.Saved() {
+	if mainWidget.ed.Saved() && currentPath == savedPath {
 		return
 	}
 
-	if pathCurrent == "" {
+	if currentPath == "" {
 		return
 	}
-	f, err := os.Create(pathCurrent)
+	f, err := os.Create(currentPath)
 	if err != nil {
-		log.Printf("error opening %q for writing: %v", pathCurrent, err)
+		log.Printf("error opening %q for writing: %v", currentPath, err)
 		return
 	}
 	defer f.Close()
 
-	r := bytes.NewBuffer(mainWidget.ed.Contents())
+	r := bytes.NewBuffer(mainWidget.ed.Buffer.Contents())
 	if _, err := io.Copy(f, r); err != nil {
-		log.Printf("error writing to %q: %v", pathCurrent, err)
+		log.Printf("error writing to %q: %v", currentPath, err)
 		return
 	}
 
 	mainWidget.ed.SetSaved()
-	pathSaved = pathCurrent
+	savedPath = currentPath
 }
 
 func getfont() (font.Face, int) {

@@ -3,7 +3,7 @@ package hist
 import (
 	"fmt"
 
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 )
 
 type History struct {

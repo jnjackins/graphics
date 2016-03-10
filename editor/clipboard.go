@@ -1,7 +1,7 @@
 package editor
 
 func (ed *Editor) snarf() {
-	ed.clipboard.Put([]byte(ed.buf.GetSel(ed.dot)))
+	ed.clipboard.Put([]byte(ed.Buffer.GetSel(ed.Dot)))
 }
 
 func (ed *Editor) paste() {

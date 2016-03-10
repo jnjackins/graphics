@@ -1,58 +1,38 @@
 package editor
 
 import (
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 	"sigint.ca/graphics/editor/internal/hist"
 )
 
 // Load replaces the contents of the Editor's text buffer with s, and resets the Editor's history.
 func (ed *Editor) Load(s []byte) {
-	last := len(ed.buf.Lines) - 1
-	all := address.Selection{To: address.Simple{last, ed.buf.Lines[last].RuneCount()}}
-	ed.buf.ClearSel(all)
-	ed.buf.InsertString(address.Simple{0, 0}, string(s))
-
-	// hack
-	ed.dot = address.Selection{From: ed.fixAddr(ed.dot.From), To: ed.fixAddr(ed.dot.To)}
-
+	last := len(ed.Buffer.Lines) - 1
+	all := address.Selection{To: address.Simple{last, ed.Buffer.Lines[last].RuneCount()}}
+	ed.Dot = ed.Buffer.ClearSel(all)
+	ed.Dot.To = ed.Buffer.InsertString(address.Simple{}, string(s))
 	ed.history = new(hist.History)
 	ed.uncommitted = nil
 	ed.dirty = true
 }
 
-func (ed *Editor) fixAddr(a address.Simple) address.Simple {
-	if a.Row >= len(ed.buf.Lines) {
-		a.Row = len(ed.buf.Lines) - 1
-	}
-	rc := ed.buf.Lines[a.Row].RuneCount()
-	if a.Col > rc {
-		a.Col = rc
-	}
-	return a
-}
-
-// Contents returns the contents of the Editor's text buffer.
-func (ed *Editor) Contents() []byte {
-	return ed.buf.Contents()
-}
-
 // FindNext searches for s in the Editor's text buffer, and selects the first match
 // starting from the current selection, possibly wrapping around to the beginning
 // of the buffer. If there are no matches, the selection is unchanged.
-func (ed *Editor) FindNext(s string) bool {
-	if sel, ok := ed.buf.Find(ed.dot.To, s); ok {
-		ed.dot = sel
+func (ed *Editor) FindNext(s string) (address.Selection, bool) {
+	if sel, ok := ed.Buffer.Find(ed.Dot.To, s); ok {
+		ed.Dot = sel
 		ed.autoscroll()
 		ed.dirty = true
-		return true
+		return ed.Dot, true
 	}
-	return false
+	return ed.Dot, false
 }
 
 // JumpTo sets the selection to the specified address, as define in sam(1).
 func (ed *Editor) JumpTo(addr string) bool {
-	if sel, ok := ed.buf.JumpTo(ed.dot.To, addr); ok {
-		ed.dot = sel
+	if sel, ok := ed.Buffer.JumpTo(ed.Dot.To, addr); ok {
+		ed.Dot = sel
 		ed.autoscroll()
 		ed.dirty = true
 		return true
@@ -63,7 +43,7 @@ func (ed *Editor) JumpTo(addr string) bool {
 // putString replaces the current selection with s, and selects
 // the results.
 func (ed *Editor) putString(s string) {
-	ed.buf.ClearSel(ed.dot)
-	addr := ed.buf.InsertString(ed.dot.From, s)
-	ed.dot.To = addr
+	ed.Buffer.ClearSel(ed.Dot)
+	addr := ed.Buffer.InsertString(ed.Dot.From, s)
+	ed.Dot.To = addr
 }
