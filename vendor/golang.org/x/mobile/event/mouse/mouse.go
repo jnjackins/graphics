@@ -9,14 +9,17 @@ package mouse // import "golang.org/x/mobile/event/mouse"
 
 import (
 	"fmt"
+	"image"
 
 	"golang.org/x/mobile/event/key"
 )
 
 // Event is a mouse event.
 type Event struct {
-	// X and Y are the mouse location, in pixels.
-	X, Y float32
+	Pos         image.Point // The mouse location, in pixels.
+	ScrollDelta image.Point // The scrolling delta, in pixels.
+
+	PreciseScrolling bool // true indicates pixel values, false indicates lines/cols.
 
 	// Button is the mouse button being pressed or released. Its value may be
 	// zero, for a mouse move or drag without any button change.
@@ -37,23 +40,15 @@ type Event struct {
 	// TODO: add a time.Time?
 }
 
-type ScrollEvent struct {
-	Event
-
-	// Dx and Dy are horizontal and vertical scrolling deltas, in pixels.
-	Dx, Dy  float32
-	Precise bool
-}
-
 // Button is a mouse button.
 type Button int32
 
 const (
-	ButtonNone        Button = +0
-	ButtonLeft        Button = +1
-	ButtonMiddle      Button = +2
-	ButtonRight       Button = +3
-	ButtonScrollWheel Button = -1
+	ButtonNone   Button = +0
+	ButtonLeft   Button = +1
+	ButtonMiddle Button = +2
+	ButtonRight  Button = +3
+	ButtonScroll Button = -1
 )
 
 // Direction is the direction of the mouse event.

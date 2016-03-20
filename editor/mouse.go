@@ -11,24 +11,11 @@ import (
 
 // SendMouseEvent sends a mouse event to be interpreted by the Editor.
 func (ed *Editor) SendMouseEvent(e mouse.Event) {
+	if e.Button == mouse.ButtonScroll {
+		ed.handleScrollEvent(e)
+		return
+	}
 	ed.handleMouseEvent(e)
-}
-
-// SendScrollEvent sends a scroll event to be interpreted by the Editor.
-func (ed *Editor) SendScrollEvent(e mouse.ScrollEvent) {
-	var pt image.Point
-	if e.Precise {
-		pt.X = int(e.Dx)
-		pt.Y = int(e.Dy)
-	} else {
-		pt.X = int(e.Dx * float32(ed.font.height))
-		pt.Y = int(e.Dy * float32(ed.font.height))
-	}
-	oldPt := ed.scrollPt
-	ed.scroll(pt)
-	if ed.scrollPt != oldPt {
-		ed.dirty = true
-	}
 }
 
 const (
@@ -53,6 +40,18 @@ type mouseState struct {
 	sweepLast   address.Simple // the last column that was swept
 }
 
+func (ed *Editor) handleScrollEvent(e mouse.Event) {
+	if !e.PreciseScrolling {
+		e.ScrollDelta.X *= ed.font.height
+		e.ScrollDelta.Y *= ed.font.height
+	}
+	oldPt := ed.scrollPt
+	ed.scroll(e.ScrollDelta)
+	if ed.scrollPt != oldPt {
+		ed.dirty = true
+	}
+}
+
 func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	if e.Button == mouse.ButtonNone {
 		return
@@ -61,13 +60,12 @@ func (ed *Editor) handleMouseEvent(e mouse.Event) {
 	// a mouse event commits any pending transformation
 	ed.commitTransformation()
 
-	pt := image.Pt(int(e.X), int(e.Y))
-	ed.m.pt = pt.Add(ed.visible().Min) // adjust for scrolling
+	ed.m.pt = e.Pos.Add(ed.visible().Min) // adjust for scrolling
 	ed.m.a = ed.getAddress(ed.m.pt)
 
 	if e.Direction == mouse.DirRelease {
 		ed.release(e)
-	} else if e.Direction == mouse.DirPress && pt.In(ed.sbRect()) || ed.m.scrolling {
+	} else if e.Direction == mouse.DirPress && e.Pos.In(ed.sbRect()) || ed.m.scrolling {
 		ed.clickSb(e)
 	} else if e.Direction == mouse.DirPress {
 		ed.click(e)
@@ -81,7 +79,7 @@ func (ed *Editor) clickSb(e mouse.Event) {
 	ed.m.scrolling = true
 
 	height := float64(ed.visible().Dy())
-	percent := (float64(e.Y) + float64(ed.r.Min.Y)) / height
+	percent := (float64(e.Pos.Y) + float64(ed.r.Min.Y)) / height
 
 	switch e.Button {
 	case mouse.ButtonLeft:

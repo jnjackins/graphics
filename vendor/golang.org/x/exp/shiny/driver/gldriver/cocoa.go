@@ -30,6 +30,7 @@ import "C"
 
 import (
 	"fmt"
+	"image"
 	"log"
 	"runtime"
 
@@ -257,8 +258,7 @@ func cocoaMouseButton(button int32) mouse.Button {
 //export mouseEvent
 func mouseEvent(id uintptr, x, y float32, ty, button int32, flags uint32) {
 	sendWindowEvent(id, mouse.Event{
-		X:         x,
-		Y:         y,
+		Pos: image.Point{X: int(x), Y: int(y)},
 		Button:    cocoaMouseButton(button),
 		Direction: cocoaMouseDir(ty),
 		Modifiers: cocoaMods(flags),
@@ -267,17 +267,21 @@ func mouseEvent(id uintptr, x, y float32, ty, button int32, flags uint32) {
 
 //export scrollEvent
 func scrollEvent(id uintptr, x, y, dx, dy float32, precise bool, ty, button int32, flags uint32) {
-	sendWindowEvent(id, mouse.ScrollEvent{
-		Event: mouse.Event{
-			X:         x,
-			Y:         y,
-			Button:    cocoaMouseButton(button),
-			Direction: cocoaMouseDir(ty),
-			Modifiers: cocoaMods(flags),
-		},
-		Dx:      dx,
-		Dy:      dy,
-		Precise: precise,
+	pos := image.Pt(int(x), int(y))
+	delta := image.Pt(int(dx), int(dy))
+
+	if !precise {
+		dx *= 10
+		dy *= 10
+	}
+
+	sendWindowEvent(id, mouse.Event{
+		Pos: pos,
+		ScrollDelta: delta,
+		PreciseScrolling: precise,
+		Button:    mouse.ButtonScroll,
+		Direction: cocoaMouseDir(ty),
+		Modifiers: cocoaMods(flags),
 	})
 }
 

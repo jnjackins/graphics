@@ -107,8 +107,8 @@ uint64 threadID() {
 	double y = (h - p.y) * scale - 1; // flip origin from bottom-left to top-left.
 
 	if (theEvent.type == NSScrollWheel) {
-		double dx = theEvent.scrollingDeltaX;
-		double dy = theEvent.scrollingDeltaY;
+		double dx = theEvent.scrollingDeltaX * scale;
+		double dy = theEvent.scrollingDeltaY * scale;
 		bool precise = theEvent.hasPreciseScrollingDeltas;
 		scrollEvent((GoUintptr)self, x, y, dx, dy, precise, theEvent.type, theEvent.buttonNumber, theEvent.modifierFlags);
 		return;
