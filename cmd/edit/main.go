@@ -123,21 +123,13 @@ func main() {
 				}
 
 				if e.Direction == mouse.DirPress {
-					if w, ok := sel(e2Pt(e), widgets); ok {
+					if w, ok := sel(e.Pos, widgets); ok {
 						selected = w
 					}
 				}
-				e.X -= float32(selected.r.Min.X)
-				e.Y -= float32(selected.r.Min.Y)
+				e.Pos = e.Pos.Sub(selected.r.Min)
 
 				selected.ed.SendMouseEvent(e)
-				win.Send(paint.Event{})
-
-			case mouse.ScrollEvent:
-				if w, ok := sel(e2Pt(e.Event), widgets); ok {
-					selected = w
-				}
-				selected.ed.SendScrollEvent(e)
 				win.Send(paint.Event{})
 
 			case paint.Event:
@@ -173,10 +165,6 @@ func main() {
 			}
 		}
 	})
-}
-
-func e2Pt(e mouse.Event) image.Point {
-	return image.Pt(int(e.X), int(e.Y))
 }
 
 func resize(s screen.Screen, size image.Point) {
