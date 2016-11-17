@@ -6,11 +6,12 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"path/filepath"
+
+	"github.com/golang/freetype/truetype"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"
-	"golang.org/x/image/font/plan9font"
+	"golang.org/x/image/font/gofont/gomono"
 )
 
 func loadMain(path string) {
@@ -55,25 +56,24 @@ func save() {
 	savedPath = currentPath
 }
 
-func getfont() (font.Face, int) {
-	var face font.Face
-	if font := os.Getenv("PLAN9FONT"); font != "" {
-		readFile := func(path string) ([]byte, error) {
-			return ioutil.ReadFile(filepath.Join(filepath.Dir(font), path))
+func getfont() font.Face {
+	ttf := gomono.TTF
+	if font := os.Getenv("FONT"); font != "" {
+		if buf, err := ioutil.ReadFile(font); err == nil {
+			ttf = buf
+		} else {
+			log.Printf("error reading FONT=%s: %v", font, err)
 		}
-		fontData, err := ioutil.ReadFile(font)
-		if err != nil {
-			log.Fatalf("error loading font: %v", err)
-		}
-		face, err = plan9font.ParseFont(fontData, readFile)
-		if err != nil {
-			log.Fatalf("error parsing font: %v", err)
-		}
+	}
 
+	var face font.Face
+	font, err := truetype.Parse(ttf)
+	if err == nil {
+		face = truetype.NewFace(font, nil)
 	} else {
+		log.Printf("error parsing ttf: %v", err)
 		face = basicfont.Face7x13
 	}
-	bounds, _, _ := face.GlyphBounds('|')
-	height := int(1.33*float64(bounds.Max.Y>>6-bounds.Min.Y>>6)) + 1
-	return face, height
+
+	return face
 }

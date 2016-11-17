@@ -52,8 +52,9 @@ func init() {
 }
 
 func main() {
-	font, h := getfont()
-	tagHeight = 2 * h
+	font := getfont()
+	h := font.Metrics().Height.Round()
+	tagHeight = h + font.Metrics().Descent.Round()
 
 	driver.Main(func(scr screen.Screen) {
 		opts := screen.NewWindowOptions{
