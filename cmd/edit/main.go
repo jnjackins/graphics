@@ -98,6 +98,8 @@ func main() {
 		}
 		selected := mainWidget
 
+		lastSize := winSize
+
 		for {
 			switch e := win.NextEvent().(type) {
 			case key.Event:
@@ -133,6 +135,11 @@ func main() {
 				win.Send(paint.Event{})
 
 			case paint.Event:
+				if lastSize != winSize {
+					lastSize = winSize
+					resize(scr)
+				}
+
 				dirty := false
 				updateTag()
 
@@ -156,7 +163,7 @@ func main() {
 				}
 
 			case size.Event:
-				resize(scr, e.Size())
+				winSize = e.Size()
 
 			case lifecycle.Event:
 				if e.To == lifecycle.StageDead {
@@ -167,8 +174,7 @@ func main() {
 	})
 }
 
-func resize(s screen.Screen, size image.Point) {
-	winSize = size
+func resize(s screen.Screen) {
 	tagWidget.resize(s, image.Pt(winSize.X, tagHeight), image.ZP)
 	mainWidget.resize(s, image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1))
 }
