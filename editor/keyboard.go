@@ -76,11 +76,11 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		ed.commitTransformation()
 
 	case e.Code == key.CodeUpArrow:
-		ed.scroll(image.Pt(0, 18*ed.font.height))
+		ed.scroll(image.Pt(0, 18*ed.fontHeight))
 		ed.commitTransformation()
 
 	case e.Code == key.CodeDownArrow:
-		ed.scroll(image.Pt(0, -18*ed.font.height))
+		ed.scroll(image.Pt(0, -18*ed.fontHeight))
 		ed.commitTransformation()
 
 	case e.Code == key.CodeLeftArrow:

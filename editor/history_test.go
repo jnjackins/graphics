@@ -38,7 +38,7 @@ func TestHistory(t *testing.T) {
 
 	// start with one line
 	s1 := "The quick brown fox jumps over the lazy dog."
-	ed.Load([]byte(s1+"\n"), -1)
+	ed.Load([]byte(s1 + "\n"))
 
 	// move the cursor to the end of the loaded text
 	ed.Dot = address.Selection{
@@ -82,7 +82,7 @@ func TestHistory(t *testing.T) {
 		if c.event != nil {
 			ed.SendKeyEvent(*c.event)
 		}
-		got := string(ed.Contents())
+		got := string(ed.Buffer.Contents())
 		if got != c.want {
 			t.Errorf("case %d\ngot:    %q\nwanted: %q\n", i, got, c.want)
 		}

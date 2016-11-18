@@ -31,10 +31,11 @@ type Editor struct {
 	dot address.Selection // the current selection
 
 	// drawing data
-	r        image.Rectangle
-	font     fontface
-	scrollPt image.Point
-	dirty    bool
+	r          image.Rectangle
+	font       font.Face
+	fontHeight int
+	scrollPt   image.Point
+	dirty      bool
 
 	m mouseState
 
@@ -55,7 +56,7 @@ func NewEditor(face font.Face, opts *OptionSet) *Editor {
 	ed := &Editor{
 		Buffer: text.NewBuffer(),
 
-		font:      mkFont(face),
+		font:      face,
 		dirty:     true,
 		opts:      opts,
 		history:   new(hist.History),

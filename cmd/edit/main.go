@@ -28,8 +28,9 @@ var (
 	tagHeight  int
 	mainWidget *widget
 
-	win     screen.Window
-	winSize = image.Pt(1024, 768)
+	win         screen.Window
+	winSize             = image.Pt(1024, 768)
+	pixelsPerPt float32 = 1
 
 	borderCol = color.RGBA{R: 115, G: 115, B: 190, A: 255}
 )
@@ -49,28 +50,26 @@ func init() {
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	loadFont()
 }
 
 func main() {
-	font := getfont()
-	h := font.Metrics().Height.Round()
-	tagHeight = h + font.Metrics().Descent.Round()
-
 	driver.Main(func(scr screen.Screen) {
-		opts := screen.NewWindowOptions{
-			Width:  winSize.X,
-			Height: winSize.Y,
-		}
 		var err error
-		win, err = scr.NewWindow(&opts)
+		win, err = scr.NewWindow(nil)
 		if err != nil {
 			log.Fatal(err)
 		}
 		defer win.Release()
 
+		updateFont()
+		m := fontFace.Metrics()
+		tagHeight = (m.Ascent + m.Descent).Round()
+
 		// set up the main editor widget
 		sz, pt := image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1)
-		mainWidget = newWidget(scr, sz, pt, editor.AcmeYellowTheme, font)
+		mainWidget = newWidget(scr, sz, pt, editor.AcmeYellowTheme, fontFace)
 		defer mainWidget.release()
 
 		// load file into main editor widget
@@ -78,7 +77,7 @@ func main() {
 
 		// set up the tag widget
 		sz, pt = image.Pt(winSize.X, tagHeight), image.ZP
-		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, font)
+		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, fontFace)
 		defer tagWidget.release()
 
 		// populate the tag
@@ -99,10 +98,12 @@ func main() {
 		}
 		selected := mainWidget
 
-		lastSize := winSize
+		var lastSize image.Point
 
 		for {
-			switch e := win.NextEvent().(type) {
+			e := win.NextEvent()
+			//log.Printf("event: %#v", e)
+			switch e := e.(type) {
 			case key.Event:
 				if e.Direction == key.DirPress && e.Modifiers == key.ModMeta {
 					switch e.Code {
@@ -164,6 +165,16 @@ func main() {
 				}
 
 			case size.Event:
+				if e.PixelsPerPt != pixelsPerPt {
+					pixelsPerPt = e.PixelsPerPt
+					updateFont()
+
+					tagWidget.ed.SetFont(fontFace)
+					m := fontFace.Metrics()
+					tagHeight = (m.Ascent + m.Descent).Round()
+
+					mainWidget.ed.SetFont(fontFace)
+				}
 				winSize = e.Size()
 
 			case lifecycle.Event:

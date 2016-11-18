@@ -5,12 +5,14 @@ package text
 import (
 	"bytes"
 	"unicode/utf8"
+
+	"golang.org/x/image/math/fixed"
 )
 
 type Line struct {
 	// Adv can be used by the client to store pixel advances when
 	// drawing the line.
-	Adv []int16
+	Adv []fixed.Int26_6
 
 	s []byte
 }

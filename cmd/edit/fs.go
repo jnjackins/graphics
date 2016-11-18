@@ -6,12 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-
-	"github.com/golang/freetype/truetype"
-
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/basicfont"
-	"golang.org/x/image/font/gofont/gomono"
 )
 
 func loadMain(path string) {
@@ -54,26 +48,4 @@ func save() {
 
 	mainWidget.ed.SetSaved()
 	savedPath = currentPath
-}
-
-func getfont() font.Face {
-	ttf := gomono.TTF
-	if font := os.Getenv("FONT"); font != "" {
-		if buf, err := ioutil.ReadFile(font); err == nil {
-			ttf = buf
-		} else {
-			log.Printf("error reading FONT=%s: %v", font, err)
-		}
-	}
-
-	var face font.Face
-	font, err := truetype.Parse(ttf)
-	if err == nil {
-		face = truetype.NewFace(font, nil)
-	} else {
-		log.Printf("error parsing ttf: %v", err)
-		face = basicfont.Face7x13
-	}
-
-	return face
 }

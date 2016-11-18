@@ -42,8 +42,8 @@ type mouseState struct {
 
 func (ed *Editor) handleScrollEvent(e mouse.Event) {
 	if !e.PreciseScrolling {
-		e.ScrollDelta.X *= ed.font.height
-		e.ScrollDelta.Y *= ed.font.height
+		e.ScrollDelta.X *= ed.fontHeight
+		e.ScrollDelta.Y *= ed.fontHeight
 	}
 	oldPt := ed.scrollPt
 	ed.scroll(e.ScrollDelta)
@@ -164,9 +164,9 @@ func (ed *Editor) sweep(e mouse.Event) {
 	}
 
 	if pt.Y <= vis.Min.Y && vis.Min.Y > 0 {
-		ed.scroll(image.Pt(0, ed.font.height))
+		ed.scroll(image.Pt(0, ed.fontHeight))
 	} else if pt.Y >= vis.Max.Y && vis.Max.Y < ed.docHeight() {
-		ed.scroll(image.Pt(0, -ed.font.height))
+		ed.scroll(image.Pt(0, -ed.fontHeight))
 	}
 
 	ed.m.sweepLast = a
