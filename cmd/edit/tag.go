@@ -10,6 +10,8 @@ import (
 	"golang.org/x/mobile/event/lifecycle"
 )
 
+const tagSep = " | "
+
 func updateTag() {
 	old := string(tagWidget.ed.Buffer.Contents())
 
@@ -22,8 +24,8 @@ func updateTag() {
 
 	// only the first line is uneditable
 	var keep string
-	if i := strings.Index(old, "\n"); i > 0 {
-		keep = old[i+1:]
+	if i := strings.Index(old, tagSep); i > 0 {
+		keep = old[i+len(tagSep):]
 		old = old[:i]
 	}
 
@@ -48,7 +50,7 @@ func updateTag() {
 	}
 
 	dot := tagWidget.ed.Dot
-	tagWidget.ed.Load([]byte(currentPath + " " + new + "\n" + keep))
+	tagWidget.ed.Load([]byte(currentPath + " " + new + tagSep + keep))
 	tagWidget.ed.Dot = dot
 }
 
