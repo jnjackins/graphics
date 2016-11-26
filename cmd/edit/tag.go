@@ -1,6 +1,10 @@
 package main
 
-import "strings"
+import (
+	"strings"
+
+	"sigint.ca/graphics/editor/address"
+)
 
 const tagSep = " |"
 
@@ -14,13 +18,39 @@ func updateTag() {
 		old = old[i+1:]
 	}
 
-	// only the first line is uneditable
+	// everything after tagSep is editable and must be kept
 	var keep string
 	if i := strings.Index(old, tagSep); i > 0 {
 		keep = old[i+len(tagSep):]
 		old = old[:i]
 	}
 
+	new := tagCmds()
+	if old == new {
+		return
+	}
+
+	// tag contents changed
+
+	// save the selection before loading wiping it out
+	dot := tagWidget.ed.Dot
+
+	// load the new text
+	fixed := currentPath + " " + new + tagSep
+	tagWidget.ed.Load([]byte(fixed + keep))
+
+	// and fix the selection
+	oldSepAddr := address.Simple{Row: 0, Col: i}
+	if oldSepAddr.LessThan(dot.From) {
+		dot.From.Col += len(fixed) - i
+		if dot.To.Row == dot.From.Row {
+			dot.To.Col += len(fixed) - i
+		}
+	}
+	tagWidget.ed.Dot = dot
+}
+
+func tagCmds() string {
 	var parts []string
 
 	if mainWidget.ed.CanUndo() {
@@ -36,12 +66,5 @@ func updateTag() {
 
 	parts = append(parts, "Exit")
 
-	new := strings.Join(parts, " ")
-	if old == new {
-		return
-	}
-
-	dot := tagWidget.ed.Dot
-	tagWidget.ed.Load([]byte(currentPath + " " + new + tagSep + keep))
-	tagWidget.ed.Dot = dot
+	return strings.Join(parts, " ")
 }

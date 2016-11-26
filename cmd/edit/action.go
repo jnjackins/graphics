@@ -73,6 +73,6 @@ func pipe(cmd string) {
 	c.Stdout = out
 
 	c.Run()
-	
+
 	ed.Replace(out.String())
 }
