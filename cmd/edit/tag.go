@@ -1,16 +1,8 @@
 package main
 
-import (
-	"strings"
-	"time"
-	"unicode/utf8"
+import "strings"
 
-	"sigint.ca/graphics/editor/address"
-
-	"golang.org/x/mobile/event/lifecycle"
-)
-
-const tagSep = " | "
+const tagSep = " |"
 
 func updateTag() {
 	old := string(tagWidget.ed.Buffer.Contents())
@@ -52,44 +44,4 @@ func updateTag() {
 	dot := tagWidget.ed.Dot
 	tagWidget.ed.Load([]byte(currentPath + " " + new + tagSep + keep))
 	tagWidget.ed.Dot = dot
-}
-
-var reallyQuit time.Time
-
-func executeCmd(cmd string) {
-	cmd = strings.TrimSpace(cmd)
-	switch cmd {
-	case "Put":
-		save()
-	case "Undo":
-		mainWidget.ed.SendUndo()
-		tagWidget.ed.Load([]byte{}) // force tag regeneration
-	case "Redo":
-		mainWidget.ed.SendRedo()
-		tagWidget.ed.Load([]byte{})
-	case "Exit":
-		_, ok := tagWidget.ed.FindNext("Put")
-		if !ok || time.Since(reallyQuit) < 3*time.Second {
-			win.Send(lifecycle.Event{To: lifecycle.StageDead})
-		}
-		reallyQuit = time.Now()
-	default:
-		return
-	}
-
-	end := tagWidget.ed.Buffer.LastAddress()
-	tagWidget.ed.Dot = address.Selection{From: end, To: end}
-}
-
-func findInEditor(s string) {
-	if s == "" {
-		return
-	}
-	first, sz := utf8.DecodeRuneInString(s)
-	switch first {
-	case ':':
-		mainWidget.ed.JumpTo(s[sz:])
-	default:
-		mainWidget.ed.FindNext(s)
-	}
 }

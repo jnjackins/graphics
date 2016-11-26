@@ -16,6 +16,15 @@ func (ed *Editor) Load(s []byte) {
 	ed.dirty = true
 }
 
+// Replace replaces the current selection with s, updating the Editor's history.
+func (ed *Editor) Replace(s string) {
+	ed.initTransformation()
+	ed.putString(s)
+	ed.commitTransformation()
+	ed.autoscroll()
+	ed.dirty = true
+}
+
 // FindNext searches for s in the Editor's text buffer, and selects the first match
 // starting from the current selection, possibly wrapping around to the beginning
 // of the buffer. If there are no matches, the selection is unchanged.
