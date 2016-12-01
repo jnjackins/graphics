@@ -16,11 +16,16 @@ func loadMain(path string) {
 		log.Printf("error opening %q for reading: %v", path, err)
 		return
 	}
-	buf, err := ioutil.ReadFile(path)
-	mainWidget.ed.Load(buf)
+
+	contents, err := ioutil.ReadAll(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	f.Close()
+
+	mainWidget.ed.Load(contents)
 	mainWidget.ed.Dot.To = mainWidget.ed.Dot.From
 	mainWidget.ed.SetSaved()
-	f.Close()
 
 	savedPath = path
 }

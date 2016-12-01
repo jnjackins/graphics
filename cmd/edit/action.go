@@ -2,10 +2,11 @@ package main
 
 import (
 	"bytes"
+	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
-	"unicode/utf8"
 
 	"golang.org/x/mobile/event/lifecycle"
 	"sigint.ca/graphics/editor/address"
@@ -15,10 +16,9 @@ func findInEditor(s string) {
 	if s == "" {
 		return
 	}
-	first, sz := utf8.DecodeRuneInString(s)
-	switch first {
+	switch s[1] {
 	case ':':
-		mainWidget.ed.JumpTo(s[sz:])
+		mainWidget.ed.JumpTo(s[1:])
 	default:
 		mainWidget.ed.FindNext(s)
 	}
@@ -28,7 +28,7 @@ var reallyQuit time.Time
 
 func executeCmd(cmd string) {
 	cmd = strings.TrimSpace(cmd)
-	if len(cmd) == 0 {
+	if cmd == "" {
 		return
 	}
 
@@ -37,10 +37,10 @@ func executeCmd(cmd string) {
 		save()
 	case "Undo":
 		mainWidget.ed.SendUndo()
-		tagWidget.ed.Load([]byte{}) // force tag regeneration
+		tagWidget.ed.Load(nil) // force tag regeneration
 	case "Redo":
 		mainWidget.ed.SendRedo()
-		tagWidget.ed.Load([]byte{})
+		tagWidget.ed.Load(nil)
 	case "Exit":
 		_, ok := tagWidget.ed.FindNext("Put")
 		if !ok || time.Since(reallyQuit) < 3*time.Second {
@@ -53,7 +53,7 @@ func executeCmd(cmd string) {
 		case '|':
 			pipe(cmd[1:])
 		default:
-			return
+			run(cmd)
 		}
 	}
 
@@ -75,4 +75,19 @@ func pipe(cmd string) {
 	c.Run()
 
 	ed.Replace(out.String())
+}
+
+func run(cmd string) {
+	args := strings.Fields(cmd)
+	execCmd := exec.Command(args[0], args[1:]...)
+	editorCmd := exec.Command(os.Args[0], "/dev/stdin")
+
+	r, w := io.Pipe()
+
+	execCmd.Stdout = w
+	execCmd.Stderr = w
+	editorCmd.Stdin = r
+
+	go func() { execCmd.Run(); w.Close() }()
+	go editorCmd.Run()
 }
