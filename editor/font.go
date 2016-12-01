@@ -13,9 +13,15 @@ import (
 
 // SetFont sets the Editor's font face to face.
 func (ed *Editor) SetFont(face font.Face) {
+	if face == nil {
+		panic("nil font")
+	}
 	ed.font = face
 
 	ed.fontHeight = (face.Metrics().Ascent + face.Metrics().Descent).Round()
+	if ed.fontHeight == 0 {
+		panic("bad font")
+	}
 	ed.dirty = true
 }
 

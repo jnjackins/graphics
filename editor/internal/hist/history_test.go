@@ -3,7 +3,7 @@ package hist
 import (
 	"testing"
 
-	"sigint.ca/graphics/editor/internal/address"
+	"sigint.ca/graphics/editor/address"
 )
 
 func sel(r1, c1, r2, c2 int) address.Selection {

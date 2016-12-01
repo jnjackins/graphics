@@ -56,12 +56,13 @@ func NewEditor(face font.Face, opts *OptionSet) *Editor {
 	ed := &Editor{
 		Buffer: text.NewBuffer(),
 
-		font:      face,
 		dirty:     true,
 		opts:      opts,
 		history:   new(hist.History),
 		clipboard: new(clip.Clipboard),
 	}
+	ed.SetFont(face)
+
 	return ed
 }
 

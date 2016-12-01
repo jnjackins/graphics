@@ -33,9 +33,6 @@ Features:
 	- resizing
 	- search (right-click a selection)
 	- autoindent
-
-Planned:
-	- scrollbar
 `
 const text2 = "(Widget #2)\n"
 const text3 = "(Widget #3)\n"
@@ -81,17 +78,10 @@ func main() {
 						selected = w
 					}
 				}
-				e.X -= float32(selected.r.Min.X)
-				e.Y -= float32(selected.r.Min.Y)
+				e.Pos.X -= selected.r.Min.X
+				e.Pos.Y -= selected.r.Min.Y
 
 				selected.ed.SendMouseEvent(e)
-				win.Send(paint.Event{})
-
-			case mouse.ScrollEvent:
-				if w, ok := sel(e2Pt(e.Event), widgets); ok {
-					selected = w
-				}
-				selected.ed.SendScrollEvent(e)
 				win.Send(paint.Event{})
 
 			case paint.Event:
@@ -140,7 +130,7 @@ func main() {
 }
 
 func e2Pt(e mouse.Event) image.Point {
-	return image.Pt(int(e.X), int(e.Y))
+	return e.Pos
 }
 
 func resize(s screen.Screen, size image.Point, widgets []*widget) {
