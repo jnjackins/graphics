@@ -126,7 +126,7 @@ func main() {
 					e.Button = mouse.ButtonRight
 				}
 
-				if e.Direction == mouse.DirPress {
+				if e.Direction == mouse.DirPress || e.Button == mouse.ButtonScroll {
 					if w, ok := sel(e.Pos, widgets); ok {
 						selected = w
 					}
