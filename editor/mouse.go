@@ -3,6 +3,7 @@ package editor
 import (
 	"image"
 	"time"
+	"unicode"
 
 	"sigint.ca/graphics/editor/address"
 
@@ -124,7 +125,12 @@ func (ed *Editor) click(e mouse.Event) {
 			ed.m.lastClickTime = time.Now()
 		}
 
-	case b2, b3:
+	case b2:
+		if ed.Dot.IsEmpty() || !a.In(ed.Dot) {
+			ed.Dot = ed.Buffer.SelFunc(a, unicode.IsSpace)
+		}
+
+	case b3:
 		if ed.Dot.IsEmpty() || !a.In(ed.Dot) {
 			ed.Dot = ed.Buffer.SelWord(a)
 		}

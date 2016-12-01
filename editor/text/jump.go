@@ -2,7 +2,11 @@
 
 package text
 
-import "sigint.ca/graphics/editor/address"
+import (
+	"unicode/utf8"
+
+	"sigint.ca/graphics/editor/address"
+)
 
 func (b *Buffer) JumpTo(dot address.Simple, addr string) (address.Selection, bool) {
 	parsed, ok := address.ParseAddress(addr)
@@ -18,7 +22,7 @@ func (b *Buffer) Find(dot address.Simple, s string) (address.Selection, bool) {
 
 // TODO: slow for large files, probably because of GetSel
 func (b *Buffer) jumpTo(dot address.Simple, parsed address.Address) (address.Selection, bool) {
-	end := address.Simple{Row: len(b.Lines) - 1, Col: b.Lines[len(b.Lines)-1].RuneCount()}
+	end := address.Simple{Row: len(b.Lines) - 1, Col: utf8.RuneCount(b.Lines[len(b.Lines)-1].s)}
 	contents := b.GetSel(address.Selection{dot, end})
 	sel, ok := parsed.Execute(contents)
 	if ok {

@@ -21,8 +21,7 @@ func (ed *Editor) SetFont(face font.Face) {
 
 const tabwidth = 4
 
-// draw draws s onto dst starting at pt. It returns the cumulative advance
-// in pixels of each glyph.
+// drawLine draws l onto dst starting at pt and updates the values in l.Adv.
 func (ed *Editor) drawLine(dst draw.Image, pt image.Point, l *text.Line, src *image.Uniform) {
 	f := ed.font
 
@@ -33,7 +32,8 @@ func (ed *Editor) drawLine(dst draw.Image, pt image.Point, l *text.Line, src *im
 	}
 	dot := fixed.P(pt.X, pt.Y)
 	dot.Y += f.Metrics().Ascent
-	for i, r := range l.Runes() {
+	var i int
+	for _, r := range l.String() {
 		tab := r == '\t'
 		if tab {
 			// in case of variable-width fonts, try to pick a font with an
@@ -60,10 +60,11 @@ func (ed *Editor) drawLine(dst draw.Image, pt image.Point, l *text.Line, src *im
 		}
 		dot.X += advance
 		l.Adv = append(l.Adv, l.Adv[i]+advance)
+		i++
 	}
 }
 
-// measure returns the cumulative advance in pixels for each glyph in s.
+// measureLine updates the values in l.Adv.
 func (ed *Editor) measureLine(l *text.Line) {
 	f := ed.font
 
@@ -72,7 +73,8 @@ func (ed *Editor) measureLine(l *text.Line) {
 	} else {
 		l.Adv = l.Adv[0:1]
 	}
-	for i, r := range l.Runes() {
+	var i int
+	for _, r := range l.String() {
 		tab := r == '\t'
 		if tab {
 			// for the sake of variable-width fonts, try to pick a font with an
@@ -93,5 +95,6 @@ func (ed *Editor) measureLine(l *text.Line) {
 			advance *= tabwidth
 		}
 		l.Adv = append(l.Adv, l.Adv[i]+advance)
+		i++
 	}
 }

@@ -1,9 +1,6 @@
-// +build ignore
-
 package text
 
 import (
-	"bytes"
 	"unicode/utf8"
 
 	"golang.org/x/image/math/fixed"
@@ -21,21 +18,14 @@ func newLineFromString(s string) *Line {
 	return &Line{s: []byte(s)}
 }
 
-func (l *Line) String() string {
-	return string(l.s)
-}
+//String returns the contents of l as a string.
+func (l *Line) String() string { return string(l.s) }
 
-func (l *Line) bytes() []byte {
-	return l.s
-}
+// Bytes returns the contents of l as a byte slice. The caller should
+// take care not to modify the slice.
+func (l *Line) Bytes() []byte { return l.s }
 
-func (l *Line) Runes() []rune {
-	return bytes.Runes(l.s)
-}
-
-func (l *Line) RuneCount() int {
-	return utf8.RuneCount(l.s)
-}
+func (l *Line) RuneCount() int { return utf8.RuneCount(l.s) }
 
 func (l *Line) elemFromCol(col int) (elem int) {
 	for i := 0; i < col; i++ {
@@ -45,7 +35,7 @@ func (l *Line) elemFromCol(col int) (elem int) {
 	return
 }
 
-// insert inserts s into l at column col, and returns the new
+// insertString inserts s into l at column col, and returns the new
 // column (i.e. col + the number of columns inserted)
 func (l *Line) insertString(col int, s string) int {
 	elem := l.elemFromCol(col)

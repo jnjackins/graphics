@@ -44,7 +44,7 @@ func (ed *Editor) handleKeyEvent(e key.Event) {
 		if ed.Dot.From.Col == 0 {
 			ed.backspace(1)
 		} else {
-			line := ed.Buffer.Lines[ed.Dot.From.Row].Runes()
+			line := []rune(ed.Buffer.Lines[ed.Dot.From.Row].String())
 			var n, dot int
 			for dot = ed.Dot.From.Col; dot > 0 && !isWordChar(line[dot-1]); dot-- {
 				n++

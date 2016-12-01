@@ -21,7 +21,7 @@ func NewBuffer() *Buffer {
 }
 
 func (b *Buffer) NextSimple(a address.Simple) address.Simple {
-	if a.Col < b.Lines[a.Row].RuneCount() {
+	if a.Col < utf8.RuneCount(b.Lines[a.Row].s) {
 		a.Col++
 	} else if a.Row < len(b.Lines)-1 {
 		a.Col = 0
@@ -35,7 +35,7 @@ func (b *Buffer) PrevSimple(a address.Simple) address.Simple {
 		a.Col--
 	} else if a.Row > 0 {
 		a.Row--
-		a.Col = b.Lines[a.Row].RuneCount()
+		a.Col = utf8.RuneCount(b.Lines[a.Row].s)
 	}
 	return a
 }
@@ -43,7 +43,7 @@ func (b *Buffer) PrevSimple(a address.Simple) address.Simple {
 func (b *Buffer) Contents() []byte {
 	var buf bytes.Buffer
 	for _, l := range b.Lines {
-		buf.Write(l.bytes())
+		buf.Write(l.s)
 		buf.WriteByte('\n')
 	}
 	// trim the extra newline
@@ -59,8 +59,8 @@ func (b *Buffer) fixAddr(a address.Simple) address.Simple {
 
 	if a.Col < 0 {
 		a.Col = 0
-	} else if a.Col > b.Lines[a.Row].RuneCount() {
-		a.Col = b.Lines[a.Row].RuneCount()
+	} else if a.Col > utf8.RuneCount(b.Lines[a.Row].s) {
+		a.Col = utf8.RuneCount(b.Lines[a.Row].s)
 	}
 	return a
 }
@@ -78,13 +78,13 @@ func (b *Buffer) GetSel(sel address.Selection) string {
 	}
 
 	ret := make([]rune, 0, 20*(sel.To.Row-sel.From.Row))
-	ret = append(ret, b.Lines[sel.From.Row].Runes()[sel.From.Col:]...)
+	ret = append(ret, bytes.Runes(b.Lines[sel.From.Row].s)[sel.From.Col:]...)
 	ret = append(ret, '\n')
 	for i := sel.From.Row + 1; i < sel.To.Row; i++ {
-		ret = append(ret, b.Lines[i].Runes()...)
+		ret = append(ret, bytes.Runes(b.Lines[i].s)...)
 		ret = append(ret, '\n')
 	}
-	ret = append(ret, b.Lines[sel.To.Row].Runes()[:sel.To.Col]...)
+	ret = append(ret, bytes.Runes(b.Lines[sel.To.Row].s)[:sel.To.Col]...)
 	return string(ret)
 }
 
@@ -110,7 +110,7 @@ func (b *Buffer) ClearSel(sel address.Selection) address.Selection {
 
 func (b *Buffer) LastAddress() address.Simple {
 	lastLine := len(b.Lines) - 1
-	lastChar := b.Lines[lastLine].RuneCount()
+	lastChar := utf8.RuneCount(b.Lines[lastLine].s)
 	return address.Simple{Row: lastLine, Col: lastChar}
 }
 
@@ -168,7 +168,7 @@ func (b *Buffer) AutoSelect(addr address.Simple) address.Selection {
 		return sel
 	}
 
-	if addr.Col == b.Lines[addr.Row].RuneCount() || addr.Col == 0 {
+	if addr.Col == utf8.RuneCount(b.Lines[addr.Row].s) || addr.Col == 0 {
 		return b.SelLine(addr)
 	}
 
@@ -188,7 +188,7 @@ func (b *Buffer) SelLine(addr address.Simple) address.Selection {
 		sel.To.Row++
 		sel.To.Col = 0
 	} else {
-		sel.To.Col = b.Lines[addr.Row].RuneCount()
+		sel.To.Col = utf8.RuneCount(b.Lines[addr.Row].s)
 	}
 	return sel
 }
@@ -196,20 +196,26 @@ func (b *Buffer) SelLine(addr address.Simple) address.Selection {
 // SelWord selects a word. If we're on a non-alphanumeric, attempt to select a word to
 // the left of the click; otherwise expand across alphanumerics in both directions.
 func (b *Buffer) SelWord(addr address.Simple) address.Selection {
+	return b.SelFunc(addr, isWordSep)
+}
+
+func isWordSep(c rune) bool {
+	return !(unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_')
+}
+
+// SelFunc is analogous to strings.FieldsFunc, returning a selection specified
+// by sepFn. SepFn should return true when sep is the desired separator.
+func (b *Buffer) SelFunc(addr address.Simple, sepFn func(sep rune) bool) address.Selection {
 	sel := address.Selection{addr, addr}
 
-	line := b.Lines[addr.Row].Runes()
-	for col := addr.Col; col > 0 && isWordChar(line[col-1]); col-- {
+	line := bytes.Runes(b.Lines[addr.Row].s)
+	for col := addr.Col; col > 0 && !sepFn(line[col-1]); col-- {
 		sel.From.Col--
 	}
-	for col := addr.Col; col < len(line) && isWordChar(line[col]); col++ {
+	for col := addr.Col; col < len(line) && !sepFn(line[col]); col++ {
 		sel.To.Col++
 	}
 	return sel
-}
-
-func isWordChar(c rune) bool {
-	return unicode.IsLetter(c) || unicode.IsNumber(c) || c == '_'
 }
 
 // SelDelimited returns true if a selection was attempted, successfully or not.
@@ -217,7 +223,7 @@ func (b *Buffer) selDelimited(addr address.Simple, leftDelims, rightDelims strin
 	sel := address.Selection{addr, addr}
 
 	var delim int
-	var line = b.Lines[addr.Row].Runes()
+	var line = bytes.Runes(b.Lines[addr.Row].s)
 	var next func(address.Simple) address.Simple
 	var rightwards bool
 	if addr.Col > 0 {
@@ -249,7 +255,7 @@ func (b *Buffer) selDelimited(addr address.Simple, leftDelims, rightDelims strin
 	for match != prev {
 		prev = match
 		match = next(match)
-		line := b.Lines[match.Row].Runes()
+		line := bytes.Runes(b.Lines[match.Row].s)
 		if match.Col > len(line)-1 {
 			continue
 		}
