@@ -169,6 +169,7 @@ func (ed *Editor) sweep(e mouse.Event) {
 		return
 	}
 
+	oldScrollPt := ed.scrollPt
 	if pt.Y <= vis.Min.Y && vis.Min.Y > 0 {
 		ed.scroll(image.Pt(0, ed.fontHeight))
 	} else if pt.Y >= vis.Max.Y && vis.Max.Y < ed.docHeight() {
@@ -177,6 +178,7 @@ func (ed *Editor) sweep(e mouse.Event) {
 
 	ed.m.sweepLast = a
 
+	oldDot := ed.Dot
 	origin := ed.getAddress(ed.m.sweepOrigin)
 	if a.LessThan(origin) {
 		ed.Dot = address.Selection{a, origin}
@@ -186,7 +188,9 @@ func (ed *Editor) sweep(e mouse.Event) {
 		ed.Dot = address.Selection{origin, origin}
 	}
 
-	ed.dirty = true
+	if ed.Dot != oldDot || ed.scrollPt != oldScrollPt {
+		ed.dirty = true
+	}
 }
 
 // isTwitch reports whether p1 is within 1 twitch distance of p2.
