@@ -12,6 +12,7 @@ import (
 	"sigint.ca/graphics/editor/text"
 
 	"golang.org/x/image/font"
+	"golang.org/x/image/math/fixed"
 )
 
 // An Editor is a graphical, editable text area widget, intended to be
@@ -34,6 +35,7 @@ type Editor struct {
 	r          image.Rectangle
 	font       font.Face
 	fontHeight int
+	tabwidth   fixed.Int26_6 // tab width in pixels
 	scrollPt   image.Point
 	dirty      bool
 

@@ -41,14 +41,14 @@ func (ed *Editor) draw(dst *image.RGBA, dr image.Rectangle) int {
 			// advances are not necessary).
 			// TODO: only measure if line text has changed
 			if row == ed.Dot.From.Row || row == ed.Dot.To.Row {
-				ed.measureLine(line)
+				ed.measureString(line.String())
 			}
 			ed.drawSelRect(dst, row)
 		}
 
 		// draw font overtop
 		pt := ed.getPixelsRel(address.Simple{Row: row, Col: 0})
-		ed.drawLine(dst, pt, line, ed.opts.Text)
+		ed.drawString(dst, pt, line.String(), ed.opts.Text)
 	}
 
 	// draw cursor
@@ -130,14 +130,18 @@ func (ed *Editor) autoscroll() {
 
 func (ed *Editor) getPixelsAbs(a address.Simple) image.Point {
 	var x, y int
-	l := ed.Buffer.Lines[a.Row]
+	s := ed.Buffer.Lines[a.Row].String()
 
-	if len(l.Adv) == 0 {
+	if len(s) == 0 {
+		// fast path
 		x = 0
-	} else if a.Col >= len(l.Adv) {
-		x = l.Adv[len(l.Adv)-1].Round()
 	} else {
-		x = l.Adv[a.Col].Round()
+		adv := ed.measureString(s)
+		if a.Col >= len(adv) {
+			x = adv[len(adv)-1].Round()
+		} else {
+			x = adv[a.Col].Round()
+		}
 	}
 
 	y = a.Row * ed.fontHeight
@@ -174,18 +178,18 @@ func (ed *Editor) getAddress(pt image.Point) address.Simple {
 		return addr
 	}
 
-	line := ed.Buffer.Lines[addr.Row]
+	adv := ed.measureString(ed.Buffer.Lines[addr.Row].String())
 	// the column number is found by looking for the smallest px element
 	// which is larger than pt.X, and returning the column number before that.
 	// If no px elements are larger than pt.X, then return the last column on
 	// the line.
-	if len(line.Adv) == 0 || pt.X <= line.Adv[0].Round() {
+	if len(adv) == 0 || pt.X <= adv[0].Round() {
 		addr.Col = 0
-	} else if pt.X > line.Adv[len(line.Adv)-1].Round() {
-		addr.Col = len(line.Adv) - 1
+	} else if pt.X > adv[len(adv)-1].Round() {
+		addr.Col = len(adv) - 1
 	} else {
-		n := sort.Search(len(line.Adv), func(i int) bool {
-			return line.Adv[i].Round() > pt.X+1
+		n := sort.Search(len(adv), func(i int) bool {
+			return adv[i].Round() > pt.X+1
 		})
 		addr.Col = n - 1
 	}
