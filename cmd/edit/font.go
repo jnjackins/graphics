@@ -36,7 +36,7 @@ func updateFont() {
 	dpi := (float64(pixelsPerPt) * 72.0) / 2
 
 	opts := truetype.Options{
-		Size:    14,
+		Size:    13,
 		DPI:     dpi,
 		Hinting: font.HintingFull,
 	}

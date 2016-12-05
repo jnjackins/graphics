@@ -156,7 +156,7 @@ func main() {
 				}
 
 				// redraw screen if any widgets changed
-				if dirty {
+				if dirty || e.External {
 					win.Fill(image.Rectangle{Max: winSize}, borderCol, screen.Src)
 					for _, w := range widgets {
 						win.Copy(w.r.Min, w.tx, w.tx.Bounds(), screen.Src, nil)
@@ -181,6 +181,9 @@ func main() {
 				if e.To == lifecycle.StageDead {
 					return
 				}
+
+			case error:
+				log.Print(e)
 			}
 		}
 	})
