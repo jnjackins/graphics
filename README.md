@@ -1,5 +1,12 @@
-Packages for creating graphical programs in Go.
+Graphical tools and packages in Go.
 
-* [editor](http://godoc.org/sigint.ca/graphics/editor) provides a graphical, editable text area widget.
+[editor](http://godoc.org/sigint.ca/graphics/editor) provides a
+graphical, editable text area widget.
 
-All packages in this repository are pure Go. All should be considered work-in-progress.
+cmd/edit is an almost-pure-Go text editor which uses the editor
+package, and is intended to resemble
+[acme](http://9p.io/magic/man2html/1/acme) without the window
+management — for now, at least. The non-pure-Go part is the
+[shiny](https://godoc.org/golang.org/x/exp/shiny) driver, though
+in theory a pure-Go shiny driver could be developed (e.g. using
+Plan 9's /dev/draw, or Linux's frame buffer device).
