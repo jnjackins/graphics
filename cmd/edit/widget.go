@@ -37,17 +37,12 @@ func newWidget(s screen.Screen, size, loc image.Point, opts *editor.OptionSet, f
 }
 
 func sel(pt image.Point, widgets []*widget) (*widget, bool) {
-	var selected *widget
 	for _, w := range widgets {
 		if pt.In(w.r) {
-			selected = w
+			return w, true
 		}
 	}
-	if selected == nil {
-		return nil, false
-	}
-
-	return selected, true
+	return nil, false
 }
 
 func (w *widget) resize(s screen.Screen, size, loc image.Point) {

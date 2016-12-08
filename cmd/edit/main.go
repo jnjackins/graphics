@@ -35,6 +35,11 @@ var (
 	borderCol = color.RGBA{R: 115, G: 115, B: 190, A: 255}
 )
 
+var (
+	dflag   = flag.Bool("d", false, "Toggle debug mode.")
+	dprintf = func(format string, args ...interface{}) {}
+)
+
 func init() {
 	log.SetFlags(0)
 	flag.Usage = func() {
@@ -42,6 +47,10 @@ func init() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	if *dflag {
+		dprintf = log.Printf
+	}
 
 	if flag.NArg() == 1 {
 		savedPath = flag.Arg(0)
@@ -102,7 +111,7 @@ func main() {
 
 		for {
 			e := win.NextEvent()
-			//log.Printf("event: %#v", e)
+			//dprintf("event: %#v", e)
 			switch e := e.(type) {
 			case key.Event:
 				if e.Direction == key.DirPress && e.Modifiers == key.ModMeta {
@@ -138,25 +147,31 @@ func main() {
 
 			case paint.Event:
 				if lastSize != winSize {
+					dprintf("resizing widgets")
 					lastSize = winSize
 					resize(scr)
 				}
 
 				dirty := false
+
+				// TODO: avoid this when unnecessary
 				updateTag()
 
 				if mainWidget.ed.Dirty() || mainWidget.dirty {
+					dprintf("redrawing mainWidget")
 					dirty = true
 					mainWidget.redraw()
 				}
 
 				if tagWidget.ed.Dirty() || tagWidget.dirty {
+					dprintf("redrawing tagWidget")
 					dirty = true
 					tagWidget.redraw()
 				}
 
 				// redraw screen if any widgets changed
 				if dirty || e.External {
+					dprintf("publishing to window")
 					win.Fill(image.Rectangle{Max: winSize}, borderCol, screen.Src)
 					for _, w := range widgets {
 						win.Copy(w.r.Min, w.tx, w.tx.Bounds(), screen.Src, nil)

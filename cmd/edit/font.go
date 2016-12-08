@@ -38,7 +38,7 @@ func updateFont() {
 	opts := truetype.Options{
 		Size:    13,
 		DPI:     dpi,
-		Hinting: font.HintingFull,
+		Hinting: font.HintingNone,
 	}
 	fontFace = truetype.NewFace(ttfFont, &opts)
 }
