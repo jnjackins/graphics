@@ -114,25 +114,25 @@ func (ed *Editor) click(e mouse.Event) {
 	dprintf("click: ed.m.buttons: %v\n", ed.m.buttons)
 	switch ed.m.buttons {
 	case b1:
-		prev := ed.Dot
-		ed.Dot.From, ed.Dot.To = a, a
+		prev := ed.dot
+		ed.dot.From, ed.dot.To = a, a
 
 		// check for double-click
-		if time.Since(ed.m.lastClickTime) < dClickPause && ed.Dot == prev {
-			ed.Dot = ed.Buffer.AutoSelect(a)
+		if time.Since(ed.m.lastClickTime) < dClickPause && ed.dot == prev {
+			ed.dot = ed.buffer.AutoSelect(a)
 			ed.m.lastClickTime = time.Time{}
 		} else {
 			ed.m.lastClickTime = time.Now()
 		}
 
 	case b2:
-		if ed.Dot.IsEmpty() || !a.In(ed.Dot) {
-			ed.Dot = ed.Buffer.SelFunc(a, unicode.IsSpace)
+		if ed.dot.IsEmpty() || !a.In(ed.dot) {
+			ed.dot = ed.buffer.SelFunc(a, unicode.IsSpace)
 		}
 
 	case b3:
-		if ed.Dot.IsEmpty() || !a.In(ed.Dot) {
-			ed.Dot = ed.Buffer.SelWord(a)
+		if ed.dot.IsEmpty() || !a.In(ed.dot) {
+			ed.dot = ed.buffer.SelWord(a)
 		}
 
 	case b1 | b2:
@@ -140,7 +140,7 @@ func (ed *Editor) click(e mouse.Event) {
 		ed.m.chording = true
 		ed.initTransformation()
 		ed.snarf()
-		ed.Dot = ed.Buffer.ClearSel(ed.Dot)
+		ed.dot = ed.buffer.ClearSel(ed.dot)
 		ed.commitTransformation()
 
 	case b1 | b3:
@@ -178,17 +178,17 @@ func (ed *Editor) sweep(e mouse.Event) {
 
 	ed.m.sweepLast = a
 
-	oldDot := ed.Dot
+	oldDot := ed.dot
 	origin := ed.getAddress(ed.m.sweepOrigin)
 	if a.LessThan(origin) {
-		ed.Dot = address.Selection{a, origin}
+		ed.dot = address.Selection{a, origin}
 	} else if a != origin {
-		ed.Dot = address.Selection{origin, a}
+		ed.dot = address.Selection{origin, a}
 	} else {
-		ed.Dot = address.Selection{origin, origin}
+		ed.dot = address.Selection{origin, origin}
 	}
 
-	if ed.Dot != oldDot || ed.scrollPt != oldScrollPt {
+	if ed.dot != oldDot || ed.scrollPt != oldScrollPt {
 		ed.dirty = true
 	}
 }
@@ -206,12 +206,12 @@ func (ed *Editor) release(e mouse.Event) {
 	switch ed.m.buttons {
 	case b2:
 		if !ed.m.chording && ed.B2Action != nil {
-			ed.B2Action(ed.Buffer.GetSel(ed.Dot))
+			ed.B2Action(ed.buffer.GetSel(ed.dot))
 			ed.dirty = true
 		}
 	case b3:
 		if !ed.m.chording && ed.B3Action != nil {
-			ed.B3Action(ed.Buffer.GetSel(ed.Dot))
+			ed.B3Action(ed.buffer.GetSel(ed.dot))
 			ed.dirty = true
 		}
 	}

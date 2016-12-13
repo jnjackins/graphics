@@ -20,16 +20,13 @@ import (
 // window package capable of drawing a widget via an image.RGBA.
 // See sigint.ca/cmd/edit for an example program using this type.
 type Editor struct {
-	Buffer *text.Buffer
-	Dot    address.Selection
+	buffer *text.Buffer
+	dot    address.Selection
 
 	B2Action func(string) // define an action for the middle mouse button
 	B3Action func(string) // define an action for the right mouse button
 
 	opts *OptionSet
-
-	// textual state
-	dot address.Selection // the current selection
 
 	// drawing data
 	r          image.Rectangle
@@ -56,7 +53,7 @@ func NewEditor(face font.Face, opts *OptionSet) *Editor {
 		opts = SimpleTheme
 	}
 	ed := &Editor{
-		Buffer: text.NewBuffer(),
+		buffer: text.NewBuffer(),
 
 		dirty:     true,
 		opts:      opts,

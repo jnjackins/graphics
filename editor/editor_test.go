@@ -16,7 +16,7 @@ func TestContents(t *testing.T) {
 The quick brown fox jumps over the lazy dog.`
 	ed.putString(input)
 
-	output := ed.Buffer.Contents()
+	output := ed.Contents()
 	if input != string(output) {
 		t.Errorf("expected %q, got %q", input, output)
 	}
@@ -34,7 +34,7 @@ The quick brown fox jumps over the lazy dog.`
 	ed.putString(input)
 
 	for i := 0; i < b.N; i++ {
-		bytesink = ed.Buffer.Contents()
+		bytesink = ed.Contents()
 	}
 }
 

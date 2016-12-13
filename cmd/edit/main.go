@@ -92,8 +92,8 @@ func main() {
 		// populate the tag
 		tagWidget.ed.Load([]byte(currentPath + " "))
 		updateTag()
-		end := tagWidget.ed.Buffer.LastAddress()
-		tagWidget.ed.Dot = address.Selection{From: end, To: end}
+		end := tagWidget.ed.LastAddress()
+		tagWidget.ed.SetDot(address.Selection{From: end, To: end})
 
 		// set up B2 and B3 actions
 		tagWidget.ed.B2Action = executeCmd

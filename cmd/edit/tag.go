@@ -9,7 +9,7 @@ import (
 const tagSep = " |"
 
 func updateTag() {
-	old := string(tagWidget.ed.Buffer.Contents())
+	old := string(tagWidget.ed.Contents())
 
 	// the part before the first " " is the filepath
 	i := strings.Index(old, " ")
@@ -33,7 +33,7 @@ func updateTag() {
 	// tag contents changed
 
 	// save the selection before loading wiping it out
-	dot := tagWidget.ed.Dot
+	dot := tagWidget.ed.GetDot()
 
 	// load the new text
 	fixed := currentPath + " " + new + tagSep
@@ -47,7 +47,7 @@ func updateTag() {
 			dot.To.Col += len(fixed) - i
 		}
 	}
-	tagWidget.ed.Dot = dot
+	tagWidget.ed.SetDot(dot)
 }
 
 func tagCmds() string {

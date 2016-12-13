@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"sigint.ca/graphics/editor/address"
 )
 
 func loadMain(path string) {
@@ -24,7 +26,7 @@ func loadMain(path string) {
 	f.Close()
 
 	mainWidget.ed.Load(contents)
-	mainWidget.ed.Dot.To = mainWidget.ed.Dot.From
+	mainWidget.ed.SetDot(address.Selection{})
 	mainWidget.ed.SetSaved()
 
 	savedPath = path
@@ -45,7 +47,7 @@ func save() {
 	}
 	defer f.Close()
 
-	r := bytes.NewBuffer(mainWidget.ed.Buffer.Contents())
+	r := bytes.NewBuffer(mainWidget.ed.Contents())
 	if _, err := io.Copy(f, r); err != nil {
 		log.Printf("error writing to %q: %v", currentPath, err)
 		return

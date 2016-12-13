@@ -9,9 +9,9 @@ import (
 	"sigint.ca/graphics/editor/address"
 )
 
-// TODO: rename to Doc?
 type Buffer struct {
 	Lines []*Line
+	dot   address.Selection
 }
 
 func NewBuffer() *Buffer {

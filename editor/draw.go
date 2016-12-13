@@ -30,17 +30,17 @@ func (ed *Editor) draw(dst *image.RGBA, dr image.Rectangle) int {
 
 	from, to := ed.visibleRows()
 	for row := from; row < to; row++ {
-		line := ed.Buffer.Lines[row]
+		line := ed.buffer.Lines[row]
 
 		// draw selection rectangles
-		if !ed.Dot.IsEmpty() && (row >= ed.Dot.From.Row && row <= ed.Dot.To.Row) {
+		if !ed.dot.IsEmpty() && (row >= ed.dot.From.Row && row <= ed.dot.To.Row) {
 			// If some text has just been inserted (e.g. via paste from clipboard),
 			// it may not have been measured yet - selection rects need to be drawn
-			// before text. This only applies to when row == ed.Dot.From.Row or
-			// row == ed.Dot.To.Row (otherwise the entire line is selected and character
+			// before text. This only applies to when row == ed.dot.From.Row or
+			// row == ed.dot.To.Row (otherwise the entire line is selected and character
 			// advances are not necessary).
 			// TODO: only measure if line text has changed
-			if row == ed.Dot.From.Row || row == ed.Dot.To.Row {
+			if row == ed.dot.From.Row || row == ed.dot.To.Row {
 				ed.measureString(line.String())
 			}
 			ed.drawSelRect(dst, row)
@@ -52,9 +52,9 @@ func (ed *Editor) draw(dst *image.RGBA, dr image.Rectangle) int {
 	}
 
 	// draw cursor
-	if ed.Dot.IsEmpty() {
+	if ed.dot.IsEmpty() {
 		cursor := ed.opts.Cursor(ed.fontHeight)
-		pt := ed.getPixelsRel(ed.Dot.From)
+		pt := ed.getPixelsRel(ed.dot.From)
 		pt.X-- // match acme
 		draw.Draw(dst, cursor.Bounds().Add(pt), cursor, image.ZP, draw.Over)
 	}
@@ -65,14 +65,14 @@ func (ed *Editor) draw(dst *image.RGBA, dr image.Rectangle) int {
 func (ed *Editor) drawSelRect(dst *image.RGBA, row int) {
 	var r image.Rectangle
 
-	if row == ed.Dot.From.Row {
-		r.Min = ed.getPixelsRel(ed.Dot.From)
+	if row == ed.dot.From.Row {
+		r.Min = ed.getPixelsRel(ed.dot.From)
 	} else {
 		r.Min = ed.getPixelsRel(address.Simple{Row: row, Col: 0})
 	}
 
-	if row == ed.Dot.To.Row {
-		r.Max = ed.getPixelsRel(ed.Dot.To)
+	if row == ed.dot.To.Row {
+		r.Max = ed.getPixelsRel(ed.dot.To)
 	} else {
 		r.Max = ed.getPixelsRel(address.Simple{Row: row, Col: 0})
 		r.Max.X = ed.r.Dx()
@@ -83,7 +83,7 @@ func (ed *Editor) drawSelRect(dst *image.RGBA, row int) {
 }
 
 func (ed *Editor) docHeight() int {
-	return (len(ed.Buffer.Lines) - 1) * ed.fontHeight
+	return (len(ed.buffer.Lines) - 1) * ed.fontHeight
 }
 
 func (ed *Editor) visible() image.Rectangle {
@@ -96,8 +96,8 @@ func (ed *Editor) visible() image.Rectangle {
 func (ed *Editor) visibleRows() (from, to int) {
 	from = ed.visible().Min.Y / ed.fontHeight
 	to = ed.visible().Max.Y/ed.fontHeight + 2
-	if to > len(ed.Buffer.Lines) {
-		to = len(ed.Buffer.Lines)
+	if to > len(ed.buffer.Lines) {
+		to = len(ed.buffer.Lines)
 	}
 	return
 }
@@ -109,7 +109,7 @@ func (ed *Editor) scroll(pt image.Point) {
 	if ed.visible().Min.Y < 0 {
 		ed.scrollPt.Y = 0
 	}
-	max := ed.getPixelsAbs(address.Simple{Row: len(ed.Buffer.Lines) - 1})
+	max := ed.getPixelsAbs(address.Simple{Row: len(ed.buffer.Lines) - 1})
 	if ed.visible().Min.Y > max.Y {
 		ed.scrollPt.Y = max.Y
 	}
@@ -117,7 +117,7 @@ func (ed *Editor) scroll(pt image.Point) {
 
 func (ed *Editor) autoscroll() {
 	visible := ed.visible()
-	pt := ed.getPixelsAbs(address.Simple{Row: ed.Dot.From.Row})
+	pt := ed.getPixelsAbs(address.Simple{Row: ed.dot.From.Row})
 	if pt.Y > visible.Min.Y && pt.Y+ed.fontHeight < visible.Max.Y {
 		return
 	}
@@ -130,7 +130,7 @@ func (ed *Editor) autoscroll() {
 
 func (ed *Editor) getPixelsAbs(a address.Simple) image.Point {
 	var x, y int
-	s := ed.Buffer.Lines[a.Row].String()
+	s := ed.buffer.Lines[a.Row].String()
 
 	if len(s) == 0 {
 		// fast path
@@ -172,13 +172,13 @@ func (ed *Editor) getAddress(pt image.Point) address.Simple {
 	addr.Row = pt.Y / ed.fontHeight
 
 	// end of the last line if addr is below the last line
-	if addr.Row > len(ed.Buffer.Lines)-1 {
-		addr.Row = len(ed.Buffer.Lines) - 1
-		addr.Col = ed.Buffer.Lines[addr.Row].RuneCount()
+	if addr.Row > len(ed.buffer.Lines)-1 {
+		addr.Row = len(ed.buffer.Lines) - 1
+		addr.Col = ed.buffer.Lines[addr.Row].RuneCount()
 		return addr
 	}
 
-	adv := ed.measureString(ed.Buffer.Lines[addr.Row].String())
+	adv := ed.measureString(ed.buffer.Lines[addr.Row].String())
 	// the column number is found by looking for the smallest px element
 	// which is larger than pt.X, and returning the column number before that.
 	// If no px elements are larger than pt.X, then return the last column on

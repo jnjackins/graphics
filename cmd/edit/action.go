@@ -57,15 +57,14 @@ func executeCmd(cmd string) {
 		}
 	}
 
-	// fix tag selection
-	end := tagWidget.ed.Buffer.LastAddress()
-	tagWidget.ed.Dot = address.Selection{From: end, To: end}
+	end := tagWidget.ed.LastAddress()
+	tagWidget.ed.SetDot(address.Selection{From: end, To: end})
 }
 
 func pipe(cmd string) {
 	ed := mainWidget.ed
 
-	in := bytes.NewBufferString(ed.Buffer.GetSel(ed.Dot))
+	in := bytes.NewBufferString(ed.GetDotContents())
 	out := new(bytes.Buffer)
 	args := strings.Fields(cmd)
 	c := exec.Command(args[0], args[1:]...)

@@ -54,7 +54,7 @@ func (ed *Editor) undo() {
 	if !ok {
 		return
 	}
-	ed.Dot = ch.Sel
+	ed.dot = ch.Sel
 	ed.putString(ch.Text)
 	ed.dirty = true
 }
@@ -64,7 +64,7 @@ func (ed *Editor) redo() {
 	if !ok {
 		return
 	}
-	ed.Dot = ch.Sel
+	ed.dot = ch.Sel
 	ed.putString(ch.Text)
 	ed.dirty = true
 }
@@ -74,8 +74,8 @@ func (ed *Editor) initTransformation() {
 	if ed.uncommitted == nil {
 		ed.uncommitted = new(hist.Transformation)
 		ed.uncommitted.Pre = hist.Chunk{
-			Sel:  ed.Dot,
-			Text: ed.Buffer.GetSel(ed.Dot),
+			Sel:  ed.dot,
+			Text: ed.buffer.GetSel(ed.dot),
 		}
 	}
 }
@@ -92,8 +92,8 @@ func (ed *Editor) commitTransformation() {
 	}
 
 	if ed.uncommitted.Post.Text == "" {
-		ed.uncommitted.Post.Text = ed.Buffer.GetSel(ed.Dot)
-		ed.uncommitted.Post.Sel = ed.Dot
+		ed.uncommitted.Post.Text = ed.buffer.GetSel(ed.dot)
+		ed.uncommitted.Post.Sel = ed.dot
 	} else {
 		ed.uncommitted.Post.Sel = address.Selection{
 			ed.uncommitted.Pre.Sel.From,
@@ -101,7 +101,7 @@ func (ed *Editor) commitTransformation() {
 		}
 		for range ed.uncommitted.Post.Text {
 			// TODO: use measure and add?
-			ed.uncommitted.Post.Sel.To = ed.Buffer.NextSimple(ed.uncommitted.Post.Sel.To)
+			ed.uncommitted.Post.Sel.To = ed.buffer.NextSimple(ed.uncommitted.Post.Sel.To)
 		}
 	}
 

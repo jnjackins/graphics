@@ -41,10 +41,10 @@ func TestHistory(t *testing.T) {
 	ed.Load([]byte(s1 + "\n"))
 
 	// move the cursor to the end of the loaded text
-	ed.Dot = address.Selection{
+	ed.SetDot(address.Selection{
 		From: address.Simple{1, 0},
 		To:   address.Simple{1, 0},
-	}
+	})
 
 	// simulate typing of 2 more lines
 	s2 := "速い茶色のキツネは、のろまなイヌに飛びかかりました。"
@@ -82,9 +82,27 @@ func TestHistory(t *testing.T) {
 		if c.event != nil {
 			ed.SendKeyEvent(*c.event)
 		}
-		got := string(ed.Buffer.Contents())
+		got := string(ed.Contents())
 		if got != c.want {
 			t.Errorf("case %d\ngot:    %q\nwanted: %q\n", i, got, c.want)
 		}
 	}
+}
+
+func TestHistory2(t *testing.T) {
+	face := basicfont.Face7x13
+	ed := NewEditor(face, AcmeYellowTheme)
+
+	last := func() address.Selection { return address.Selection{ed.LastAddress(), ed.LastAddress()} }
+	ed.Load([]byte("The quick brown fox jumps over the lazy dog."))
+	ed.SetDot(last())
+	ed.SendKeyEvent(backspaceEvent)
+	ed.Load([]byte("The quick brown fox jumps over the lazy dog."))
+	ed.SetDot(last())
+	ed.SendKeyEvent(backspaceEvent)
+	ed.Load([]byte("The quick brown fox jumps over the lazy dog."))
+	ed.SetDot(last())
+	ed.SendKeyEvent(backspaceEvent)
+	ed.SendKeyEvent(key.Event{Rune: ' '})
+	ed.SendKeyEvent(backspaceEvent)
 }
