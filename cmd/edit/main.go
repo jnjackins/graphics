@@ -29,7 +29,7 @@ var (
 	mainWidget *widget
 
 	win         screen.Window
-	winSize             = image.Pt(1024, 768)
+	winSize             = image.Pt(800, 600)
 	pixelsPerPt float32 = 1
 
 	borderCol = color.RGBA{R: 115, G: 115, B: 190, A: 255}
@@ -66,7 +66,10 @@ func init() {
 func main() {
 	driver.Main(func(scr screen.Screen) {
 		var err error
-		win, err = scr.NewWindow(nil)
+		win, err = scr.NewWindow(&screen.NewWindowOptions{
+			Width:  winSize.X,
+			Height: winSize.Y,
+		})
 		if err != nil {
 			log.Fatal(err)
 		}

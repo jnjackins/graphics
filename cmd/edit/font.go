@@ -10,6 +10,8 @@ import (
 	"golang.org/x/image/font/gofont/gomono"
 )
 
+const fontSize = 13
+
 var (
 	ttfFont  *truetype.Font
 	fontFace font.Face
@@ -36,7 +38,7 @@ func updateFont() {
 	dpi := (float64(pixelsPerPt) * 72.0) / 2
 
 	opts := truetype.Options{
-		Size:    13,
+		Size:    fontSize,
 		DPI:     dpi,
 		Hinting: font.HintingNone,
 	}
