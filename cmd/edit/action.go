@@ -24,8 +24,6 @@ func findInEditor(s string) {
 	}
 }
 
-var reallyQuit time.Time
-
 func executeCmd(cmd string) {
 	cmd = strings.TrimSpace(cmd)
 	if cmd == "" {
@@ -42,12 +40,17 @@ func executeCmd(cmd string) {
 		mainWidget.ed.SendRedo()
 		tagWidget.ed.Load(nil)
 	case "Exit":
-		_, ok := tagWidget.ed.FindNext("Put")
-		if !ok || time.Since(reallyQuit) < 3*time.Second {
+		if confirmUnsaved() {
 			win.Send(lifecycle.Event{To: lifecycle.StageDead})
+		} else {
+			return
 		}
-		reallyQuit = time.Now()
-
+	case "Get":
+		if confirmUnsaved() {
+			loadMain(savedPath)
+		} else {
+			return
+		}
 	default:
 		switch cmd[0] {
 		case '|':
@@ -59,6 +62,18 @@ func executeCmd(cmd string) {
 
 	end := tagWidget.ed.LastAddress()
 	tagWidget.ed.SetDot(address.Selection{From: end, To: end})
+}
+
+var confirmTime time.Time
+
+func confirmUnsaved() bool {
+	if _, ok := tagWidget.ed.FindNext("Put"); !ok {
+		return true // already saved
+	}
+
+	confirmed := time.Since(confirmTime) < 3*time.Second
+	confirmTime = time.Now()
+	return confirmed
 }
 
 func pipe(cmd string) {
