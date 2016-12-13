@@ -88,6 +88,9 @@ func run(cmd string) {
 	execCmd.Stderr = w
 	editorCmd.Stdin = r
 
-	go func() { execCmd.Run(); w.Close() }()
+	if err := execCmd.Start(); err != nil {
+		return
+	}
+	go func() { execCmd.Wait(); w.Close() }()
 	go editorCmd.Run()
 }
