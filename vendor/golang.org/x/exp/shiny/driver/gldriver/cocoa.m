@@ -100,7 +100,7 @@ uint64 threadID() {
 	int w = r.size.width * [screen backingScaleFactor];
 	int h = r.size.height * [screen backingScaleFactor];
 
-	setGeom((GoUintptr)self, pixelsPerPt, w, h);
+	setGeom((GoUintptr)self, pixelsPerPt, w, h, [screen backingScaleFactor]);
 }
 
 - (void)reshape {

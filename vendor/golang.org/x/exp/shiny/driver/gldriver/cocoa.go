@@ -165,7 +165,7 @@ func drawLoop(w *windowImpl, vba uintptr) {
 }
 
 //export setGeom
-func setGeom(id uintptr, ppp float32, widthPx, heightPx int) {
+func setGeom(id uintptr, ppp float32, widthPx, heightPx, scaleFactor int) {
 	theScreen.mu.Lock()
 	w := theScreen.windows[id]
 	theScreen.mu.Unlock()
@@ -180,6 +180,7 @@ func setGeom(id uintptr, ppp float32, widthPx, heightPx int) {
 		WidthPt:     geom.Pt(float32(widthPx) / ppp),
 		HeightPt:    geom.Pt(float32(heightPx) / ppp),
 		PixelsPerPt: ppp,
+		ScaleFactor: scaleFactor,
 	}
 
 	w.szMu.Lock()
@@ -258,7 +259,7 @@ func cocoaMouseButton(button int32) mouse.Button {
 //export mouseEvent
 func mouseEvent(id uintptr, x, y float32, ty, button int32, flags uint32) {
 	sendWindowEvent(id, mouse.Event{
-		Pos: image.Point{X: int(x), Y: int(y)},
+		Pos:       image.Point{X: int(x), Y: int(y)},
 		Button:    cocoaMouseButton(button),
 		Direction: cocoaMouseDir(ty),
 		Modifiers: cocoaMods(flags),
@@ -276,12 +277,12 @@ func scrollEvent(id uintptr, x, y, dx, dy float32, precise bool, ty, button int3
 	}
 
 	sendWindowEvent(id, mouse.Event{
-		Pos: pos,
-		ScrollDelta: delta,
+		Pos:              pos,
+		ScrollDelta:      delta,
 		PreciseScrolling: precise,
-		Button:    mouse.ButtonScroll,
-		Direction: cocoaMouseDir(ty),
-		Modifiers: cocoaMods(flags),
+		Button:           mouse.ButtonScroll,
+		Direction:        cocoaMouseDir(ty),
+		Modifiers:        cocoaMods(flags),
 	})
 }
 

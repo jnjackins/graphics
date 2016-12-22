@@ -17,7 +17,6 @@ type OptionSet struct {
 	BG1        *image.Uniform
 	BG2        *image.Uniform
 	Sel        *image.Uniform
-	Margin     image.Point
 	Cursor     func(height int) image.Image
 	AutoIndent bool
 	ScrollBar  bool
@@ -46,7 +45,6 @@ var AcmeYellowTheme = &OptionSet{
 	BG1:        image.NewUniform(color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF}),
 	BG2:        image.NewUniform(color.RGBA{R: 0xA0, G: 0xA0, B: 0x4B, A: 0xFF}),
 	Sel:        image.NewUniform(color.RGBA{R: 0xEE, G: 0xEE, B: 0x9E, A: 0xFF}),
-	Margin:     image.Pt(4, 0),
 	Cursor:     acmeCursor(image.NewUniform(color.RGBA{R: 0xFF, G: 0xFF, B: 0xEA, A: 0xFF})),
 	AutoIndent: true,
 	ScrollBar:  true,
@@ -57,7 +55,6 @@ var AcmeBlueTheme = &OptionSet{
 	BG1:        image.NewUniform(color.RGBA{R: 0xEA, G: 0xFF, B: 0xFF, A: 0xFF}),
 	BG2:        image.NewUniform(color.RGBA{R: 0x88, G: 0x88, B: 0xCC, A: 0xFF}),
 	Sel:        image.NewUniform(color.RGBA{R: 0x9F, G: 0xEB, B: 0xEA, A: 0xFF}),
-	Margin:     image.Pt(4, 0),
 	Cursor:     acmeCursor(image.NewUniform(color.RGBA{R: 0xEA, G: 0xFF, B: 0xFF, A: 0xFF})),
 	AutoIndent: true,
 	ScrollBar:  true,
@@ -74,6 +71,5 @@ var SimpleTheme = &OptionSet{
 	BG1:    image.White,
 	BG2:    image.NewUniform(color.Gray{Y: 0xA0}),
 	Sel:    image.NewUniform(color.RGBA{R: 0x90, G: 0xB0, B: 0xD0, A: 0xFF}),
-	Margin: image.Pt(4, 2),
 	Cursor: simpleCursor,
 }

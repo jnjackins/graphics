@@ -33,8 +33,16 @@ type Editor struct {
 	font       font.Face
 	fontHeight int
 	tabwidth   fixed.Int26_6 // tab width in pixels
-	scrollPt   image.Point
-	dirty      bool
+
+	// TODO: overhaul everything to use points instead of pixels, and keep track of pixels per point
+	sbwidth int // scrollbar width; set by SetFont in order to scale with DPI
+	margin  int // margin width; set by SetFont in order to scale with DPI
+
+	// TODO: this should be in points rather than pixels, DPI changes
+	// affect which part of the editor contents is visible
+	scrollPt image.Point
+
+	dirty bool
 
 	m mouseState
 

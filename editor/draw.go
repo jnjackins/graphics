@@ -21,8 +21,6 @@ func (ed *Editor) Dirty() bool {
 	return ed.dirty
 }
 
-const sbwidth = 20
-
 func (ed *Editor) draw(dst *image.RGBA, dr image.Rectangle) int {
 	ed.r = dr
 	draw.Draw(dst, ed.r, ed.opts.BG1, image.ZP, draw.Src)
@@ -146,9 +144,9 @@ func (ed *Editor) getPixelsAbs(a address.Simple) image.Point {
 
 	y = a.Row * ed.fontHeight
 
-	pt := image.Pt(x, y).Add(ed.opts.Margin)
+	pt := image.Pt(x+ed.margin, y)
 	if ed.opts.ScrollBar {
-		pt.X += sbwidth
+		pt.X += ed.sbwidth
 	}
 	return pt
 }
@@ -158,9 +156,9 @@ func (ed *Editor) getPixelsRel(a address.Simple) image.Point {
 }
 
 func (ed *Editor) getAddress(pt image.Point) address.Simple {
-	pt = pt.Sub(ed.opts.Margin)
+	pt.X -= ed.margin
 	if ed.opts.ScrollBar {
-		pt.X -= sbwidth
+		pt.X -= ed.sbwidth
 	}
 
 	// (0,0) if pt is above the buffer
@@ -200,7 +198,7 @@ func (ed *Editor) sbRect() image.Rectangle {
 	if !ed.opts.ScrollBar {
 		return image.ZR
 	}
-	return image.Rect(0, 0, sbwidth, ed.visible().Dy())
+	return image.Rect(0, 0, ed.sbwidth, ed.visible().Dy())
 }
 
 func (ed *Editor) drawSb(dst *image.RGBA) {
@@ -208,7 +206,7 @@ func (ed *Editor) drawSb(dst *image.RGBA) {
 		return
 	}
 	draw.Draw(dst, ed.sbRect(), ed.opts.BG2, image.ZP, draw.Src)
-	slider := sliderRect(ed.visible(), ed.docHeight(), sbwidth)
+	slider := sliderRect(ed.visible(), ed.docHeight(), ed.sbwidth)
 	draw.Draw(dst, slider, ed.opts.BG1, image.ZP, draw.Src)
 }
 

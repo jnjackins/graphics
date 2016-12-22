@@ -8,6 +8,7 @@ import (
 	"github.com/golang/freetype/truetype"
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/gomono"
+	"golang.org/x/mobile/event/size"
 )
 
 const fontSize = 13
@@ -34,12 +35,14 @@ func loadFont() {
 	}
 }
 
-func updateFont() {
-	dpi := (float64(pixelsPerPt) * 72.0) / 2
+func updateFont(e size.Event) {
+	dprintf("updateFont: %#v", e)
+	dpi := int(e.PixelsPerPt) * 72 / e.ScaleFactor
+	dprintf("updateFont: dpi: %v", dpi)
 
 	opts := truetype.Options{
 		Size:    fontSize,
-		DPI:     dpi,
+		DPI:     float64(dpi),
 		Hinting: font.HintingNone,
 	}
 	fontFace = truetype.NewFace(ttfFont, &opts)

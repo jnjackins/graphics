@@ -75,7 +75,7 @@ func main() {
 		}
 		defer win.Release()
 
-		updateFont()
+		updateFont(size.Event{ScaleFactor: 1})
 		m := fontFace.Metrics()
 		tagHeight = (m.Ascent + m.Descent).Round()
 
@@ -185,7 +185,7 @@ func main() {
 			case size.Event:
 				if e.PixelsPerPt != pixelsPerPt {
 					pixelsPerPt = e.PixelsPerPt
-					updateFont()
+					updateFont(e)
 
 					tagWidget.ed.SetFont(fontFace)
 					m := fontFace.Metrics()

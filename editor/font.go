@@ -32,6 +32,9 @@ func (ed *Editor) SetFont(face font.Face) {
 	}
 	ed.tabwidth = advance * tabstop
 
+	ed.sbwidth = ((advance * 3) / 2).Round()
+	ed.margin = (advance / 2).Round()
+
 	ed.dirty = true
 }
 
