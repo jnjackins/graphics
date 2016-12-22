@@ -14,6 +14,25 @@
 #import <Foundation/Foundation.h>
 #import <OpenGL/gl3.h>
 
+#define IS_MAC_SIERRA_OR_LATER (NSAppKitVersionNumber - NSAppKitVersionNumber10_11)
+
+// The variables did not exist on older OS X releases,
+// we use the old variables deprecated on macOS to define them.
+#if !IS_MAC_SIERRA_OR_LATER
+enum
+{
+	NSEventTypeScrollWheel = NSScrollWheel,
+	NSEventTypeKeyDown = NSKeyDown
+};
+enum {
+	NSWindowStyleMaskTitled = NSTitledWindowMask,
+	NSWindowStyleMaskResizable = NSResizableWindowMask,
+	NSWindowStyleMaskMiniaturizable = NSMiniaturizableWindowMask,
+	NSWindowStyleMaskClosable = NSClosableWindowMask
+};
+#endif
+
+
 void makeCurrentContext(uintptr_t context) {
 	NSOpenGLContext* ctx = (NSOpenGLContext*)context;
 	[ctx makeCurrentContext];
@@ -106,7 +125,7 @@ uint64 threadID() {
 	double x = p.x * scale;
 	double y = (h - p.y) * scale - 1; // flip origin from bottom-left to top-left.
 
-	if (theEvent.type == NSScrollWheel) {
+	if (theEvent.type == NSEventTypeScrollWheel) {
 		double dx = theEvent.scrollingDeltaX * scale;
 		double dy = theEvent.scrollingDeltaY * scale;
 		bool precise = theEvent.hasPreciseScrollingDeltas;
@@ -162,7 +181,7 @@ uint64 threadID() {
 	uint8_t direction;
 	if ([theEvent isARepeat]) {
 		direction = 0;
-	} else if (theEvent.type == NSKeyDown) {
+	} else if (theEvent.type == NSEventTypeKeyDown) {
 		direction = 1;
 	} else {
 		direction = 2;
@@ -240,12 +259,12 @@ uintptr_t doNewWindow(int width, int height) {
 		NSRect rect = NSMakeRect(0, 0, w, h);
 
 		NSWindow* window = [[NSWindow alloc] initWithContentRect:rect
-				styleMask:NSTitledWindowMask
+				styleMask:NSWindowStyleMaskTitled
 				backing:NSBackingStoreBuffered
 				defer:NO];
-		window.styleMask |= NSResizableWindowMask;
-		window.styleMask |= NSMiniaturizableWindowMask ;
-		window.styleMask |= NSClosableWindowMask;
+		window.styleMask |= NSWindowStyleMaskResizable;
+		window.styleMask |= NSWindowStyleMaskMiniaturizable ;
+		window.styleMask |= NSWindowStyleMaskClosable;
 		window.title = name;
 		window.displaysWhenScreenProfileChanges = YES;
 		[window cascadeTopLeftFromPoint:NSMakePoint(20,20)];
