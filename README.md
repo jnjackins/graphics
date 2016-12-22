@@ -11,4 +11,4 @@ management — for now, at least. The non-pure-Go part is the
 in theory a pure-Go shiny driver could be developed (e.g. using
 Plan 9's /dev/draw, or Linux's frame buffer device).
 
-![screenshot](https://cloud.githubusercontent.com/assets/449232/21435883/36c7057c-c839-11e6-8d86-b85452fa85f0.png)
+![screenshot](https://cloud.githubusercontent.com/assets/449232/21436229/aa7cb0a6-c83a-11e6-8319-63dbbf23935c.png)
