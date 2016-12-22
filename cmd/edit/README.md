@@ -1,8 +1,10 @@
 This editor mimics a single window of [acme(1)](http://www.unix.com/man-page/plan9/1/acme/).
 The author uses this editor on a daily basis, but there are many missing features and bugs.
 
+Installation and usage:
 ```
-Usage: edit [file]
+go get -u -t sigint.ca/graphics/cmd/edit
+edit [file]
 ```
 
 The font can be set by setting the FONT environment variable:
