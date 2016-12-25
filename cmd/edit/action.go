@@ -32,13 +32,13 @@ func executeCmd(cmd string) {
 
 	switch cmd {
 	case "Put":
-		save()
+		if !dir {
+			save()
+		}
 	case "Undo":
 		mainWidget.ed.SendUndo()
-		tagWidget.ed.Load(nil) // force tag regeneration
 	case "Redo":
 		mainWidget.ed.SendRedo()
-		tagWidget.ed.Load(nil)
 	case "Exit":
 		if confirmUnsaved() {
 			win.Send(lifecycle.Event{To: lifecycle.StageDead})
@@ -47,7 +47,7 @@ func executeCmd(cmd string) {
 		}
 	case "Get":
 		if confirmUnsaved() {
-			loadMain(savedPath)
+			load(savedPath)
 		} else {
 			return
 		}

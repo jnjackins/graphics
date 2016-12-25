@@ -53,15 +53,17 @@ func updateTag() {
 func tagCmds() string {
 	var parts []string
 
-	if mainWidget.ed.CanUndo() {
-		parts = append(parts, "Undo")
-	}
-	if mainWidget.ed.CanRedo() {
-		parts = append(parts, "Redo")
-	}
+	if !dir {
+		if mainWidget.ed.CanUndo() {
+			parts = append(parts, "Undo")
+		}
+		if mainWidget.ed.CanRedo() {
+			parts = append(parts, "Redo")
+		}
 
-	if currentPath != "" && (!mainWidget.ed.Saved() || currentPath != savedPath) {
-		parts = append(parts, "Put")
+		if currentPath != "" && (!mainWidget.ed.Saved() || currentPath != savedPath) {
+			parts = append(parts, "Put")
+		}
 	}
 
 	parts = append(parts, "Exit")

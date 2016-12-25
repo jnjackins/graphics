@@ -53,7 +53,6 @@ func init() {
 	}
 
 	if flag.NArg() == 1 {
-		savedPath = flag.Arg(0)
 		currentPath = flag.Arg(0)
 	} else if flag.NArg() > 1 {
 		flag.Usage()
@@ -85,7 +84,9 @@ func main() {
 		defer mainWidget.release()
 
 		// load file into main editor widget
-		loadMain(savedPath)
+		if err := load(currentPath); err != nil {
+			log.Fatal(err)
+		}
 
 		// set up the tag widget
 		sz, pt = image.Pt(winSize.X, tagHeight), image.ZP

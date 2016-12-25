@@ -6,30 +6,54 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"sigint.ca/graphics/editor/address"
 )
 
-func loadMain(path string) {
+var dir bool
+
+func load(path string) error {
 	f, err := os.Open(path)
 	if os.IsNotExist(err) {
-		return
+		return nil
 	} else if err != nil {
-		log.Printf("error opening %q for reading: %v", path, err)
-		return
+		return err
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		return err
 	}
 
-	contents, err := ioutil.ReadAll(f)
-	if err != nil {
-		log.Fatal(err)
+	var contents []byte
+	if fi.IsDir() {
+		dir = true
+		names, err := f.Readdirnames(0)
+		if err != nil {
+			return err
+		}
+		contents = []byte(strings.Join(names, "\n"))
+		if abs, err := filepath.Abs(path); err == nil {
+			path = abs
+		}
+	} else {
+		contents, err = ioutil.ReadAll(f)
+		if err != nil {
+			return err
+		}
 	}
-	f.Close()
 
 	mainWidget.ed.Load(contents)
 	mainWidget.ed.SetDot(address.Selection{})
 	mainWidget.ed.SetSaved()
-
+	
+	currentPath = path
 	savedPath = path
+
+	return nil
 }
 
 func save() {
