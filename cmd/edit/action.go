@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -91,20 +90,16 @@ func pipe(cmd string) {
 	ed.Replace(out.String())
 }
 
+// BUG: only works if the command exits.
 func run(cmd string) {
 	args := strings.Fields(cmd)
-	execCmd := exec.Command(args[0], args[1:]...)
-	editorCmd := exec.Command(os.Args[0], "/dev/stdin")
-
-	r, w := io.Pipe()
-
-	execCmd.Stdout = w
-	execCmd.Stderr = w
-	editorCmd.Stdin = r
-
-	if err := execCmd.Start(); err != nil {
-		return
-	}
-	go func() { execCmd.Wait(); w.Close() }()
-	go editorCmd.Run()
+	go func() {
+		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
+		if err != nil || len(out) == 0 {
+			return
+		}
+		editor := exec.Command(os.Args[0], "/dev/stdin")
+		editor.Stdin = bytes.NewBuffer(out)
+		editor.Run()
+	}()
 }
