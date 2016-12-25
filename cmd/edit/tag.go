@@ -8,13 +8,13 @@ import (
 
 const tagSep = " |"
 
-func updateTag() {
-	old := string(tagWidget.ed.Contents())
+func (p *pane) updateTag() {
+	old := string(p.tag.ed.Contents())
 
 	// the part before the first " " is the filepath
 	i := strings.Index(old, " ")
 	if i >= 0 {
-		currentPath = old[:i]
+		p.currentPath = old[:i]
 		old = old[i+1:]
 	}
 
@@ -25,7 +25,7 @@ func updateTag() {
 		old = old[:i]
 	}
 
-	new := tagCmds()
+	new := p.tagCmds()
 	if old == new {
 		return
 	}
@@ -33,11 +33,11 @@ func updateTag() {
 	// tag contents changed
 
 	// save the selection before loading wiping it out
-	dot := tagWidget.ed.GetDot()
+	dot := p.tag.ed.GetDot()
 
 	// load the new text
-	fixed := currentPath + " " + new + tagSep
-	tagWidget.ed.Load([]byte(fixed + keep))
+	fixed := p.currentPath + " " + new + tagSep
+	p.tag.ed.Load([]byte(fixed + keep))
 
 	// and fix the selection
 	oldSepAddr := address.Simple{Row: 0, Col: i}
@@ -47,21 +47,21 @@ func updateTag() {
 			dot.To.Col += len(fixed) - i
 		}
 	}
-	tagWidget.ed.SetDot(dot)
+	p.tag.ed.SetDot(dot)
 }
 
-func tagCmds() string {
+func (p *pane) tagCmds() string {
 	var parts []string
 
 	if !dir {
-		if mainWidget.ed.CanUndo() {
+		if p.main.ed.CanUndo() {
 			parts = append(parts, "Undo")
 		}
-		if mainWidget.ed.CanRedo() {
+		if p.main.ed.CanRedo() {
 			parts = append(parts, "Redo")
 		}
 
-		if currentPath != "" && (!mainWidget.ed.Saved() || currentPath != savedPath) {
+		if p.currentPath != "" && (!p.main.ed.Saved() || p.currentPath != p.savedPath) {
 			parts = append(parts, "Put")
 		}
 	}

@@ -11,19 +11,19 @@ import (
 	"sigint.ca/graphics/editor/address"
 )
 
-func findInEditor(s string) {
+func (p *pane) findInEditor(s string) {
 	if s == "" {
 		return
 	}
 	switch s[1] {
 	case ':':
-		mainWidget.ed.JumpTo(s[1:])
+		p.main.ed.JumpTo(s[1:])
 	default:
-		mainWidget.ed.FindNext(s)
+		p.main.ed.FindNext(s)
 	}
 }
 
-func executeCmd(cmd string) {
+func (p *pane) executeCmd(cmd string) {
 	cmd = strings.TrimSpace(cmd)
 	if cmd == "" {
 		return
@@ -32,51 +32,51 @@ func executeCmd(cmd string) {
 	switch cmd {
 	case "Put":
 		if !dir {
-			save()
+			p.save()
 		}
 	case "Undo":
-		mainWidget.ed.SendUndo()
+		p.main.ed.SendUndo()
 	case "Redo":
-		mainWidget.ed.SendRedo()
+		p.main.ed.SendRedo()
 	case "Exit":
-		if confirmUnsaved() {
+		if p.confirmUnsaved() {
 			win.Send(lifecycle.Event{To: lifecycle.StageDead})
 		} else {
 			return
 		}
 	case "Get":
-		if confirmUnsaved() {
-			load(savedPath)
+		if p.confirmUnsaved() {
+			p.load(p.savedPath)
 		} else {
 			return
 		}
 	default:
 		switch cmd[0] {
 		case '|':
-			pipe(cmd[1:])
+			p.pipe(cmd[1:])
 		default:
 			run(cmd)
 		}
 	}
 
-	end := tagWidget.ed.LastAddress()
-	tagWidget.ed.SetDot(address.Selection{From: end, To: end})
+	end := p.tag.ed.LastAddress()
+	p.tag.ed.SetDot(address.Selection{From: end, To: end})
 }
 
-var confirmTime time.Time
+const confirmDuration = 3 * time.Second
 
-func confirmUnsaved() bool {
-	if _, ok := tagWidget.ed.FindNext("Put"); !ok {
+func (p *pane) confirmUnsaved() bool {
+	if _, ok := p.tag.ed.FindNext("Put"); !ok {
 		return true // already saved
 	}
 
-	confirmed := time.Since(confirmTime) < 3*time.Second
-	confirmTime = time.Now()
+	confirmed := time.Since(p.confirmTime) < confirmDuration
+	p.confirmTime = time.Now()
 	return confirmed
 }
 
-func pipe(cmd string) {
-	ed := mainWidget.ed
+func (p *pane) pipe(cmd string) {
+	ed := p.main.ed
 
 	in := bytes.NewBufferString(ed.GetDotContents())
 	out := new(bytes.Buffer)

@@ -15,24 +15,18 @@ import (
 	"golang.org/x/mobile/event/mouse"
 	"golang.org/x/mobile/event/paint"
 	"golang.org/x/mobile/event/size"
-
-	"sigint.ca/graphics/editor"
-	"sigint.ca/graphics/editor/address"
 )
 
 var (
-	savedPath   string
-	currentPath string
-
-	tagWidget  *widget
-	tagHeight  int
-	mainWidget *widget
-
+	scr         screen.Screen
 	win         screen.Window
 	winSize             = image.Pt(800, 600)
 	pixelsPerPt float32 = 1
 
+	tagHeight int
 	borderCol = color.RGBA{R: 115, G: 115, B: 190, A: 255}
+
+	widgets []*widget
 )
 
 var (
@@ -40,7 +34,7 @@ var (
 	dprintf = func(format string, args ...interface{}) {}
 )
 
-func init() {
+func main() {
 	log.SetFlags(0)
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [file]\n", os.Args[0])
@@ -52,18 +46,19 @@ func init() {
 		dprintf = log.Printf
 	}
 
+	var path string
 	if flag.NArg() == 1 {
-		currentPath = flag.Arg(0)
+		path = flag.Arg(0)
 	} else if flag.NArg() > 1 {
 		flag.Usage()
 		os.Exit(1)
 	}
 
 	loadFont()
-}
 
-func main() {
-	driver.Main(func(scr screen.Screen) {
+	driver.Main(func(_scr_ screen.Screen) {
+		scr = _scr_
+
 		var err error
 		win, err = scr.NewWindow(&screen.NewWindowOptions{
 			Width:  winSize.X,
@@ -78,41 +73,18 @@ func main() {
 		m := fontFace.Metrics()
 		tagHeight = (m.Ascent + m.Descent).Round()
 
-		// set up the main editor widget
-		sz, pt := image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1)
-		mainWidget = newWidget(scr, sz, pt, editor.AcmeYellowTheme, fontFace)
-		defer mainWidget.release()
-
-		// load file into main editor widget
-		if err := load(currentPath); err != nil {
+		var panes []*pane
+		p, err := newPane(path)
+		if err != nil {
 			log.Fatal(err)
 		}
+		panes = append(panes, p)
+		defer panes[0].release()
 
-		// set up the tag widget
-		sz, pt = image.Pt(winSize.X, tagHeight), image.ZP
-		tagWidget = newWidget(scr, sz, pt, editor.AcmeBlueTheme, fontFace)
-		defer tagWidget.release()
-
-		// populate the tag
-		tagWidget.ed.Load([]byte(currentPath + " "))
-		updateTag()
-		end := tagWidget.ed.LastAddress()
-		tagWidget.ed.SetDot(address.Selection{From: end, To: end})
-
-		// set up B2 and B3 actions
-		tagWidget.ed.B2Action = executeCmd
-		mainWidget.ed.B2Action = executeCmd
-		tagWidget.ed.B3Action = findInEditor
-		mainWidget.ed.B3Action = findInEditor
-
-		widgets := []*widget{
-			tagWidget,
-			mainWidget,
-		}
-		selected := mainWidget
+		selPane := panes[0]
+		selWidget := panes[0].main
 
 		var lastSize image.Point
-
 		for {
 			e := win.NextEvent()
 			//dprintf("event: %#v", e)
@@ -121,14 +93,14 @@ func main() {
 				if e.Direction == key.DirPress && e.Modifiers == key.ModMeta {
 					switch e.Code {
 					case key.CodeS:
-						save()
+						selPane.save()
 					case key.CodeQ:
 						return
 					}
 				}
 
 				if e.Direction == key.DirPress || e.Direction == key.DirNone {
-					selected.ed.SendKeyEvent(e)
+					selWidget.ed.SendKeyEvent(e)
 					win.Send(paint.Event{})
 				}
 
@@ -141,36 +113,40 @@ func main() {
 
 				if e.Direction == mouse.DirPress || e.Button == mouse.ButtonScroll {
 					if w, ok := sel(e.Pos, widgets); ok {
-						selected = w
+						selWidget = w
 					}
 				}
-				e.Pos = e.Pos.Sub(selected.r.Min)
+				e.Pos = e.Pos.Sub(selWidget.r.Min)
 
-				selected.ed.SendMouseEvent(e)
+				selWidget.ed.SendMouseEvent(e)
 				win.Send(paint.Event{})
 
 			case paint.Event:
 				if lastSize != winSize {
 					dprintf("resizing widgets")
 					lastSize = winSize
-					resize(scr)
+
+					selPane.tag.resize(image.Pt(winSize.X, tagHeight), image.ZP)
+					selPane.main.resize(image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1))
 				}
 
 				dirty := false
 
-				// TODO: avoid this when unnecessary
-				updateTag()
+				for i, p := range panes {
+					// TODO: avoid this when unnecessary
+					p.updateTag()
 
-				if mainWidget.ed.Dirty() || mainWidget.dirty {
-					dprintf("redrawing mainWidget")
-					dirty = true
-					mainWidget.redraw()
-				}
+					if p.main.ed.Dirty() || p.main.dirty {
+						dprintf("drawing pane %d main", i)
+						dirty = true
+						p.main.draw()
+					}
 
-				if tagWidget.ed.Dirty() || tagWidget.dirty {
-					dprintf("redrawing tagWidget")
-					dirty = true
-					tagWidget.redraw()
+					if p.tag.ed.Dirty() || p.tag.dirty {
+						dprintf("drawing pane %d tag", i)
+						dirty = true
+						p.tag.draw()
+					}
 				}
 
 				// redraw screen if any widgets changed
@@ -188,11 +164,11 @@ func main() {
 					pixelsPerPt = e.PixelsPerPt
 					updateFont(e)
 
-					tagWidget.ed.SetFont(fontFace)
+					selPane.tag.ed.SetFont(fontFace)
 					m := fontFace.Metrics()
 					tagHeight = (m.Ascent + m.Descent).Round()
 
-					mainWidget.ed.SetFont(fontFace)
+					selPane.main.ed.SetFont(fontFace)
 				}
 				winSize = e.Size()
 
@@ -206,9 +182,4 @@ func main() {
 			}
 		}
 	})
-}
-
-func resize(s screen.Screen) {
-	tagWidget.resize(s, image.Pt(winSize.X, tagHeight), image.ZP)
-	mainWidget.resize(s, image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1))
 }

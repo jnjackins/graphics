@@ -14,7 +14,7 @@ import (
 
 var dir bool
 
-func load(path string) error {
+func (p *pane) load(path string) error {
 	f, err := os.Open(path)
 	if os.IsNotExist(err) {
 		return nil
@@ -46,37 +46,37 @@ func load(path string) error {
 		}
 	}
 
-	mainWidget.ed.Load(contents)
-	mainWidget.ed.SetDot(address.Selection{})
-	mainWidget.ed.SetSaved()
-	
-	currentPath = path
-	savedPath = path
+	p.main.ed.Load(contents)
+	p.main.ed.SetDot(address.Selection{})
+	p.main.ed.SetSaved()
+
+	p.currentPath = path
+	p.savedPath = path
 
 	return nil
 }
 
-func save() {
-	if mainWidget.ed.Saved() && currentPath == savedPath {
+func (p *pane) save() {
+	if p.main.ed.Saved() && p.currentPath == p.savedPath {
 		return
 	}
 
-	if currentPath == "" {
+	if p.currentPath == "" {
 		return
 	}
-	f, err := os.Create(currentPath)
+	f, err := os.Create(p.currentPath)
 	if err != nil {
-		log.Printf("error opening %q for writing: %v", currentPath, err)
+		log.Printf("error opening %q for writing: %v", p.currentPath, err)
 		return
 	}
 	defer f.Close()
 
-	r := bytes.NewBuffer(mainWidget.ed.Contents())
+	r := bytes.NewBuffer(p.main.ed.Contents())
 	if _, err := io.Copy(f, r); err != nil {
-		log.Printf("error writing to %q: %v", currentPath, err)
+		log.Printf("error writing to %q: %v", p.currentPath, err)
 		return
 	}
 
-	mainWidget.ed.SetSaved()
-	savedPath = currentPath
+	p.main.ed.SetSaved()
+	p.savedPath = p.currentPath
 }

@@ -18,12 +18,12 @@ type widget struct {
 	dirty bool
 }
 
-func newWidget(s screen.Screen, size, loc image.Point, opts *editor.OptionSet, face font.Face) *widget {
-	buf, err := s.NewBuffer(size)
+func newWidget(size, loc image.Point, opts *editor.OptionSet, face font.Face) *widget {
+	buf, err := scr.NewBuffer(size)
 	if err != nil {
 		log.Fatalf("error creating buffer: %v", err)
 	}
-	tx, err := s.NewTexture(size)
+	tx, err := scr.NewTexture(size)
 	if err != nil {
 		log.Fatalf("error creating texture: %v", err)
 	}
@@ -45,18 +45,18 @@ func sel(pt image.Point, widgets []*widget) (*widget, bool) {
 	return nil, false
 }
 
-func (w *widget) resize(s screen.Screen, size, loc image.Point) {
+func (w *widget) resize(size, loc image.Point) {
 	w.r = image.Rectangle{loc, loc.Add(size)}
 
 	w.tx.Release()
-	tx, err := s.NewTexture(size)
+	tx, err := scr.NewTexture(size)
 	if err != nil {
 		log.Fatalf("error resizing texture: %v", err)
 	}
 	w.tx = tx
 
 	w.buf.Release()
-	buf, err := s.NewBuffer(size)
+	buf, err := scr.NewBuffer(size)
 	if err != nil {
 		log.Fatalf("error resizing buffer: %v", err)
 	}
@@ -65,7 +65,7 @@ func (w *widget) resize(s screen.Screen, size, loc image.Point) {
 	w.dirty = true
 }
 
-func (w *widget) redraw() {
+func (w *widget) draw() {
 	w.ed.Draw(w.buf.RGBA(), w.buf.Bounds())
 	w.tx.Upload(image.ZP, w.buf, w.buf.Bounds())
 	w.dirty = false
