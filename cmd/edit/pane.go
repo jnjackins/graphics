@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"log"
 	"path/filepath"
@@ -26,6 +27,11 @@ type pane struct {
 	// the destructive action must be requested twice within
 	// confirmDuration.
 	confirmTime time.Time
+}
+
+func (p *pane) String() string {
+	return fmt.Sprintf("pane(pos=%v, savedPath=%q, currentPath=%q, dir=%v, cwd=%q)",
+		p.pos, p.savedPath, p.currentPath, p.dir, p.cwd)
 }
 
 // newPane creates a new pane. If data is nil, the file named by
@@ -106,7 +112,7 @@ func addPane(name string, data []byte) {
 	for _, p := range panes {
 		p.resize()
 	}
-	dprintf("added pane: %#v", p)
+	dprintf("added pane: %v", p)
 }
 
 func deletePane(i int) {
