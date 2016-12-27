@@ -7,9 +7,9 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"sigint.ca/graphics/editor/address"
+	"sigint.ca/text/column"
 )
 
 func (p *pane) load(data []byte) {
@@ -39,7 +39,13 @@ func (p *pane) loadFile(path string) error {
 		if err != nil {
 			return err
 		}
-		contents = []byte(strings.Join(names, "\n"))
+		var buf bytes.Buffer
+		colwriter := column.NewWriter(&buf, 100)
+		for _, n := range names {
+			colwriter.Write([]byte(n + "\n"))
+		}
+		colwriter.Flush()
+		contents = buf.Bytes()
 		p.cwd = path
 	} else {
 		contents, err = ioutil.ReadAll(f)
