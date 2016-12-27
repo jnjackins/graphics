@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -44,6 +45,9 @@ func (p *pane) executeCmd(cmd string) {
 			paths = args[1:]
 		}
 		for _, path := range paths {
+			if !filepath.IsAbs(path) {
+				path = p.cwd + path
+			}
 			addPane(path, nil)
 		}
 	case "Exit":
@@ -112,8 +116,11 @@ func (p *pane) pipe(cmd string) {
 func (p *pane) run(cmd string) {
 	args := strings.Fields(cmd)
 	go func() {
-		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
+		command := exec.Command(args[0], args[1:]...)
+		command.Dir = p.cwd
+		out, err := command.CombinedOutput()
 		if err != nil || len(out) == 0 {
+			dprintf("failed to run cmd=%q: %v", cmd, err)
 			return
 		}
 		addPane(p.cwd+"+Errors", out)
