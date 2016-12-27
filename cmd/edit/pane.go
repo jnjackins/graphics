@@ -2,6 +2,8 @@ package main
 
 import (
 	"image"
+	"log"
+	"path/filepath"
 	"time"
 
 	"sigint.ca/graphics/editor"
@@ -17,6 +19,8 @@ type pane struct {
 
 	savedPath   string
 	currentPath string
+	dir         bool
+	cwd         string
 
 	// used for confirmation before closing unsaved pane.
 	// the destructive action must be requested twice within
@@ -24,27 +28,36 @@ type pane struct {
 	confirmTime time.Time
 }
 
-func newPane(path string) (*pane, error) {
-	p := &pane{currentPath: path}
+// newPane creates a new pane. If data is nil, the file named by
+// name will be loaded into the main editor widget, otherwise
+// the contents of data will be loaded. In either case, the tag
+// widget will display name at the left side.
+func newPane(name string, data []byte) (*pane, error) {
+	p := &pane{currentPath: name}
 
+	p.pos = npanes
 	npanes++
-	height := winSize.Y / npanes
 
 	// set up the main editor widget
-	sz, pt := image.Pt(winSize.X, height-tagHeight), image.Pt(0, tagHeight+1)
-	p.main = newWidget(sz, pt, editor.AcmeYellowTheme, fontFace)
+	sz, pt := p.mainDimensions()
+	p.main = p.newWidget(sz, pt, editor.AcmeYellowTheme, fontFace)
 
-	// load file into main editor widget
-	if err := p.load(path); err != nil {
-		return nil, err
+	// load text into main editor widget
+	if data != nil {
+		p.load(data)
+		p.cwd = getAbs(filepath.Dir(name))
+	} else {
+		if err := p.loadFile(name); err != nil {
+			return nil, err
+		}
 	}
 
 	// set up the tag widget
-	sz, pt = image.Pt(winSize.X, tagHeight), image.ZP
-	p.tag = newWidget(sz, pt, editor.AcmeBlueTheme, fontFace)
+	sz, pt = p.tagDimensions()
+	p.tag = p.newWidget(sz, pt, editor.AcmeBlueTheme, fontFace)
 
 	// populate the tag
-	p.tag.ed.Load([]byte(path + " "))
+	p.tag.ed.Load([]byte(p.currentPath + " "))
 	p.updateTag()
 	end := p.tag.ed.LastAddress()
 	p.tag.ed.SetDot(address.Selection{From: end, To: end})
@@ -61,12 +74,63 @@ func newPane(path string) (*pane, error) {
 	return p, nil
 }
 
-func (p *pane) release() {
-	p.tag.release()
-	p.main.release()
+func (p *pane) tagDimensions() (size, pos image.Point) {
+	h := winSize.Y / npanes
+	y := h * p.pos
+	return image.Pt(winSize.X, tagHeight), image.Pt(0, y)
+}
+
+func (p *pane) mainDimensions() (size, pos image.Point) {
+	h := winSize.Y / npanes
+	y := h * p.pos
+	return image.Pt(winSize.X, h-tagHeight), image.Pt(0, y+tagHeight+1)
+}
+
+func (p *pane) resize() {
+	p.tag.resize(p.tagDimensions())
+	p.main.resize(p.mainDimensions())
 }
 
 func (p *pane) draw() {
 	p.tag.draw()
 	p.main.draw()
+}
+
+func addPane(name string, data []byte) {
+	p, err := newPane(name, data)
+	if err != nil {
+		log.Print(err)
+		return
+	}
+	panes = append(panes, p)
+	for _, p := range panes {
+		p.resize()
+	}
+	dprintf("added pane: %#v", p)
+}
+
+func deletePane(i int) {
+	p := panes[i]
+
+	// remove widgets from global slice
+	for i, w := range widgets {
+		if w == p.tag {
+			widgets = append(widgets[:i], widgets[i+1:]...)
+		}
+	}
+	for i, w := range widgets {
+		if w == p.main {
+			widgets = append(widgets[:i], widgets[i+1:]...)
+		}
+	}
+	// release widgets
+	p.tag.release()
+	p.main.release()
+
+	// remove pane from global slice
+	panes = append(panes[:i], panes[i+1:]...)
+	for ; i < len(panes); i++ {
+		panes[i].pos--
+	}
+	npanes--
 }

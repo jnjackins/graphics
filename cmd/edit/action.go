@@ -2,12 +2,12 @@ package main
 
 import (
 	"bytes"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
 
 	"golang.org/x/mobile/event/lifecycle"
+	"golang.org/x/mobile/event/paint"
 	"sigint.ca/graphics/editor/address"
 )
 
@@ -24,38 +24,54 @@ func (p *pane) findInEditor(s string) {
 }
 
 func (p *pane) executeCmd(cmd string) {
-	cmd = strings.TrimSpace(cmd)
-	if cmd == "" {
+	args := strings.Fields(cmd)
+	if len(args) == 0 {
 		return
 	}
 
-	switch cmd {
+	switch args[0] {
 	case "Put":
-		if !dir {
+		if !p.dir {
 			p.save()
 		}
 	case "Undo":
 		p.main.ed.SendUndo()
 	case "Redo":
 		p.main.ed.SendRedo()
+	case "New":
+		paths := []string{""}
+		if len(args) > 1 {
+			paths = args[1:]
+		}
+		for _, path := range paths {
+			addPane(path, nil)
+		}
 	case "Exit":
 		if p.confirmUnsaved() {
-			win.Send(lifecycle.Event{To: lifecycle.StageDead})
+			dprintf("deleting pane %d", p.pos)
+			deletePane(p.pos)
+			if len(panes) == 0 {
+				win.Send(lifecycle.Event{To: lifecycle.StageDead})
+			}
+			for _, p := range panes {
+				p.resize()
+			}
 		} else {
 			return
 		}
 	case "Get":
 		if p.confirmUnsaved() {
-			p.load(p.savedPath)
+			p.loadFile(p.savedPath)
 		} else {
 			return
 		}
+
 	default:
-		switch cmd[0] {
+		switch args[0][0] {
 		case '|':
 			p.pipe(cmd[1:])
 		default:
-			run(cmd)
+			p.run(cmd)
 		}
 	}
 
@@ -81,6 +97,9 @@ func (p *pane) pipe(cmd string) {
 	in := bytes.NewBufferString(ed.GetDotContents())
 	out := new(bytes.Buffer)
 	args := strings.Fields(cmd)
+	if len(args) == 0 {
+		return
+	}
 	c := exec.Command(args[0], args[1:]...)
 	c.Stdin = in
 	c.Stdout = out
@@ -90,16 +109,14 @@ func (p *pane) pipe(cmd string) {
 	ed.Replace(out.String())
 }
 
-// BUG: only works if the command exits.
-func run(cmd string) {
+func (p *pane) run(cmd string) {
 	args := strings.Fields(cmd)
 	go func() {
 		out, err := exec.Command(args[0], args[1:]...).CombinedOutput()
 		if err != nil || len(out) == 0 {
 			return
 		}
-		editor := exec.Command(os.Args[0], "/dev/stdin")
-		editor.Stdin = bytes.NewBuffer(out)
-		editor.Run()
+		addPane(p.cwd+"+Errors", out)
+		win.Send(paint.Event{})
 	}()
 }

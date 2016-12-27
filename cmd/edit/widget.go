@@ -11,6 +11,7 @@ import (
 )
 
 type widget struct {
+	pane  *pane
 	ed    *editor.Editor
 	r     image.Rectangle
 	buf   screen.Buffer
@@ -18,7 +19,7 @@ type widget struct {
 	dirty bool
 }
 
-func newWidget(size, loc image.Point, opts *editor.OptionSet, face font.Face) *widget {
+func (p *pane) newWidget(size, loc image.Point, opts *editor.OptionSet, face font.Face) *widget {
 	buf, err := scr.NewBuffer(size)
 	if err != nil {
 		log.Fatalf("error creating buffer: %v", err)
@@ -27,13 +28,14 @@ func newWidget(size, loc image.Point, opts *editor.OptionSet, face font.Face) *w
 	if err != nil {
 		log.Fatalf("error creating texture: %v", err)
 	}
-	w := &widget{
-		ed:  editor.NewEditor(face, opts),
-		r:   image.Rectangle{loc, loc.Add(size)},
-		buf: buf,
-		tx:  tx,
+	return &widget{
+		pane:  p,
+		ed:    editor.NewEditor(face, opts),
+		r:     image.Rectangle{loc, loc.Add(size)},
+		buf:   buf,
+		tx:    tx,
+		dirty: true,
 	}
-	return w
 }
 
 func sel(pt image.Point, widgets []*widget) (*widget, bool) {
@@ -45,8 +47,8 @@ func sel(pt image.Point, widgets []*widget) (*widget, bool) {
 	return nil, false
 }
 
-func (w *widget) resize(size, loc image.Point) {
-	w.r = image.Rectangle{loc, loc.Add(size)}
+func (w *widget) resize(size, pos image.Point) {
+	w.r = image.Rectangle{pos, pos.Add(size)}
 
 	w.tx.Release()
 	tx, err := scr.NewTexture(size)

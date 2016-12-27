@@ -36,7 +36,13 @@ func (p *pane) updateTag() {
 	dot := p.tag.ed.GetDot()
 
 	// load the new text
-	fixed := p.currentPath + " " + new + tagSep
+	var fixed string
+	if p.dir {
+		fixed = p.cwd
+	} else {
+		fixed = p.currentPath
+	}
+	fixed += " " + new + tagSep
 	p.tag.ed.Load([]byte(fixed + keep))
 
 	// and fix the selection
@@ -53,7 +59,7 @@ func (p *pane) updateTag() {
 func (p *pane) tagCmds() string {
 	var parts []string
 
-	if !dir {
+	if !p.dir {
 		if p.main.ed.CanUndo() {
 			parts = append(parts, "Undo")
 		}

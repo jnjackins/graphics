@@ -12,9 +12,13 @@ import (
 	"sigint.ca/graphics/editor/address"
 )
 
-var dir bool
+func (p *pane) load(data []byte) {
+	p.main.ed.Load(data)
+	p.main.ed.SetDot(address.Selection{})
+	p.main.ed.SetSaved()
+}
 
-func (p *pane) load(path string) error {
+func (p *pane) loadFile(path string) error {
 	f, err := os.Open(path)
 	if os.IsNotExist(err) {
 		return nil
@@ -30,25 +34,22 @@ func (p *pane) load(path string) error {
 
 	var contents []byte
 	if fi.IsDir() {
-		dir = true
+		p.dir = true
 		names, err := f.Readdirnames(0)
 		if err != nil {
 			return err
 		}
 		contents = []byte(strings.Join(names, "\n"))
-		if abs, err := filepath.Abs(path); err == nil {
-			path = abs
-		}
+		p.cwd = path
 	} else {
 		contents, err = ioutil.ReadAll(f)
 		if err != nil {
 			return err
 		}
 	}
+	p.cwd = getAbs(p.cwd)
 
-	p.main.ed.Load(contents)
-	p.main.ed.SetDot(address.Selection{})
-	p.main.ed.SetSaved()
+	p.load(contents)
 
 	p.currentPath = path
 	p.savedPath = path
@@ -56,6 +57,17 @@ func (p *pane) load(path string) error {
 	return nil
 }
 
+func getAbs(name string) string {
+	abs, err := filepath.Abs(name)
+	if err != nil {
+		dprintf("couldn't get absolute path for %q: %v", name, err)
+	}
+	if abs != "/" {
+		abs += "/"
+	}
+	return abs
+
+}
 func (p *pane) save() {
 	if p.main.ed.Saved() && p.currentPath == p.savedPath {
 		return

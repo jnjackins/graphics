@@ -26,6 +26,7 @@ var (
 	tagHeight int
 	borderCol = color.RGBA{R: 115, G: 115, B: 190, A: 255}
 
+	panes   []*pane
 	widgets []*widget
 )
 
@@ -37,21 +38,13 @@ var (
 func main() {
 	log.SetFlags(0)
 	flag.Usage = func() {
-		fmt.Fprintf(os.Stderr, "Usage: %s [file]\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Usage: %s [file ...]\n", os.Args[0])
 		flag.PrintDefaults()
 	}
 	flag.Parse()
 
 	if *dflag {
 		dprintf = log.Printf
-	}
-
-	var path string
-	if flag.NArg() == 1 {
-		path = flag.Arg(0)
-	} else if flag.NArg() > 1 {
-		flag.Usage()
-		os.Exit(1)
 	}
 
 	loadFont()
@@ -73,15 +66,14 @@ func main() {
 		m := fontFace.Metrics()
 		tagHeight = (m.Ascent + m.Descent).Round()
 
-		var panes []*pane
-		p, err := newPane(path)
-		if err != nil {
-			log.Fatal(err)
+		paths := []string{""}
+		if flag.NArg() >= 1 {
+			paths = flag.Args()
 		}
-		panes = append(panes, p)
-		defer panes[0].release()
+		for _, path := range paths {
+			addPane(path, nil)
+		}
 
-		selPane := panes[0]
 		selWidget := panes[0].main
 
 		var lastSize image.Point
@@ -93,7 +85,7 @@ func main() {
 				if e.Direction == key.DirPress && e.Modifiers == key.ModMeta {
 					switch e.Code {
 					case key.CodeS:
-						selPane.save()
+						selWidget.pane.save()
 					case key.CodeQ:
 						return
 					}
@@ -123,11 +115,11 @@ func main() {
 
 			case paint.Event:
 				if lastSize != winSize {
-					dprintf("resizing widgets")
+					dprintf("resizing panes")
 					lastSize = winSize
-
-					selPane.tag.resize(image.Pt(winSize.X, tagHeight), image.ZP)
-					selPane.main.resize(image.Pt(winSize.X, winSize.Y-tagHeight), image.Pt(0, tagHeight+1))
+					for _, p := range panes {
+						p.resize()
+					}
 				}
 
 				dirty := false
@@ -164,11 +156,13 @@ func main() {
 					pixelsPerPt = e.PixelsPerPt
 					updateFont(e)
 
-					selPane.tag.ed.SetFont(fontFace)
-					m := fontFace.Metrics()
-					tagHeight = (m.Ascent + m.Descent).Round()
+					for _, p := range panes {
+						p.tag.ed.SetFont(fontFace)
+						m := fontFace.Metrics()
+						tagHeight = (m.Ascent + m.Descent).Round()
 
-					selPane.main.ed.SetFont(fontFace)
+						p.main.ed.SetFont(fontFace)
+					}
 				}
 				winSize = e.Size()
 
